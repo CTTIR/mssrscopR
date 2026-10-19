@@ -10,7 +10,7 @@
 ^README\.Rmd$
 ^benchmarks($|/)
 ^data-raw($|/)
-(^|/)(\.msscopR-private|\.private|\.local|\.codex|\.claude|\.cursor|\.gemini|\.agents)($|/)
+(^|/)(\.mssrscopR-private|\.private|\.local|\.codex|\.claude|\.cursor|\.gemini|\.agents)($|/)
 (^|/)(AGENTS[^/]*|CLAUDE\.md|GEMINI\.md|ORCHESTRAT[^/]*|PROMPT[^/]*|LLM[^/]*|TRANSCRIPT[^/]*|CHATLOG[^/]*|PRIVATE[^/]*)(/|$)
 (^|/)[^/]*[._-](prompt|llm)[._-][^/]*$
 (^|/)[^/]*copilot[^/]*instructions[^/]*$

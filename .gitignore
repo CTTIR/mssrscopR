@@ -29,7 +29,7 @@
 !/tools/
 !/.github/
 # Private development material: excluded at any depth.
-**/.msscopR-private/
+**/.mssrscopR-private/
 **/.private/
 **/.local/
 **/.codex/

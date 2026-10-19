@@ -1,4 +1,4 @@
-# msscopR
+# mssrscopR
 
 R package for **Mean Shift Super Resolution (MSSR)**.
 
@@ -8,7 +8,7 @@ The package is at an early development stage and does not yet implement the meth
 
 ```r
 # install.packages("pak")
-pak::pak("CTTIR/msscopR")
+pak::pak("CTTIR/mssrscopR")
 ```
 
 ## License
