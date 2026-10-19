@@ -1,0 +1,13 @@
+Package: msscopR
+Title: Mean Shift Super Resolution
+Version: 0.0.0.9000
+Authors@R: person("R.", "Heller", email = "58561665+r-heller@users.noreply.github.com", role = c("aut", "cre"))
+Description: Planned tools for Mean Shift Super Resolution ('MSSR') in R.
+    The package is at an early development stage and does not yet
+    implement the method.
+License: MIT + file LICENSE
+URL: https://github.com/CTTIR/msscopR
+BugReports: https://github.com/CTTIR/msscopR/issues
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Config/roxygen2/version: 8.0.0
