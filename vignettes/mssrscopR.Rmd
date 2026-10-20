@@ -1,0 +1,96 @@
+---
+title: "Single-frame MSSR with mssrscopR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Single-frame MSSR with mssrscopR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 2.6)
+library(mssrscopR)
+show <- function(m, main) {
+  graphics::image(t(m[nrow(m):1, ]), col = grDevices::gray.colors(128, 0, 1),
+                  axes = FALSE, main = main, cex.main = 0.9, asp = nrow(m) / ncol(m))
+}
+```
+
+All images here are synthetic. Every structure is generated in this document,
+so the true scene is known.
+
+## The operator
+
+Mean-Shift Super-Resolution (MSSR; Torres-García et al. 2022,
+doi:10.1038/s41467-022-34693-9) subtracts a local, range-weighted mean-shift
+estimate from each pixel and refines the result over `order` steps. `fwhm` is
+the point-spread function width in **input pixels**, and it must be supplied.
+
+```{r points}
+g <- expand.grid(r = 1:31, c = 1:41)
+spot <- function(r0, c0, a = 1) a * exp(-((g$r - r0)^2 + (g$c - c0)^2) / (2 * (3 / 2.3548)^2))
+x <- matrix(spot(16, 18) + spot(16, 21) + 0.05, 31, 41)   # 3 px apart, FWHM 3 px
+res <- mssr(x, fwhm = 3, amp = 2)
+res
+op <- par(mfrow = c(1, 2), mar = c(0.5, 0.5, 2, 0.5))
+show(x, "input"); show(as.matrix(res), "mssr(amp = 2)")
+par(op)
+```
+
+The two sources merge in the input but are separated in the structure map. The
+amplified grid only adds samples. `mssr_coords()` places them in input-pixel
+units, and the field of view stays `[0.5, n + 0.5]`:
+
+```{r coords}
+range(mssr_coords(res)$col)
+res$transform$spacing
+```
+
+## Known failure modes
+
+MSSR is nonlinear. A dim structure next to a bright one is strongly
+suppressed, and broad filled objects can be hollowed or fragmented:
+
+```{r failures}
+y <- matrix(spot(16, 14) + spot(16, 21.5, 0.1) + 0.02, 31, 41)   # 10:1 brightness
+disk <- outer(1:31, 1:41, function(r, c) as.numeric((r - 16)^2 + (c - 21)^2 <= 81))
+disk <- disk + 0.02
+ry <- as.matrix(mssr(y, fwhm = 3)); rd <- as.matrix(mssr(disk, fwhm = 3))
+c(input_ratio = y[16, 22] / y[16, 14], mssr_ratio = ry[16, 22] / ry[16, 14])
+op <- par(mfrow = c(1, 3), mar = c(0.5, 0.5, 2, 0.5))
+show(ry, "dim beside bright"); show(disk, "filled disk"); show(rd, "mssr(disk)")
+par(op)
+```
+
+The outputs are therefore **not quantitative**. `res$diagnostics$quantitative`
+is always `FALSE`.
+
+## Masks with measurements on the original data
+
+A structure map can select pixels, but measurements belong to the original
+image. `mssr_mask()` keeps an exact fraction of a region and reports how many
+pixels were tied at the threshold. Ties are frequent because the mean shift is
+clipped at zero.
+
+```{r mask}
+m <- mssr_mask(mssr(x, fwhm = 3), fraction = 0.2)
+c(coverage = attr(m, "coverage"), tie_fraction = attr(m, "tie_fraction"))
+c(mean_all = mean(x), mean_masked = mean(x[m]))
+```
+
+Selecting pixels this way changes the measured population. It is not known to
+improve any downstream analysis, so evaluate it for your own task.
+
+## Unsupported requests fail clearly
+
+```{r errors}
+try(mssr(array(0, c(4, 4, 3)), fwhm = 3))     # no axis is guessed
+try(mssr(matrix(c(1, NA, 3, 4), 2), fwhm = 3)) # non-finite input
+```
+
+## Checking an installation
+
+```{r selftest}
+st <- mssr_selftest()
+st[, c("fixture_id", "max_abs_error", "passed")]
+```

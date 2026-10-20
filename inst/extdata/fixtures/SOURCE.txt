@@ -1,0 +1,4 @@
+Synthetic fixtures for mssrscopR (authored; MIT, see the package LICENSE).
+Inputs are small deterministic arrays; expected outputs were produced by the engine
+definition mssr_r_rev1 at the parameters in index.csv (rows = y, cols = x;
+comma-separated, no header, 17 significant digits). No research data.

@@ -4,9 +4,9 @@
 \name{mssrscopR-package}
 \alias{mssrscopR}
 \alias{mssrscopR-package}
-\title{mssrscopR: Mean Shift Super Resolution}
+\title{mssrscopR: Mean-Shift Super-Resolution Image Processing and Validation}
 \description{
-Planned tools for Mean Shift Super Resolution ('MSSR') in R. The package is at an early development stage and does not yet implement the method.
+Computes the single-frame Mean-Shift Super-Resolution ('MSSR') structure map of Torres-Garcia et al. (2022) \doi{10.1038/s41467-022-34693-9} with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, and a self-test against bundled synthetic fixtures. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.
 }
 \seealso{
 Useful links:

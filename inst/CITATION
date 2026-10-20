@@ -1,0 +1,22 @@
+bibentry(
+  bibtype = "Article",
+  header = "Please cite the MSSR method paper:",
+  title = "Extending resolution within a single imaging frame",
+  author = c(person("Esley", "Torres-García"), person("Raúl", "Pinto-Cámara"),
+             person("Alejandro", "Linares"), person(family = "et al.")),
+  journal = "Nature Communications",
+  year = "2022",
+  volume = "13",
+  pages = "7452",
+  doi = "10.1038/s41467-022-34693-9"
+)
+
+bibentry(
+  bibtype = "Manual",
+  header = "When referring to this implementation, also cite:",
+  title = "mssrscopR: Mean-Shift Super-Resolution Image Processing and Validation",
+  author = person("R.", "Heller"),
+  year = "2026",
+  note = paste("R package version", meta$Version),
+  url = "https://github.com/CTTIR/mssrscopR"
+)
