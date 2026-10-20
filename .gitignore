@@ -8,6 +8,8 @@
 !/README.md
 !/README.Rmd
 !/CITATION.cff
+!/.zenodo.json
+!/codecov.yml
 !/CODE_OF_CONDUCT.md
 !/CONTRIBUTING.md
 !/SECURITY.md

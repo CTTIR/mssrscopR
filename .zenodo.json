@@ -1,0 +1,19 @@
+{
+  "title": "mssrscopR: Mean-Shift Super-Resolution Image Processing and Validation",
+  "version": "0.1.0",
+  "creators": [
+    {
+      "name": "Heller, R.",
+      "orcid": "0000-0001-8006-9742"
+    }
+  ],
+  "license": "MIT",
+  "keywords": ["super-resolution", "MSSR", "microscopy", "image processing", "R"],
+  "related_identifiers": [
+    {
+      "identifier": "10.1038/s41467-022-34693-9",
+      "relation": "isSupplementTo",
+      "scheme": "doi"
+    }
+  ]
+}

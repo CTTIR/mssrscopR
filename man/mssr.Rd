@@ -24,9 +24,9 @@ mssr(
 \strong{input pixels}. Required; there is no default because it is a property
 of the acquisition.}
 
-\item{amp}{Amplification factor (positive whole number).}
+\item{amp}{Amplification factor (whole number from 1 to 64).}
 
-\item{order}{MSSR order (non-negative whole number, at most 10).}
+\item{order}{MSSR order (whole number from 0 to 10).}
 
 \item{intensity_normalize}{If \code{TRUE} (the authors' default) the structure
 map is multiplied by the (amplified) input.}
@@ -34,17 +34,17 @@ map is multiplied by the (amplified) input.}
 \item{mesh}{Mesh compensation after amplification (only used if \code{amp > 1}).}
 
 \item{grid}{\code{"extent"} (field-of-view-preserving, default) or \code{"endpoint"}
-(samples from the first to the last input pixel centre, as the authors'
+(samples from the first to the last input pixel center, as the authors'
 code does; for comparison only).}
 
-\item{kernel}{Neighbourhood shape: \code{"disk"} (authors' R code) or
+\item{kernel}{Neighborhood shape: \code{"disk"} (authors' R code) or
 \code{"square"} (authors' Python code).}
 
 \item{rounding}{Rounding of the kernel half-size \code{0.5 * fwhm * amp}:
 \code{"half_even"} (R and Python default) or \code{"half_up"}.}
 
 \item{max_output_pixels}{Upper limit on output pixels, checked before any
-allocation.}
+computation.}
 }
 \value{
 An object of class \code{mssr_result}: a list with \code{values} (numeric
@@ -61,17 +61,38 @@ and can hollow or split broad objects. Take measurements from the original
 data (see \code{\link[=mssr_mask]{mssr_mask()}}).
 }
 \details{
-The implementation follows the published operator. It keeps the input
-orientation, accepts non-square frames, returns zeros (flagged
-\code{degenerate}) for flat input instead of \code{NaN}, and uses Keys cubic
-convolution for amplification. With \code{grid = "extent"} the amplified grid
-preserves the field of view: output pixel centres lie at
-\code{(k - 0.5) / amp + 0.5} input pixels, so the spacing is exactly \code{1 / amp}.
-At \code{amp = 1} the output equals the authors' single-frame R and Python code,
-once their rotation and kernel conventions are taken into account. For
-\code{amp > 1} it is not numerically identical to their interpolation. Every
-order step uses whole-image maxima, so frames must be processed whole;
-splitting a frame into tiles changes the result.
+\strong{Geometry.} The output keeps the input orientation. With
+\code{grid = "extent"} the amplified grid preserves the field of view: output
+pixel centers lie at \code{(k - 0.5) / amp + 0.5} input pixels, so the spacing is
+exactly \code{1 / amp}. Amplification adds samples, not independent observations.
+
+\strong{Relation to the authors' code.} At \code{amp = 1} with
+\code{intensity_normalize = FALSE}, the output equals the authors' single-frame R
+function after its final 90-degree rotation is undone (\code{kernel = "disk"}) or
+their Python function (\code{kernel = "square"}), wherever their code returns
+finite values. For \code{amp > 1}, Keys cubic convolution is used, which is not
+numerically identical to the authors' interpolation.
+
+\strong{Degenerate input.} A flat frame, a frame whose amplified maximum is not
+positive, and a frame without any positive mean shift return zeros with
+\code{diagnostics$degenerate = TRUE} and a \code{degenerate_reason}. A refinement step
+(\code{order >= 1}) is undefined when the mean-shift map already equals the
+normalized input, for example for isolated impulses on an exactly zero
+background. Such a step leaves the map unchanged and is counted in
+\code{diagnostics$order_steps_skipped}. The authors' code returns \code{NaN} in all of
+these cases.
+
+\strong{Negative values.} MSSR assumes non-negative intensities. With negative
+input the structure map depends on the offset of the data and
+intensity-weighted output can be negative, so a warning of class
+\code{mssrscopR_warning_negative} is given.
+
+\strong{Cost.} Every order step uses image-wide maxima, so frames must be
+processed whole. Time grows with the number of output pixels times the
+number of neighborhood offsets (about \code{pi * (0.5 * fwhm * amp)^2}). Calls whose
+estimated work exceeds 1e10 operations, whose output exceeds
+\code{max_output_pixels}, or whose kernel half-size exceeds 1000 pixels are
+refused before computing.
 }
 \examples{
 # Two point sources 3 pixels apart, blurred with FWHM 3 px.

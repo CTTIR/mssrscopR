@@ -1,7 +1,11 @@
 Package: mssrscopR
 Title: Mean-Shift Super-Resolution Image Processing and Validation
 Version: 0.1.0
-Authors@R: person("R.", "Heller", email = "58561665+r-heller@users.noreply.github.com", role = c("aut", "cre"))
+Authors@R:
+    person("R.", "Heller",
+           email = "raban.heller@uni-ulm.de",
+           role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0001-8006-9742"))
 Description: Computes the single-frame Mean-Shift Super-Resolution ('MSSR')
     structure map of Torres-Garcia et al. (2022) <doi:10.1038/s41467-022-34693-9>
     with an independently written implementation that keeps the input
@@ -11,11 +15,14 @@ Description: Computes the single-frame Mean-Shift Super-Resolution ('MSSR')
     Results are structural maps, not quantitative intensities; no gain in
     physical resolution or benefit for any application is implied.
 License: MIT + file LICENSE
-URL: https://github.com/CTTIR/mssrscopR
+URL: https://github.com/CTTIR/mssrscopR,
+    https://cttir.github.io/mssrscopR/
 BugReports: https://github.com/CTTIR/mssrscopR/issues
 Encoding: UTF-8
+Language: en-US
 Depends: R (>= 4.1.0)
 Imports:
+    cli,
     stats,
     utils,
     withr
@@ -27,3 +34,4 @@ VignetteBuilder: knitr
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.0.0
+Config/Needs/website: CTTIR/themakR

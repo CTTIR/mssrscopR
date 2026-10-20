@@ -1,6 +1,7 @@
+citHeader("To cite mssrscopR in publications, cite the MSSR method paper and the package:")
+
 bibentry(
   bibtype = "Article",
-  header = "Please cite the MSSR method paper:",
   title = "Extending resolution within a single imaging frame",
   author = c(person("Esley", "Torres-García"), person("Raúl", "Pinto-Cámara"),
              person("Alejandro", "Linares"), person(family = "et al.")),
@@ -13,9 +14,8 @@ bibentry(
 
 bibentry(
   bibtype = "Manual",
-  header = "When referring to this implementation, also cite:",
   title = "mssrscopR: Mean-Shift Super-Resolution Image Processing and Validation",
-  author = person("R.", "Heller"),
+  author = person("R.", "Heller", email = "raban.heller@uni-ulm.de", role = c("aut", "cre")),
   year = "2026",
   note = paste("R package version", meta$Version),
   url = "https://github.com/CTTIR/mssrscopR"

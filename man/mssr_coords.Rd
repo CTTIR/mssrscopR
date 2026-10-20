@@ -2,7 +2,7 @@
 % Please edit documentation in R/coords_mask.R
 \name{mssr_coords}
 \alias{mssr_coords}
-\title{Output pixel-centre coordinates}
+\title{Output pixel-center coordinates}
 \usage{
 mssr_coords(result)
 }
@@ -13,8 +13,8 @@ mssr_coords(result)
 A list with numeric vectors \code{row} and \code{col}.
 }
 \description{
-Coordinates of the output pixel centres of an \code{\link[=mssr]{mssr()}} result, in input-pixel
-units (input pixel centres at 1..n). Use them to overlay results on the input
+Coordinates of the output pixel centers of an \code{\link[=mssr]{mssr()}} result, in input-pixel
+units (input pixel centers at 1..n). Use them to overlay results on the input
 grid; amplification adds samples, not independent observations.
 }
 \examples{

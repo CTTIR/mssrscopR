@@ -1,4 +1,6 @@
 Synthetic fixtures for mssrscopR (authored; MIT, see the package LICENSE).
-Inputs are small deterministic arrays; expected outputs were produced by the engine
-definition mssr_r_rev1 at the parameters in index.csv (rows = y, cols = x;
-comma-separated, no header, 17 significant digits). No research data.
+Inputs are small deterministic arrays; expected outputs were produced by the research
+engine definition mssr_r_rev1 at the parameters in index.csv (rows = y, cols = x;
+comma-separated, no header, 17 significant digits). The package engine mssr_r_rev2
+differs from rev1 only for degenerate input, which these fixtures do not exercise.
+They are regression oracles, not independent ground truth. No research data.

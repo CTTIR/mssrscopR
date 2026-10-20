@@ -1,0 +1,19 @@
+url: https://cttir.github.io/mssrscopR/
+template:
+  package: themakR
+development:
+  mode: auto
+reference:
+  - title: Single-frame MSSR
+    contents:
+      - mssr
+      - mssr_coords
+      - mssr_mask
+  - title: Validation
+    contents:
+      - mssr_selftest
+articles:
+  - title: Guides
+    navbar: ~
+    contents:
+      - mssrscopR

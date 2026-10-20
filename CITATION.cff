@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the MSSR method paper and this package."
+title: "mssrscopR: Mean-Shift Super-Resolution Image Processing and Validation"
+version: 0.1.0
+authors:
+  - family-names: Heller
+    given-names: "R."
+    orcid: "https://orcid.org/0000-0001-8006-9742"
+repository-code: "https://github.com/CTTIR/mssrscopR"
+license: MIT
+abstract: >-
+  Independent R implementation of single-frame Mean-Shift Super-Resolution
+  (MSSR) with explicit geometry, defined behavior for degenerate input,
+  structural masks for measuring original data, and a self-test against
+  bundled synthetic fixtures.
+references:
+  - type: article
+    title: "Extending resolution within a single imaging frame"
+    authors:
+      - family-names: Torres-García
+        given-names: Esley
+      - family-names: Pinto-Cámara
+        given-names: Raúl
+      - family-names: Linares
+        given-names: Alejandro
+      - name: "et al."
+    journal: "Nature Communications"
+    volume: 13
+    start: 7452
+    year: 2022
+    doi: "10.1038/s41467-022-34693-9"

@@ -1,19 +1,26 @@
-# Internal numerical kernel: engine definition "mssr_r_rev1".
+# Internal numerical kernel: engine definition "mssr_r_rev2".
 #
 # Single-frame Mean-Shift Super-Resolution (Torres-Garcia et al. 2022,
 # doi:10.1038/s41467-022-34693-9), independently implemented. Relative to the
 # authors' R script it keeps the input orientation (no rot90), supports
-# non-square frames, defines flat neighbourhoods (zero local range) and
-# all-zero mean-shift maps instead of producing 0/0, and interpolates with Keys
-# cubic convolution on a field-of-view-preserving grid. The loop recomputes the
-# shifted copies in a second pass instead of storing all of them; the order of
-# operations matches the reference definition, so results are identical.
+# non-square frames and interpolates with Keys cubic convolution on a
+# field-of-view-preserving grid.
+#
+# rev2 differs from rev1 (the research handoff engine) only where rev1 was
+# undefined or numerically unstable; both give identical results on all
+# bundled fixtures:
+#   - a flat frame (zero range) is flagged degenerate before amplification,
+#     instead of amplifying interpolation rounding noise;
+#   - a refinement step whose normalizer max(I5) is zero (the mean-shift map
+#     already equals the normalized input, e.g. impulses on an exactly zero
+#     background) leaves the map unchanged instead of zeroing it; such steps
+#     are counted in the diagnostics.
 
 # Kernel half-size; the authors' R and Python code round halves to even.
 mssr_half_size <- function(fwhm, amp, rounding) {
   x <- 0.5 * fwhm * amp
   hs <- if (rounding == "half_even") round(x) else floor(x + 0.5)
-  max(1L, as.integer(hs))
+  max(1, hs)
 }
 
 # Symmetric (half-sample) reflection of 1-based indices into 1..n.
@@ -26,12 +33,6 @@ mssr_reflect <- function(idx, n) {
   as.integer(ifelse(m < n, m + 1L, p - m))
 }
 
-# result[i, j] = img[i + di, j + dj] with symmetric boundary.
-mssr_shift <- function(img, di, dj) {
-  img[mssr_reflect(seq_len(nrow(img)) + di, nrow(img)),
-      mssr_reflect(seq_len(ncol(img)) + dj, ncol(img)), drop = FALSE]
-}
-
 # Keys cubic convolution kernel, a = -0.5.
 mssr_keys <- function(s, a = -0.5) {
   s <- abs(s)
@@ -39,7 +40,7 @@ mssr_keys <- function(s, a = -0.5) {
          ifelse(s < 2, a * s^3 - 5 * a * s^2 + 8 * a * s - 4 * a, 0))
 }
 
-# Output sample positions in input-pixel units (input centres at 1..n).
+# Output sample positions in input-pixel units (input centers at 1..n).
 mssr_grid_positions <- function(n, amp, grid) {
   k <- seq_len(n * amp)
   if (grid == "extent") {
@@ -51,27 +52,42 @@ mssr_grid_positions <- function(n, amp, grid) {
   }
 }
 
-mssr_interp_matrix <- function(n, amp, grid) {
+# Interpolate along the rows of `img` with the four Keys taps per output
+# position (memory proportional to the output, no dense matrix).
+mssr_interp_rows <- function(img, amp, grid) {
+  n <- nrow(img)
   u <- mssr_grid_positions(n, amp, grid)
-  A <- matrix(0, length(u), n)
   f <- floor(u)
+  out <- matrix(0, length(u), ncol(img))
   for (off in -1:2) {
     j <- f + off
-    w <- mssr_keys(u - j)
-    jj <- mssr_reflect(j, n)
-    for (r in seq_along(u)) A[r, jj[r]] <- A[r, jj[r]] + w[r]
+    out <- out + mssr_keys(u - j) * img[mssr_reflect(j, n), , drop = FALSE]
   }
-  A
+  out
 }
 
 mssr_upsample <- function(img, amp, grid) {
-  mssr_interp_matrix(nrow(img), amp, grid) %*% img %*% t(mssr_interp_matrix(ncol(img), amp, grid))
+  t(mssr_interp_rows(t(mssr_interp_rows(img, amp, grid)), amp, grid))
+}
+
+# Shift with cached reflected indices: result[i, j] = img[i + di, j + dj].
+mssr_shifter <- function(nr, nc) {
+  rows <- list()
+  cols <- list()
+  function(img, di, dj) {
+    ki <- as.character(di)
+    kj <- as.character(dj)
+    if (is.null(rows[[ki]])) rows[[ki]] <<- mssr_reflect(seq_len(nr) + di, nr)
+    if (is.null(cols[[kj]])) cols[[kj]] <<- mssr_reflect(seq_len(nc) + dj, nc)
+    img[rows[[ki]], cols[[kj]], drop = FALSE]
+  }
 }
 
 # Mesh compensation: mean of the image and four symmetric shifts.
 mssr_mesh <- function(img, desp) {
-  (img + mssr_shift(img, -desp, 0) + mssr_shift(img, desp, 0) +
-     mssr_shift(img, 0, -desp) + mssr_shift(img, 0, desp)) / 5
+  shift <- mssr_shifter(nrow(img), ncol(img))
+  (img + shift(img, -desp, 0) + shift(img, desp, 0) +
+     shift(img, 0, -desp) + shift(img, 0, desp)) / 5
 }
 
 # Block mean of an extent-grid image back to the input grid.
@@ -79,54 +95,84 @@ mssr_block_mean <- function(img, amp) {
   nr <- nrow(img) %/% amp
   nc <- ncol(img) %/% amp
   out <- matrix(0, nr, nc)
-  for (a in seq_len(amp)) for (b in seq_len(amp)) {
-    out <- out + img[seq(a, by = amp, length.out = nr), seq(b, by = amp, length.out = nc), drop = FALSE]
+  for (a in seq_len(amp)) {
+    for (b in seq_len(amp)) {
+      rows <- seq(a, by = amp, length.out = nr)
+      cols <- seq(b, by = amp, length.out = nc)
+      out <- out + img[rows, cols, drop = FALSE]
+    }
   }
   out / amp^2
+}
+
+# Neighborhood offsets (i fastest, as in the reference definition).
+mssr_offsets <- function(hs, kernel) {
+  offs <- expand.grid(i = -hs:hs, j = -hs:hs)
+  offs <- offs[!(offs$i == 0 & offs$j == 0), ]
+  if (kernel == "disk") offs <- offs[sqrt(offs$i^2 + offs$j^2) <= hs, ]
+  offs
 }
 
 # The operator. Inputs are already validated by mssr().
 mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rounding) {
   hs <- mssr_half_size(fwhm, amp, rounding)
-  AMP <- if (amp > 1L) {
+  offs <- mssr_offsets(hs, kernel)
+  result <- function(values, degenerate, reason = NA_character_, skipped = 0L) {
+    list(values = values, degenerate = degenerate, degenerate_reason = reason,
+         half_size = hs, n_offsets = nrow(offs), order_steps_skipped = skipped)
+  }
+  zeros <- function() matrix(0, nrow(img) * amp, ncol(img) * amp)
+  if (diff(range(img)) == 0) {
+    return(result(zeros(), TRUE, "flat input"))
+  }
+  amplified <- if (amp > 1L) {
     up <- mssr_upsample(img, amp, grid)
     if (mesh) mssr_mesh(up, ceiling(amp / 2)) else up
   } else {
     img
   }
-  offs <- expand.grid(i = -hs:hs, j = -hs:hs)
-  offs <- offs[!(offs$i == 0 & offs$j == 0), ]
-  if (kernel == "disk") offs <- offs[sqrt(offs$i^2 + offs$j^2) <= hs, ]
-  # Pass 1: maximum absolute local difference (range normaliser).
-  M <- NULL
-  for (k in seq_len(nrow(offs))) {
-    d <- abs(AMP - mssr_shift(AMP, offs$i[k], offs$j[k]))
-    M <- if (is.null(M)) d else pmax(M, d)
+  if (max(amplified) <= 0) {
+    return(result(zeros(), TRUE, "non-positive maximum"))
   }
-  # Pass 2: spatial x range weights; flat neighbourhoods get a zero ratio.
-  wsum <- ysum <- matrix(0, nrow(AMP), ncol(AMP))
+  shift <- mssr_shifter(nrow(amplified), ncol(amplified))
+  # Pass 1: maximum absolute local difference (range normalizer).
+  range_max <- NULL
   for (k in seq_len(nrow(offs))) {
-    x <- mssr_shift(AMP, offs$i[k], offs$j[k])
-    ratio <- ifelse(M > 0, (AMP - x) / M, 0)
+    d <- abs(amplified - shift(amplified, offs$i[k], offs$j[k]))
+    range_max <- if (is.null(range_max)) d else pmax(range_max, d)
+  }
+  # Pass 2: spatial x range weights. Where range_max is zero every difference
+  # is zero, so dividing by 1 there gives the defined ratio 0.
+  divisor <- range_max
+  divisor[range_max == 0] <- 1
+  weight_sum <- value_sum <- matrix(0, nrow(amplified), ncol(amplified))
+  for (k in seq_len(nrow(offs))) {
+    x <- shift(amplified, offs$i[k], offs$j[k])
+    ratio <- (amplified - x) / divisor
     w <- exp(-(offs$i[k]^2 + offs$j[k]^2) / hs^2) * exp(-ratio^2)
-    wsum <- wsum + w
-    ysum <- ysum + x * w
+    weight_sum <- weight_sum + w
+    value_sum <- value_sum + x * w
   }
-  MS <- AMP - ysum / wsum
-  MS[MS < 0] <- 0
-  if (max(MS) <= 0 || max(AMP) <= 0) {
-    return(list(values = matrix(0, nrow(AMP), ncol(AMP)), degenerate = TRUE, half_size = hs, n_offsets = nrow(offs)))
+  mean_shift <- amplified - value_sum / weight_sum
+  mean_shift[mean_shift < 0] <- 0
+  if (max(mean_shift) <= 0) {
+    return(result(zeros(), TRUE, "zero mean-shift map"))
   }
-  I3 <- MS / max(MS)
-  x3 <- AMP / max(AMP)
+  i3 <- mean_shift / max(mean_shift)
+  x3 <- amplified / max(amplified)
+  skipped <- 0L
   for (k in seq_len(order)) {
-    I4 <- x3 - I3
-    I5 <- max(I4) - I4
-    I5 <- if (max(I5) > 0) I5 / max(I5) else I5
-    I6 <- I5 * I3
-    I7 <- if (max(I6) > 0) I6 / max(I6) else I6
-    x3 <- I3
-    I3 <- I7
+    i4 <- x3 - i3
+    i5 <- max(i4) - i4
+    if (max(i5) <= 0) {
+      # Undefined step (i4 constant): keep the current map.
+      skipped <- skipped + 1L
+      next
+    }
+    i6 <- (i5 / max(i5)) * i3
+    i7 <- if (max(i6) > 0) i6 / max(i6) else i6
+    x3 <- i3
+    i3 <- i7
   }
-  list(values = if (int_norm) I3 * AMP else I3, degenerate = FALSE, half_size = hs, n_offsets = nrow(offs))
+  result(if (int_norm) i3 * amplified else i3, FALSE, skipped = skipped)
 }

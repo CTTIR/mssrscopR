@@ -7,19 +7,23 @@
 mssr_selftest(tolerance = 1e-10)
 }
 \arguments{
-\item{tolerance}{Maximum allowed absolute or relative error.}
+\item{tolerance}{Single non-negative number.}
 }
 \value{
 A data frame with one row per fixture (\code{fixture_id}, parameters,
-\code{max_abs_error}, \code{max_rel_error}, \code{passed}), with attribute \code{all_passed}.
+\code{max_abs_error}, \code{passed}), with attribute \code{all_passed} (\code{TRUE} or \code{FALSE}).
 }
 \description{
-Recomputes every bundled synthetic fixture (small non-square, impulse,
-constant, zero, point-pair, ring and ramp images with known expected
-outputs) and reports the maximum absolute and relative errors. Use it to
-confirm that an installation reproduces the validated engine definition
-\code{mssr_r_rev1} on the current platform. It does not validate any
+Recomputes every bundled synthetic fixture and compares it with the stored
+expected output. The fixtures are small non-square, impulse, constant, zero,
+point-pair, ring and ramp images. The expected outputs were produced by the
+accepted engine definition, so this is a regression check of the
+installation, not an independent validation of the method or of any
 application.
+}
+\details{
+A fixture passes when its dimensions match and
+\code{max(abs(got - expected)) <= tolerance * (1 + max(abs(expected)))}.
 }
 \examples{
 st <- mssr_selftest()

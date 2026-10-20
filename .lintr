@@ -1,0 +1,14 @@
+# House linters (CTTIR/.github config/lint-cttir.R) run in CI on top of these.
+linters: linters_with_defaults(
+    line_length_linter(100),
+    object_name_linter(styles = c("snake_case", "symbols")),
+    commented_code_linter = NULL,
+    object_length_linter(40)
+  )
+exclusions: list(
+    "tests/testthat.R",
+    "tests/testthat/apps",
+    "vignettes",
+    "data-raw"
+  )
+encoding: "UTF-8"

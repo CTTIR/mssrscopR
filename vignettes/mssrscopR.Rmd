@@ -16,20 +16,21 @@ show <- function(m, main) {
 }
 ```
 
-All images here are synthetic. Every structure is generated in this document,
-so the true scene is known.
+All images here are synthetic and generated in this document, so the true
+scene is known.
 
 ## The operator
 
 Mean-Shift Super-Resolution (MSSR; Torres-García et al. 2022,
 doi:10.1038/s41467-022-34693-9) subtracts a local, range-weighted mean-shift
 estimate from each pixel and refines the result over `order` steps. `fwhm` is
-the point-spread function width in **input pixels**, and it must be supplied.
+the point-spread-function width in **input pixels** and has no default.
 
 ```{r points}
 g <- expand.grid(r = 1:31, c = 1:41)
 spot <- function(r0, c0, a = 1) a * exp(-((g$r - r0)^2 + (g$c - c0)^2) / (2 * (3 / 2.3548)^2))
-x <- matrix(spot(16, 18) + spot(16, 21) + 0.05, 31, 41)   # 3 px apart, FWHM 3 px
+pair <- function(sep) matrix(spot(16, 18) + spot(16, 18 + sep) + 0.05, 31, 41)
+x <- pair(3)                       # two sources 3 px apart, FWHM 3 px
 res <- mssr(x, fwhm = 3, amp = 2)
 res
 op <- par(mfrow = c(1, 2), mar = c(0.5, 0.5, 2, 0.5))
@@ -37,14 +38,36 @@ show(x, "input"); show(as.matrix(res), "mssr(amp = 2)")
 par(op)
 ```
 
-The two sources merge in the input but are separated in the structure map. The
-amplified grid only adds samples. `mssr_coords()` places them in input-pixel
-units, and the field of view stays `[0.5, n + 0.5]`:
+The amplified grid only adds samples. `mssr_coords()` places them in
+input-pixel units, and the field of view stays `[0.5, n + 0.5]`:
 
 ```{r coords}
 range(mssr_coords(res)$col)
 res$transform$spacing
 ```
+
+How far does the separation go? Compare the value at the midpoint between the
+two sources with the value at a source center, in the input and in the MSSR
+map (values below 1 mean a dip between the sources):
+
+```{r separation}
+mid_ratio <- function(sep) {
+  x <- pair(sep)
+  r <- mssr(x, fwhm = 3, amp = 2)
+  v <- as.matrix(r)
+  co <- mssr_coords(r)
+  row <- which.min(abs(co$row - 16))
+  at_input <- function(cc) stats::approx(1:41, x[16, ], cc)$y
+  at_mssr <- function(cc) stats::approx(co$col, v[row, ], cc)$y
+  c(input = at_input(18 + sep / 2) / at_input(18), mssr = at_mssr(18 + sep / 2) / at_mssr(18))
+}
+round(rbind(`2.4 px` = mid_ratio(2.4), `3 px` = mid_ratio(3)), 3)
+```
+
+At 3 px the input shows only a shallow dip, which MSSR deepens strongly. At
+2.4 px the blurred sources form a single hump, and MSSR returns a single,
+sharper hump: it enhances existing structure but does not split sources that
+the blur has already merged.
 
 ## Known failure modes
 
@@ -55,22 +78,24 @@ suppressed, and broad filled objects can be hollowed or fragmented:
 y <- matrix(spot(16, 14) + spot(16, 21.5, 0.1) + 0.02, 31, 41)   # 10:1 brightness
 disk <- outer(1:31, 1:41, function(r, c) as.numeric((r - 16)^2 + (c - 21)^2 <= 81))
 disk <- disk + 0.02
-ry <- as.matrix(mssr(y, fwhm = 3)); rd <- as.matrix(mssr(disk, fwhm = 3))
+ry <- as.matrix(mssr(y, fwhm = 3))
+rd <- as.matrix(mssr(disk, fwhm = 3))
 c(input_ratio = y[16, 22] / y[16, 14], mssr_ratio = ry[16, 22] / ry[16, 14])
 op <- par(mfrow = c(1, 3), mar = c(0.5, 0.5, 2, 0.5))
 show(ry, "dim beside bright"); show(disk, "filled disk"); show(rd, "mssr(disk)")
 par(op)
 ```
 
-The outputs are therefore **not quantitative**. `res$diagnostics$quantitative`
+The outputs are therefore **not quantitative**; `res$diagnostics$quantitative`
 is always `FALSE`.
 
 ## Masks with measurements on the original data
 
 A structure map can select pixels, but measurements belong to the original
-image. `mssr_mask()` keeps an exact fraction of a region and reports how many
-pixels were tied at the threshold. Ties are frequent because the mean shift is
-clipped at zero.
+image. `mssr_mask()` keeps an exact number of pixels of a region.
+`tie_fraction` reports the share of the selected pixels that random
+tie-breaking decided. That share can be large, because the mean shift is
+clipped at zero and many pixels tie there.
 
 ```{r mask}
 m <- mssr_mask(mssr(x, fwhm = 3), fraction = 0.2)
@@ -81,14 +106,22 @@ c(mean_all = mean(x), mean_masked = mean(x[m]))
 Selecting pixels this way changes the measured population. It is not known to
 improve any downstream analysis, so evaluate it for your own task.
 
-## Unsupported requests fail clearly
+## Degenerate input and unsupported requests
+
+Flat frames return zeros flagged as degenerate. Requests the package cannot
+honor fail with classed errors:
 
 ```{r errors}
+mssr(matrix(1, 5, 5), fwhm = 3)$diagnostics[c("degenerate", "degenerate_reason")]
 try(mssr(array(0, c(4, 4, 3)), fwhm = 3))     # no axis is guessed
 try(mssr(matrix(c(1, NA, 3, 4), 2), fwhm = 3)) # non-finite input
 ```
 
 ## Checking an installation
+
+`mssr_selftest()` recomputes the bundled synthetic fixtures. They were produced
+by the accepted engine definition, so this is a regression check of the
+installation, not an independent validation:
 
 ```{r selftest}
 st <- mssr_selftest()

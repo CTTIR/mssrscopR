@@ -2,13 +2,18 @@
 
 * First functional version: single-frame Mean-Shift Super-Resolution (`mssr()`)
   with explicit result objects (role, grid transform, parameters, engine
-  identity `mssr_r_rev1`, diagnostics).
-* `mssr_coords()` returns output pixel-centre coordinates in input-pixel units.
-* `mssr_mask()` derives exact-coverage structural masks on the input grid with
-  seeded tie-breaking, for measuring the original data.
-* `mssr_selftest()` checks the installation against bundled synthetic fixtures.
-* Input checks with classed errors (`mssrscopR_error_*`); flat input returns
-  zeros flagged as degenerate.
+  identity `mssr_r_rev2`, diagnostics).
+* `mssr_coords()` returns output pixel-center coordinates in input-pixel units.
+* `mssr_mask()` derives exact-count structural masks on the input grid with
+  seeded tie-breaking and reports the share decided by tie-breaking.
+* `mssr_selftest()` recomputes the bundled synthetic fixtures as a regression
+  check of the installation.
+* Defined results for degenerate input: flat frames return flagged zeros at
+  every amplification, and undefined refinement steps (impulses on an exactly
+  zero background) leave the map unchanged and are counted.
+* Classed `cli` errors (`mssrscopR_error_*`) and warnings
+  (`mssrscopR_warning_negative`); guards for output size, kernel size and
+  total work.
 
 # mssrscopR 0.0.0.9000
 

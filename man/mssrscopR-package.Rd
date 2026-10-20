@@ -6,22 +6,25 @@
 \alias{mssrscopR-package}
 \title{mssrscopR: Mean-Shift Super-Resolution Image Processing and Validation}
 \description{
+\if{html}{\figure{logo.svg}{options: style='float: right' alt='logo' width='120'}}
+
 Computes the single-frame Mean-Shift Super-Resolution ('MSSR') structure map of Torres-Garcia et al. (2022) \doi{10.1038/s41467-022-34693-9} with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, and a self-test against bundled synthetic fixtures. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.
 }
 \seealso{
 Useful links:
 \itemize{
   \item \url{https://github.com/CTTIR/mssrscopR}
+  \item \url{https://cttir.github.io/mssrscopR/}
   \item Report bugs at \url{https://github.com/CTTIR/mssrscopR/issues}
 }
 
 }
 \author{
-\strong{Maintainer}: R. Heller \email{58561665+r-heller@users.noreply.github.com}
+\strong{Maintainer}: R. Heller \email{raban.heller@uni-ulm.de} (\href{https://orcid.org/0000-0001-8006-9742}{ORCID}) [copyright holder]
 
 Authors:
 \itemize{
-  \item R. Heller \email{58561665+r-heller@users.noreply.github.com}
+  \item R. Heller \email{raban.heller@uni-ulm.de} (\href{https://orcid.org/0000-0001-8006-9742}{ORCID}) [copyright holder]
 }
 
 }

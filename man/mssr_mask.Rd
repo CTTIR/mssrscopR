@@ -17,22 +17,23 @@ the whole frame.}
 \item{seed}{Whole number used for tie-breaking.}
 }
 \value{
-A logical matrix (input dimensions) with attributes \code{coverage},
-\code{tie_fraction} (share of region pixels tied at the selection threshold) and
-\code{n_region}.
+A logical matrix (input dimensions) with attributes \code{coverage}
+(selected share of the region), \code{tie_fraction} and \code{n_region}.
 }
 \description{
 Selects exactly \code{ceiling(fraction * n)} pixels of a region with the highest
 MSSR values, on the \strong{input} grid (amplified results are averaged back over
-each input pixel's children; this needs \code{grid = "extent"}). Ties are broken by
-a seeded random permutation without changing the caller's random-number
-state. MSSR maps often contain many exact zeros, so check the returned
-\code{tie_fraction}: a large value means much of the selection is random.
+each input pixel's children; this needs \code{grid = "extent"}). Pixels tied at the
+cut are chosen by a seeded random permutation, without changing the caller's
+random-number state.
 }
 \details{
 Use the mask to measure the \strong{original} data, e.g. \code{mean(x[mask])}. A mask
 changes which pixels are measured; it does not make MSSR values quantitative,
 and selecting pixels by MSSR is not known to improve any downstream analysis.
+MSSR maps often contain many exact zeros, so check \code{tie_fraction}: it is the
+share of the selected pixels that were decided by random tie-breaking (0 when
+the cut falls between distinct values).
 }
 \examples{
 x <- matrix(runif(400), 20, 20)
