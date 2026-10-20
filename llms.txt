@@ -181,24 +181,22 @@ MIT
 
 ## Use of LLM tools
 
-This package was developed with substantial help from LLM coding agents:
-**Claude Opus** (Anthropic) in Claude Code and **Codex** (OpenAI). They
-drafted and revised most of the code, tests, documentation and CI
-configuration, ran the checks, and carried out the code reviews and
-audits recorded in the project’s development notes. Both are hosted
-services, so the package’s code and documentation were sent to their
-providers. Package development used synthetic data only; no research or
-patient data entered the package.
+Where applicable, LLM tools were used for narrowly defined,
+non-authorial tasks: copyediting, prose refinement, Markdown/LaTeX
+formatting, boilerplate scaffolding (such as CI configurations and build
+scripts), and code refactoring. Tools included [Chat
+AI](https://kisski.gwdg.de/leistungen/2-02-llm-service/), the KISSKI
+(GWDG) service, and self-hosted **Mistral Small (24B, Apache-2.0)**
+served through a local **vLLM architecture** on an Ubuntu Linux
+workstation with Intel processors and NVIDIA GPUs. The self-hosted model
+ran locally, with no data sent to third parties.
 
-The maintainer set the scope, the data boundaries and every publication
-decision, and is responsible for the published package. Its numerical
-behavior rests on the test suite, the bundled fixtures, the comparison
-with the authors’ published code and CI on three operating systems, not
-on the tools’ own assessment. The method reference was verified against
-its DOI.
+All scientific claims, methodological choices, analyses, interpretations
+and conclusions remain the authors’ own. Where applicable, LLM-generated
+material must be reviewed and revised before inclusion, and references
+must be verified against their DOI, arXiv ID or ISBN.
 
-Local software setup: R 4.6 in sandboxed sessions on an Ubuntu Linux
-workstation.
+Local software setup: vLLM with Python/PyTorch, plus R and RStudio.
 
 # Package index
 
