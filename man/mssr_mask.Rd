@@ -26,6 +26,10 @@ MSSR values, on the \strong{input} grid (amplified results are averaged back ove
 each input pixel's children; this needs \code{grid = "extent"}). Pixels tied at the
 cut are chosen by a seeded random permutation, without changing the caller's
 random-number state.
+Floating-point noise within eight machine epsilons relative to the quota
+is snapped to a positive integer before rounding up. Every positive fraction
+selects at least one pixel. Flat maps can yield masks chosen entirely by
+ties; such masks are not detected foreground or cell instances.
 }
 \details{
 Use the mask to measure the \strong{original} data, e.g. \code{mean(x[mask])}. A mask
@@ -34,6 +38,9 @@ and selecting pixels by MSSR is not known to improve any downstream analysis.
 MSSR maps often contain many exact zeros, so check \code{tie_fraction}: it is the
 share of the selected pixels that were decided by random tie-breaking (0 when
 the cut falls between distinct values).
+Both mask and coordinate consumers reject nonfinite values or inconsistent
+grid metadata. This checks the stored matrix/grid contract, not authenticity
+of the image, parameters or review status.
 }
 \examples{
 x <- matrix(runif(400), 20, 20)

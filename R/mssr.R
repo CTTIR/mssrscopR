@@ -34,6 +34,13 @@
 #' intensity-weighted output can be negative, so a warning of class
 #' `mssrscopR_warning_negative` is given.
 #'
+#' **Numeric domain.** Input and numeric parameters must use plain integer or
+#' double storage, without explicit classes. Convert calibrated or other
+#' classed data deliberately before calling. Finite input can still overflow
+#' intermediate arithmetic; this raises `mssrscopR_error_numerical` rather than
+#' returning an invalid or misleading zero map. Extreme underflow is not a
+#' calibrated intensity regime; retain any input rescaling in provenance.
+#'
 #' **Cost.** Every order step uses image-wide maxima, so frames must be
 #' processed whole. Time grows with the number of output pixels times the
 #' number of neighborhood offsets (about `pi * (0.5 * fwhm * amp)^2`). Calls whose
@@ -41,7 +48,8 @@
 #' `max_output_pixels`, or whose kernel half-size exceeds 1000 pixels are
 #' refused before computing.
 #'
-#' @param x A numeric matrix (rows = y, columns = x) with finite values.
+#' @param x A plain integer or double matrix (rows = y, columns = x) with
+#'   finite values and no explicit class.
 #' @param fwhm Full width at half maximum of the point-spread function, in
 #'   **input pixels**. Required; there is no default because it is a property
 #'   of the acquisition.
@@ -121,7 +129,7 @@ mssr <- function(x, fwhm, amp = 1L, order = 1L, intensity_normalize = TRUE, mesh
     mssr_warn("negative", paste("`x` contains negative values. MSSR assumes non-negative",
                                 "intensities; the structure map then depends on the data offset."))
   }
-  e <- mssr_engine(x, amp, fwhm, order, intensity_normalize, mesh, grid, kernel, rounding)
+  e <- mssr_engine(x, amp, fwhm, order, intensity_normalize, mesh, grid, kernel, rounding, call)
   spacing <- function(n) {
     if (grid == "extent") 1 / amp else if (n > 1L) (n - 1) / (n * amp - 1) else 1
   }

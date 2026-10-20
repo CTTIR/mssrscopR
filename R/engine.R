@@ -94,6 +94,12 @@ mssr_mesh <- function(img, desp) {
 mssr_block_mean <- function(img, amp) {
   nr <- nrow(img) %/% amp
   nc <- ncol(img) %/% amp
+  scale <- max(abs(img))
+  if (scale > .Machine$double.xmax / amp^2) {
+    img <- img / scale
+  } else {
+    scale <- 1
+  }
   out <- matrix(0, nr, nc)
   for (a in seq_len(amp)) {
     for (b in seq_len(amp)) {
@@ -102,7 +108,7 @@ mssr_block_mean <- function(img, amp) {
       out <- out + img[rows, cols, drop = FALSE]
     }
   }
-  out / amp^2
+  (out / amp^2) * scale
 }
 
 # Neighborhood offsets (i fastest, as in the reference definition).
@@ -114,10 +120,19 @@ mssr_offsets <- function(hs, kernel) {
 }
 
 # The operator. Inputs are already validated by mssr().
-mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rounding) {
+mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rounding,
+                        call = NULL) {
+  finite <- function(x) {
+    if (any(!is.finite(x))) {
+      mssr_abort("numerical", paste("MSSR arithmetic exceeded the finite numeric range.",
+                                    "Use a documented input rescaling before retrying."), call)
+    }
+    invisible(NULL)
+  }
   hs <- mssr_half_size(fwhm, amp, rounding)
   offs <- mssr_offsets(hs, kernel)
   result <- function(values, degenerate, reason = NA_character_, skipped = 0L) {
+    finite(values)
     list(values = values, degenerate = degenerate, degenerate_reason = reason,
          half_size = hs, n_offsets = nrow(offs), order_steps_skipped = skipped)
   }
@@ -131,6 +146,7 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
   } else {
     img
   }
+  finite(amplified)
   if (max(amplified) <= 0) {
     return(result(zeros(), TRUE, "non-positive maximum"))
   }
@@ -141,6 +157,7 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
     d <- abs(amplified - shift(amplified, offs$i[k], offs$j[k]))
     range_max <- if (is.null(range_max)) d else pmax(range_max, d)
   }
+  finite(range_max)
   # Pass 2: spatial x range weights. Where range_max is zero every difference
   # is zero, so dividing by 1 there gives the defined ratio 0.
   divisor <- range_max
@@ -153,17 +170,22 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
     weight_sum <- weight_sum + w
     value_sum <- value_sum + x * w
   }
+  finite(value_sum)
+  finite(weight_sum)
   mean_shift <- amplified - value_sum / weight_sum
+  finite(mean_shift)
   mean_shift[mean_shift < 0] <- 0
   if (max(mean_shift) <= 0) {
     return(result(zeros(), TRUE, "zero mean-shift map"))
   }
   i3 <- mean_shift / max(mean_shift)
   x3 <- amplified / max(amplified)
+  finite(x3)
   skipped <- 0L
   for (k in seq_len(order)) {
     i4 <- x3 - i3
     i5 <- max(i4) - i4
+    finite(i5)
     if (max(i5) <= 0) {
       # Undefined step (i4 constant): keep the current map.
       skipped <- skipped + 1L

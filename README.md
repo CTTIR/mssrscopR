@@ -87,9 +87,16 @@ or segmentation workflows has not been validated.
 
 `fwhm` is the point-spread-function width in **input pixels** and has no
 default. Errors inherit from `mssrscopR_error` (subclasses `_input`,
-`_nonfinite`, `_parameter`, `_resource`, `_unsupported`); negative input gives a
+`_nonfinite`, `_parameter`, `_resource`, `_unsupported`, `_numerical`); negative input gives a
 `mssrscopR_warning_negative` warning, because MSSR assumes non-negative
 intensities.
+
+Use plain integer or double inputs; explicitly classed numeric objects must be
+converted deliberately. Intermediate overflow raises a numerical error.
+Coordinate and mask consumers check finite values and consistent grid metadata;
+they do not authenticate image provenance. Positive mask fractions select at
+least one pixel, but flat maps may yield entirely tie-selected masks. A quota
+mask is not a cell segmentation.
 
 ## Installation
 

@@ -1,5 +1,14 @@
 # mssrscopR 0.1.0
 
+* Input qualification rejects explicit numeric classes before arithmetic;
+  finite intermediate overflow raises `mssrscopR_error_numerical`.
+* Result consumers validate matrix dimensions, finiteness and grid metadata.
+* Positive mask fractions always select at least one pixel; rounding only
+  absorbs machine-precision noise near integer quotas. High-range amplified
+  scores are averaged without overflowing into artificial ties.
+* Additional synthetic contract regressions cover these boundaries. They
+  establish software behavior, not segmentation accuracy or optical resolution.
+
 * First functional version: single-frame Mean-Shift Super-Resolution (`mssr()`)
   with explicit result objects (role, grid transform, parameters, engine
   identity `mssr_r_rev2`, diagnostics).
