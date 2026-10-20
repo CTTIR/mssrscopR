@@ -1,0 +1,57 @@
+# Structural mask on the input grid
+
+Selects exactly `ceiling(fraction * n)` pixels of a region with the
+highest MSSR values, on the **input** grid (amplified results are
+averaged back over each input pixel's children; this needs
+`grid = "extent"`). Pixels tied at the cut are chosen by a seeded random
+permutation, without changing the caller's random-number state.
+
+## Usage
+
+``` r
+mssr_mask(result, fraction = 0.5, region = NULL, seed = 1L)
+```
+
+## Arguments
+
+- result:
+
+  An `mssr_result`.
+
+- fraction:
+
+  Fraction of the region to keep, in (0, 1\].
+
+- region:
+
+  Optional logical matrix with the input dimensions; defaults to the
+  whole frame.
+
+- seed:
+
+  Whole number used for tie-breaking.
+
+## Value
+
+A logical matrix (input dimensions) with attributes `coverage` (selected
+share of the region), `tie_fraction` and `n_region`.
+
+## Details
+
+Use the mask to measure the **original** data, e.g. `mean(x[mask])`. A
+mask changes which pixels are measured; it does not make MSSR values
+quantitative, and selecting pixels by MSSR is not known to improve any
+downstream analysis. MSSR maps often contain many exact zeros, so check
+`tie_fraction`: it is the share of the selected pixels that were decided
+by random tie-breaking (0 when the cut falls between distinct values).
+
+## Examples
+
+``` r
+x <- matrix(runif(400), 20, 20)
+m <- mssr_mask(mssr(x, fwhm = 3), fraction = 0.5)
+attr(m, "tie_fraction")
+#> [1] 0
+mean(x[m])
+#> [1] 0.7685152
+```
