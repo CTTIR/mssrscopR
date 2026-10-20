@@ -1,4 +1,5 @@
 al
+Anthropic
 bslib
 Camara
 CMD
@@ -13,9 +14,12 @@ ImageJ
 jsonlite
 Lifecycle
 Linares
+LLM
 MSSR
 nonfinite
+OpenAI
 ORCID
 px
+sandboxed
 TPM
 unrotated
