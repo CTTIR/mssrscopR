@@ -1,12 +1,14 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite the MSSR method paper and this package."
-title: "mssrscopR: Mean-Shift Super-Resolution Image Processing and Validation"
+type: software
+title: "mssrscopR: Single-Frame Mean-Shift Super-Resolution Structure Maps"
 version: 0.1.0
 authors:
   - family-names: Heller
     given-names: "R."
     orcid: "https://orcid.org/0000-0001-8006-9742"
 repository-code: "https://github.com/CTTIR/mssrscopR"
+url: "https://cttir.github.io/mssrscopR/"
 license: MIT
 abstract: >-
   Independent R implementation of single-frame Mean-Shift Super-Resolution

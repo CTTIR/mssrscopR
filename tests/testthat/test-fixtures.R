@@ -1,6 +1,6 @@
 test_that("every bundled synthetic fixture is reproduced", {
   st <- mssr_selftest()
-  expect_equal(nrow(st), 10L)
+  expect_equal(nrow(st), 14L)
   expect_true(attr(st, "all_passed"))
   expect_true(all(st$max_abs_error <= 1e-10))
 })

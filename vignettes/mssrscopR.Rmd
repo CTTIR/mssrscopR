@@ -132,7 +132,7 @@ mssr_app()
 ## Checking an installation
 
 `mssr_selftest()` recomputes the bundled synthetic fixtures. They were produced
-by the accepted engine definition, so this is a regression check of the
+by the package's engine definition, so this is a regression check of the
 installation, not an independent validation:
 
 ```{r selftest}

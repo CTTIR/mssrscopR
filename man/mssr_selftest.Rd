@@ -17,7 +17,7 @@ A data frame with one row per fixture (\code{fixture_id}, parameters,
 Recomputes every bundled synthetic fixture and compares it with the stored
 expected output. The fixtures are small non-square, impulse, constant, zero,
 point-pair, ring and ramp images. The expected outputs were produced by the
-accepted engine definition, so this is a regression check of the
+package's engine definition, so this is a regression check of the
 installation, not an independent validation of the method or of any
 application.
 }

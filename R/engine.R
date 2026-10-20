@@ -6,7 +6,7 @@
 # non-square frames and interpolates with Keys cubic convolution on a
 # field-of-view-preserving grid.
 #
-# rev2 differs from rev1 (the research handoff engine) only where rev1 was
+# rev2 differs from rev1 (the first engine definition) only where rev1 was
 # undefined or numerically unstable; both give identical results on all
 # bundled fixtures:
 #   - a flat frame (zero range) is flagged degenerate before amplification,

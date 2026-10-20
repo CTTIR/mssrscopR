@@ -8,6 +8,23 @@
   scores are averaged without overflowing into artificial ties.
 * Additional synthetic contract regressions cover these boundaries. They
   establish software behavior, not segmentation accuracy or optical resolution.
+* `mssr_mask()` reports `cut_relative` (lowest selected score / highest score):
+  interpolation and rounding leave tiny positive scores that rank above exact
+  zeros without counting as ties, so a small value shows that the mask reaches
+  beyond the structure. Tie-breaking no longer depends on the caller's
+  `RNGkind()`.
+* Undefined refinement steps now also give a
+  `mssrscopR_warning_skipped_steps` warning: the result is not the limit for
+  slightly perturbed input.
+* `grid`, `kernel` and `rounding` are checked with classed
+  `mssrscopR_error_parameter` errors and need exact values.
+* Four more fixtures (asymmetric frames at amp 2 and 3 on both grids, half-up
+  rounding, `mesh = FALSE`, the square kernel) let `mssr_selftest()` detect
+  orientation and option errors at amp > 1.
+* `rlang` is imported, because `cli`'s condition functions need it.
+* Documentation states the relation to the authors' R and Python code exactly
+  (intensity normalization, skipped steps, mesh shifts) and the title no
+  longer claims validation.
 
 * First functional version: single-frame Mean-Shift Super-Resolution (`mssr()`)
   with explicit result objects (role, grid transform, parameters, engine

@@ -24,7 +24,7 @@ mssr_coords <- function(result) {
 #' MSSR values, on the **input** grid (amplified results are averaged back over
 #' each input pixel's children; this needs `grid = "extent"`). Pixels tied at the
 #' cut are chosen by a seeded random permutation, without changing the caller's
-#' random-number state.
+#' random-number state or depending on its `RNGkind()`.
 #' Floating-point noise within eight machine epsilons relative to the quota
 #' is snapped to a positive integer before rounding up. Every positive fraction
 #' selects at least one pixel. Flat maps can yield masks chosen entirely by
@@ -35,7 +35,12 @@ mssr_coords <- function(result) {
 #' and selecting pixels by MSSR is not known to improve any downstream analysis.
 #' MSSR maps often contain many exact zeros, so check `tie_fraction`: it is the
 #' share of the selected pixels that were decided by random tie-breaking (0 when
-#' the cut falls between distinct values).
+#' the cut falls between distinct values; only exact ties count). Also check
+#' `cut_relative`, the lowest selected score divided by the highest score in the
+#' region. Interpolation and rounding leave many tiny positive values (often
+#' below 1e-6 of the maximum) where MSSR found no structure; they rank above
+#' exact zeros without counting as ties, so a small `cut_relative` means the
+#' mask reaches beyond the structure.
 #' Both mask and coordinate consumers reject nonfinite values or inconsistent
 #' grid metadata. This checks the stored matrix/grid contract, not authenticity
 #' of the image, parameters or review status.
@@ -46,7 +51,8 @@ mssr_coords <- function(result) {
 #'   the whole frame.
 #' @param seed Whole number used for tie-breaking.
 #' @return A logical matrix (input dimensions) with attributes `coverage`
-#'   (selected share of the region), `tie_fraction` and `n_region`.
+#'   (selected share of the region), `tie_fraction`, `cut_relative` (0 when no
+#'   score in the region is positive) and `n_region`.
 #' @examples
 #' x <- matrix(runif(400), 20, 20)
 #' m <- mssr_mask(mssr(x, fwhm = 3), fraction = 0.5)
@@ -82,8 +88,10 @@ mssr_mask <- function(result, fraction = 0.5, region = NULL, seed = 1L) {
     quota <- nearest
   }
   k <- max(1, ceiling(quota))
-  # Seeded tie-breaking without touching the caller's RNG state.
-  tiebreak <- withr::with_seed(seed, stats::runif(length(s)))
+  # Seeded tie-breaking without touching the caller's RNG state, with fixed
+  # generator kinds so that the mask does not depend on the caller's RNGkind().
+  tiebreak <- withr::with_seed(seed, stats::runif(length(s)), .rng_kind = "Mersenne-Twister",
+                               .rng_normal_kind = "Inversion", .rng_sample_kind = "Rejection")
   o <- order(s, tiebreak, decreasing = TRUE)
   mask <- matrix(FALSE, nrow(score), ncol(score))
   mask[idx[o[seq_len(k)]]] <- TRUE
@@ -92,5 +100,8 @@ mssr_mask <- function(result, fraction = 0.5, region = NULL, seed = 1L) {
   n_tied <- sum(s == cut)
   # Tie-breaking decided the selection only if some tied pixels were left out.
   tie_fraction <- if (n_above + n_tied > k) (k - n_above) / k else 0
-  structure(mask, coverage = k / length(s), tie_fraction = tie_fraction, n_region = length(s))
+  top <- max(s)
+  cut_relative <- if (top > 0) cut / top else 0
+  structure(mask, coverage = k / length(s), tie_fraction = tie_fraction,
+            cut_relative = cut_relative, n_region = length(s))
 }

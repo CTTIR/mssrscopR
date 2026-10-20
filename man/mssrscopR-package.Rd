@@ -4,7 +4,7 @@
 \name{mssrscopR-package}
 \alias{mssrscopR}
 \alias{mssrscopR-package}
-\title{mssrscopR: Mean-Shift Super-Resolution Image Processing and Validation}
+\title{mssrscopR: Single-Frame Mean-Shift Super-Resolution Structure Maps}
 \description{
 \if{html}{\figure{logo.svg}{options: style='float: right' alt='logo' width='120'}}
 

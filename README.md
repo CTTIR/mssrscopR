@@ -8,7 +8,7 @@
 
 `mssrscopR` computes single-frame Mean-Shift Super-Resolution (MSSR;
 Torres-García et al. 2022) structure maps in R. Geometry is explicit, degenerate
-input has a defined result, and a self-test checks every installation.
+input has a defined result, and a self-test can check any installation.
 
 - **Compute:** `mssr()` returns the MSSR structure map of one 2D frame, with its
   role, grid transform, parameters and diagnostics.
@@ -18,9 +18,11 @@ input has a defined result, and a self-test checks every installation.
   decided.
 - **Verify:** `mssr_selftest()` recomputes bundled synthetic fixtures.
 
-> **Status: 0.1.0, experimental.** At amplification 1 the engine matches the
-> authors' single-frame R and Python code wherever their output is finite; the
-> bundled synthetic fixtures guard against regressions. Its benefit for
+> **Status: 0.1.0, experimental.** At amplification 1 with intensity
+> normalization off, the engine matches the authors' single-frame R code (disk
+> kernel, rotation undone) and Python code (square kernel) wherever their output
+> is finite, apart from undefined refinement steps; the bundled synthetic
+> fixtures guard against regressions. Its benefit for
 > fluorescence, histology or hyperspectral analyses has not been established.
 
 ## Why
@@ -88,10 +90,10 @@ or segmentation workflows has not been validated.
 
 `fwhm` is the point-spread-function width in **input pixels** and has no
 default. Errors inherit from `mssrscopR_error` (subclasses `_input`,
-`_nonfinite`, `_parameter`, `_resource`, `_unsupported`, `_numerical`, `_dependency`); negative
-input gives a
-`mssrscopR_warning_negative` warning, because MSSR assumes non-negative
-intensities.
+`_nonfinite`, `_parameter`, `_resource`, `_unsupported`, `_numerical`,
+`_dependency`); negative input gives a `mssrscopR_warning_negative` warning,
+because MSSR assumes non-negative intensities, and undefined refinement steps
+give a `mssrscopR_warning_skipped_steps` warning.
 
 Use plain integer or double inputs; explicitly classed numeric objects must be
 converted deliberately. Intermediate overflow raises a numerical error.
@@ -140,8 +142,14 @@ and contains none of it. At amplification 1 with intensity normalization off,
 its output equals the authors' single-frame R function once that function's
 final rotation is undone, and with `kernel = "square"` their Python function,
 wherever their code returns finite values. For flat frames and for impulses on
-an exactly zero background their code returns `NaN`; `mssrscopR` returns a
-defined, flagged result instead. Amplification uses Keys cubic convolution on a
+an exactly zero background their R function returns `NaN` and their Python
+function returns zeros; `mssrscopR` returns flagged zeros for flat frames and
+keeps the map, counting the skipped step, for impulses. With intensity
+normalization on, their R function multiplies the rotated map by the unrotated
+input, so it matches `mssr()` only for frames that a 90-degree rotation leaves
+unchanged (and fails for non-square frames). Their R mesh compensation shifts
+asymmetrically (by `desp + 1` one way and `desp` the other); `mssrscopR` uses
+the symmetric shifts of their Python code. Amplification uses Keys cubic convolution on a
 field-of-view-preserving grid, so output for `amp > 1` differs from the
 authors' interpolation.
 

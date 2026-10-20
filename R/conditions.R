@@ -122,3 +122,15 @@ check_result <- function(result, call = NULL) {
   }
   invisible(result)
 }
+
+# Classed replacement for match.arg(): the default (the full choice vector)
+# selects the first choice; anything else must be exactly one listed string.
+check_choice <- function(x, choices, name, call = NULL) {
+  if (identical(x, choices)) return(choices[1])
+  if (!is.character(x) || is.object(x) || length(x) != 1L || is.na(x) || !x %in% choices) {
+    msg <- sprintf("`%s` must be one of %s.", name,
+                   paste0("\"", choices, "\"", collapse = ", "))
+    mssr_abort("parameter", msg, call)
+  }
+  x
+}

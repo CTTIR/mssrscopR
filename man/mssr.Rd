@@ -50,7 +50,12 @@ computation.}
 \value{
 An object of class \code{mssr_result}: a list with \code{values} (numeric
 matrix), \code{role} (\code{"structure"} or \code{"intensity_weighted_structure"}),
-\code{transform}, \code{parameters}, \code{engine} and \code{diagnostics}. The input is not
+\code{transform}, \code{parameters}, \code{engine} and \code{diagnostics}. \code{transform} holds
+\code{amp}, \code{grid}, \code{input_dim}, \code{output_dim}, the first output pixel center
+and the spacing (input-pixel units), and \code{field_of_view}: the input frame's
+extent from pixel edge 0.5 to \code{n + 0.5}. Output samples cover it exactly on
+the extent grid; on the endpoint grid they span only the first to the last
+input pixel center. The input is not
 stored.
 }
 \description{
@@ -71,17 +76,25 @@ exactly \code{1 / amp}. Amplification adds samples, not independent observations
 \code{intensity_normalize = FALSE}, the output equals the authors' single-frame R
 function after its final 90-degree rotation is undone (\code{kernel = "disk"}) or
 their Python function (\code{kernel = "square"}), wherever their code returns
-finite values. For \code{amp > 1}, Keys cubic convolution is used, which is not
-numerically identical to the authors' interpolation.
+finite values, except for undefined refinement steps (see below). For
+\code{amp > 1}, Keys cubic convolution is used, which is not numerically
+identical to the authors' interpolation. With the default
+\code{intensity_normalize = TRUE} their R function multiplies the rotated map by
+the unrotated input, so it agrees with \code{mssr()} only for frames that a
+90-degree rotation leaves unchanged (and fails for non-square frames).
 
 \strong{Degenerate input.} A flat frame, a frame whose amplified maximum is not
 positive, and a frame without any positive mean shift return zeros with
 \code{diagnostics$degenerate = TRUE} and a \code{degenerate_reason}. A refinement step
 (\code{order >= 1}) is undefined when the mean-shift map already equals the
 normalized input, for example for isolated impulses on an exactly zero
-background. Such a step leaves the map unchanged and is counted in
-\code{diagnostics$order_steps_skipped}. The authors' code returns \code{NaN} in all of
-these cases.
+background. Such a step leaves the map unchanged, is counted in
+\code{diagnostics$order_steps_skipped} and gives a warning of class
+\code{mssrscopR_warning_skipped_steps}: the result is not the limit for slightly
+perturbed input, because any positive background makes the step defined and
+changes the map. The authors' R function returns \code{NaN} in
+all of these cases; their Python function returns zeros, which equals
+\code{mssr()} for the degenerate frames but not for skipped refinement steps.
 
 \strong{Negative values.} MSSR assumes non-negative intensities. With negative
 input the structure map depends on the offset of the data and
@@ -93,11 +106,16 @@ double storage, without explicit classes. Convert calibrated or other
 classed data deliberately before calling. Finite input can still overflow
 intermediate arithmetic; this raises \code{mssrscopR_error_numerical} rather than
 returning an invalid or misleading zero map. Extreme underflow is not a
-calibrated intensity regime; retain any input rescaling in provenance.
+calibrated intensity regime; retain any input rescaling in provenance. A
+large constant offset relative to the signal's variation (for example 1e12
+added to values that vary by 1) costs accuracy through cancellation;
+subtract such offsets first.
 
 \strong{Cost.} Every order step uses image-wide maxima, so frames must be
 processed whole. Time grows with the number of output pixels times the
-number of neighborhood offsets (about \code{pi * (0.5 * fwhm * amp)^2}). Calls whose
+number of neighborhood offsets (about \code{pi * h^2} for the disk kernel and
+\code{(2 * h + 1)^2 - 1} for the square kernel, with half-size
+\code{h = round(0.5 * fwhm * amp)}). Calls whose
 estimated work exceeds 1e10 operations, whose output exceeds
 \code{max_output_pixels}, or whose kernel half-size exceeds 1000 pixels are
 refused before computing.

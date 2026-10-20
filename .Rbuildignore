@@ -25,4 +25,5 @@
 ^site$
 ^pkgdown$
 ^codecov\.yml$
+^man/figures/logo\.png$
 ^\.zenodo\.json$

@@ -18,14 +18,15 @@ the whole frame.}
 }
 \value{
 A logical matrix (input dimensions) with attributes \code{coverage}
-(selected share of the region), \code{tie_fraction} and \code{n_region}.
+(selected share of the region), \code{tie_fraction}, \code{cut_relative} (0 when no
+score in the region is positive) and \code{n_region}.
 }
 \description{
 Selects exactly \code{ceiling(fraction * n)} pixels of a region with the highest
 MSSR values, on the \strong{input} grid (amplified results are averaged back over
 each input pixel's children; this needs \code{grid = "extent"}). Pixels tied at the
 cut are chosen by a seeded random permutation, without changing the caller's
-random-number state.
+random-number state or depending on its \code{RNGkind()}.
 Floating-point noise within eight machine epsilons relative to the quota
 is snapped to a positive integer before rounding up. Every positive fraction
 selects at least one pixel. Flat maps can yield masks chosen entirely by
@@ -37,7 +38,12 @@ changes which pixels are measured; it does not make MSSR values quantitative,
 and selecting pixels by MSSR is not known to improve any downstream analysis.
 MSSR maps often contain many exact zeros, so check \code{tie_fraction}: it is the
 share of the selected pixels that were decided by random tie-breaking (0 when
-the cut falls between distinct values).
+the cut falls between distinct values; only exact ties count). Also check
+\code{cut_relative}, the lowest selected score divided by the highest score in the
+region. Interpolation and rounding leave many tiny positive values (often
+below 1e-6 of the maximum) where MSSR found no structure; they rank above
+exact zeros without counting as ties, so a small \code{cut_relative} means the
+mask reaches beyond the structure.
 Both mask and coordinate consumers reject nonfinite values or inconsistent
 grid metadata. This checks the stored matrix/grid contract, not authenticity
 of the image, parameters or review status.

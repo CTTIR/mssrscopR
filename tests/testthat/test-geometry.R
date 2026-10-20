@@ -69,3 +69,36 @@ test_that("an amplified impulse peaks among its own pixel's children", {
   pk <- which(v == max(v), arr.ind = TRUE)[1, ]
   expect_true(pk[["row"]] %in% 9:10 && pk[["col"]] %in% 5:6)
 })
+
+test_that("amplified results keep the absolute orientation on both grids", {
+  x <- matrix(1, 9, 13)
+  x[3, 10] <- 10
+  x[7, 2] <- 6
+  for (amp in 2:3) {
+    for (grid in c("extent", "endpoint")) {
+      r <- mssr(x, fwhm = 2, amp = amp, grid = grid, intensity_normalize = FALSE)
+      v <- as.matrix(r)
+      co <- mssr_coords(r)
+      pk <- which(v == max(v), arr.ind = TRUE)[1, ]
+      expect_lte(abs(co$row[pk[["row"]]] - 3), 0.5)
+      expect_lte(abs(co$col[pk[["col"]]] - 10), 0.5)
+      lower_left <- v[co$row > 5, co$col < 5, drop = FALSE]
+      pk2 <- which(lower_left == max(lower_left), arr.ind = TRUE)[1, ]
+      expect_lte(abs(co$row[co$row > 5][pk2[["row"]]] - 7), 0.5)
+      expect_lte(abs(co$col[co$col < 5][pk2[["col"]]] - 2), 0.5)
+    }
+  }
+})
+
+test_that("amplified results are transpose and flip equivariant", {
+  x <- outer(1:7, 1:10, function(r, c) 2 + sin(r * 0.9) * cos(c * 0.6) + (r == 2 & c == 8) * 3)
+  for (amp in 2:3) {
+    for (grid in c("extent", "endpoint")) {
+      run <- function(m) as.matrix(mssr(m, fwhm = 2.5, amp = amp, grid = grid))
+      v <- run(x)
+      expect_equal(run(t(x)), t(v), tolerance = 1e-12)
+      expect_equal(run(x[rev(seq_len(nrow(x))), ]), v[rev(seq_len(nrow(v))), ], tolerance = 1e-12)
+      expect_equal(run(x[, rev(seq_len(ncol(x)))]), v[, rev(seq_len(ncol(v)))], tolerance = 1e-12)
+    }
+  }
+})

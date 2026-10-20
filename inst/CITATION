@@ -4,7 +4,7 @@ bibentry(
   bibtype = "Article",
   title = "Extending resolution within a single imaging frame",
   author = c(person("Esley", "Torres-García"), person("Raúl", "Pinto-Cámara"),
-             person("Alejandro", "Linares"), person(family = "et al.")),
+             person("Alejandro", "Linares"), person("others")),
   journal = "Nature Communications",
   year = "2022",
   volume = "13",
@@ -14,8 +14,9 @@ bibentry(
 
 bibentry(
   bibtype = "Manual",
-  title = "mssrscopR: Mean-Shift Super-Resolution Image Processing and Validation",
-  author = person("R.", "Heller", email = "raban.heller@uni-ulm.de", role = c("aut", "cre")),
+  title = "mssrscopR: Single-Frame Mean-Shift Super-Resolution Structure Maps",
+  author = person("R.", "Heller", email = "raban.heller@uni-ulm.de", role = c("aut", "cre"),
+                  comment = c(ORCID = "0000-0001-8006-9742")),
   year = "2026",
   note = paste("R package version", meta$Version),
   url = "https://github.com/CTTIR/mssrscopR"

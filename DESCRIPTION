@@ -1,5 +1,5 @@
 Package: mssrscopR
-Title: Mean-Shift Super-Resolution Image Processing and Validation
+Title: Single-Frame Mean-Shift Super-Resolution Structure Maps
 Version: 0.1.0
 Authors@R:
     person("R.", "Heller",
@@ -23,12 +23,13 @@ Encoding: UTF-8
 Language: en-US
 Depends: R (>= 4.1.0)
 Imports:
-    cli,
+    cli (>= 3.0.0),
     graphics,
     grDevices,
+    rlang,
     stats,
     utils,
-    withr
+    withr (>= 2.5.0)
 Suggests:
     bslib (>= 0.6.0),
     jsonlite,

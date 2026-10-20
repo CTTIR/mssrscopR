@@ -1,6 +1,12 @@
 Synthetic fixtures for mssrscopR (authored; MIT, see the package LICENSE).
-Inputs are small deterministic arrays; expected outputs were produced by the research
-engine definition mssr_r_rev1 at the parameters in index.csv (rows = y, cols = x;
-comma-separated, no header, 17 significant digits). The package engine mssr_r_rev2
-differs from rev1 only for degenerate input, which these fixtures do not exercise.
-They are regression oracles, not independent ground truth. No research data.
+Inputs are small deterministic arrays. Expected outputs (rows = y, cols = x;
+comma-separated, no header, 17 significant digits) for fx01-fx07 were computed
+with engine definition mssr_r_rev1 at the parameters in index.csv. The package
+engine mssr_r_rev2 gives the same values on all of them: it differs from rev1
+only for flat frames at amp > 1 and for undefined refinement steps, and the two
+flat fixtures (fx03, fx04) use amp 1, where both return flagged zeros.
+fx08-fx11 (asymmetric frames at amp 2 and 3 on both grids, half-up rounding,
+mesh = FALSE, the square kernel) were computed with mssr_r_rev2 itself;
+fx11 (amp 1, square kernel) also equals the authors' Python function to 2e-16.
+All fixtures are regression checks, not independent ground truth. They contain
+no research data.

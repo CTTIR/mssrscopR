@@ -17,13 +17,19 @@ test_that("isolated impulses on a zero background survive refinement", {
   z[11, 10] <- 0.5
   r0 <- mssr(z, fwhm = 3, order = 0)
   for (ord in 1:3) {
-    r <- mssr(z, fwhm = 3, order = ord)
+    expect_warning(r <- mssr(z, fwhm = 3, order = ord),
+                   class = "mssrscopR_warning_skipped_steps")
     expect_false(r$diagnostics$degenerate)
     expect_identical(r$diagnostics$order_steps_skipped, as.integer(ord))
     expect_equal(as.matrix(r), as.matrix(r0))
   }
+  r3 <- suppressWarnings(mssr(z, fwhm = 3, order = 3))
   expect_true(any(grepl("3 undefined order step(s) skipped",
-                        utils::capture.output(print(mssr(z, fwhm = 3, order = 3))), fixed = TRUE)))
+                        utils::capture.output(print(r3)), fixed = TRUE)))
+  # Any positive background makes the steps defined, so the warning matters.
+  rb <- mssr(z + 1e-6, fwhm = 3, order = 2)
+  expect_identical(rb$diagnostics$order_steps_skipped, 0L)
+  expect_lt(as.matrix(rb)[11, 10] / as.matrix(rb)[4, 4], 0.01)
   v <- as.matrix(r0)
   expect_equal(which(v == max(v), arr.ind = TRUE)[1, ], c(row = 4, col = 4))
   expect_gt(v[11, 10], 0)
@@ -102,4 +108,15 @@ test_that("printing shows a bounded summary, not values", {
   expect_true(any(grepl("Not a quantitative intensity", out)))
   flat <- utils::capture.output(print(mssr(matrix(1, 3, 3), fwhm = 2)))
   expect_true(any(grepl("DEGENERATE (flat input)", flat, fixed = TRUE)))
+})
+
+test_that("choice arguments give classed errors and need exact values", {
+  x <- matrix(1:12, 3, 4)
+  expect_identical(mssr(x, fwhm = 2)$transform$grid, "extent")
+  expect_identical(mssr(x, fwhm = 2, kernel = "square")$parameters$kernel, "square")
+  for (bad in list("ext", "cube", NA_character_, c("disk", "square", "x"), 1, factor("disk"))) {
+    expect_error(mssr(x, fwhm = 2, kernel = bad), class = "mssrscopR_error_parameter")
+  }
+  expect_error(mssr(x, fwhm = 2, grid = "pixel"), class = "mssrscopR_error_parameter")
+  expect_error(mssr(x, fwhm = 2, rounding = "up"), class = "mssrscopR_error_parameter")
 })
