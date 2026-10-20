@@ -84,10 +84,12 @@ or segmentation workflows has not been validated.
 | `mssr_coords(result)` | output pixel-center coordinates (`row`, `col`) in input-pixel units |
 | `mssr_mask(result, fraction = 0.5, region = NULL, seed = 1)` | logical mask on the input grid with `coverage`, `tie_fraction`, `n_region` |
 | `mssr_selftest(tolerance = 1e-10)` | fixture errors, with attribute `all_passed` |
+| `mssr_app(max_upload_mb = 50, ...)` | interactive Shiny explorer (needs shiny, bslib and jsonlite): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads |
 
 `fwhm` is the point-spread-function width in **input pixels** and has no
 default. Errors inherit from `mssrscopR_error` (subclasses `_input`,
-`_nonfinite`, `_parameter`, `_resource`, `_unsupported`, `_numerical`); negative input gives a
+`_nonfinite`, `_parameter`, `_resource`, `_unsupported`, `_numerical`, `_dependency`); negative
+input gives a
 `mssrscopR_warning_negative` warning, because MSSR assumes non-negative
 intensities.
 
@@ -125,6 +127,9 @@ mean(x[m])                       # measured on the original frame
 attr(m, "tie_fraction")
 
 attr(mssr_selftest(), "all_passed")
+
+# Explore parameters interactively (needs shiny, bslib and jsonlite):
+# mssr_app()
 ```
 
 ## Relation to the authors' code

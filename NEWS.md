@@ -17,6 +17,11 @@
   seeded tie-breaking and reports the share decided by tie-breaking.
 * `mssr_selftest()` recomputes the bundled synthetic fixtures as a regression
   check of the installation.
+* `mssr_app()` opens an interactive Shiny explorer: synthetic examples or an
+  uploaded frame (text, PNG, TIFF), input and structure map on shared
+  input-pixel axes, line profiles, masks measured on the input, the self-test,
+  and downloads of the map, the mask, a figure and a run record. It calls the
+  exported functions and adds no processing of its own.
 * Defined results for degenerate input: flat frames return flagged zeros at
   every amplification, and undefined refinement steps (impulses on an exactly
   zero background) leave the map unchanged and are counted.

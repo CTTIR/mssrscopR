@@ -3,6 +3,7 @@
 S3method(as.matrix,mssr_result)
 S3method(print,mssr_result)
 export(mssr)
+export(mssr_app)
 export(mssr_coords)
 export(mssr_mask)
 export(mssr_selftest)
