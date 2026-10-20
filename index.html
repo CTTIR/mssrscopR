@@ -160,7 +160,8 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 </tr>
 </tbody>
 </table>
-<p><code>fwhm</code> is the point-spread-function width in <strong>input pixels</strong> and has no default. Errors inherit from <code>mssrscopR_error</code> (subclasses <code>_input</code>, <code>_nonfinite</code>, <code>_parameter</code>, <code>_resource</code>, <code>_unsupported</code>); negative input gives a <code>mssrscopR_warning_negative</code> warning, because MSSR assumes non-negative intensities.</p>
+<p><code>fwhm</code> is the point-spread-function width in <strong>input pixels</strong> and has no default. Errors inherit from <code>mssrscopR_error</code> (subclasses <code>_input</code>, <code>_nonfinite</code>, <code>_parameter</code>, <code>_resource</code>, <code>_unsupported</code>, <code>_numerical</code>); negative input gives a <code>mssrscopR_warning_negative</code> warning, because MSSR assumes non-negative intensities.</p>
+<p>Use plain integer or double inputs; explicitly classed numeric objects must be converted deliberately. Intermediate overflow raises a numerical error. Coordinate and mask consumers check finite values and consistent grid metadata; they do not authenticate image provenance. Positive mask fractions select at least one pixel, but flat maps may yield entirely tie-selected masks. A quota mask is not a cell segmentation.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>

@@ -29,7 +29,8 @@ mssr(
 
 - x:
 
-  A numeric matrix (rows = y, columns = x) with finite values.
+  A plain integer or double matrix (rows = y, columns = x) with finite
+  values and no explicit class.
 
 - fwhm:
 
@@ -109,6 +110,14 @@ returns `NaN` in all of these cases.
 negative input the structure map depends on the offset of the data and
 intensity-weighted output can be negative, so a warning of class
 `mssrscopR_warning_negative` is given.
+
+**Numeric domain.** Input and numeric parameters must use plain integer
+or double storage, without explicit classes. Convert calibrated or other
+classed data deliberately before calling. Finite input can still
+overflow intermediate arithmetic; this raises
+`mssrscopR_error_numerical` rather than returning an invalid or
+misleading zero map. Extreme underflow is not a calibrated intensity
+regime; retain any input rescaling in provenance.
 
 **Cost.** Every order step uses image-wide maxima, so frames must be
 processed whole. Time grows with the number of output pixels times the

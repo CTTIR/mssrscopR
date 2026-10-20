@@ -39,15 +39,16 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="mssrscopr-010">mssrscopR 0.1.0<a class="anchor" aria-label="anchor" href="#mssrscopr-010"></a></h2>
-<ul><li>First functional version: single-frame Mean-Shift Super-Resolution (<code><a href="../reference/mssr.html">mssr()</a></code>) with explicit result objects (role, grid transform, parameters, engine identity <code>mssr_r_rev2</code>, diagnostics).</li>
-<li>
-<code><a href="../reference/mssr_coords.html">mssr_coords()</a></code> returns output pixel-center coordinates in input-pixel units.</li>
-<li>
-<code><a href="../reference/mssr_mask.html">mssr_mask()</a></code> derives exact-count structural masks on the input grid with seeded tie-breaking and reports the share decided by tie-breaking.</li>
-<li>
-<code><a href="../reference/mssr_selftest.html">mssr_selftest()</a></code> recomputes the bundled synthetic fixtures as a regression check of the installation.</li>
-<li>Defined results for degenerate input: flat frames return flagged zeros at every amplification, and undefined refinement steps (impulses on an exactly zero background) leave the map unchanged and are counted.</li>
-<li>Classed <code>cli</code> errors (<code>mssrscopR_error_*</code>) and warnings (<code>mssrscopR_warning_negative</code>); guards for output size, kernel size and total work.</li>
+<ul><li><p>Input qualification rejects explicit numeric classes before arithmetic; finite intermediate overflow raises <code>mssrscopR_error_numerical</code>.</p></li>
+<li><p>Result consumers validate matrix dimensions, finiteness and grid metadata.</p></li>
+<li><p>Positive mask fractions always select at least one pixel; rounding only absorbs machine-precision noise near integer quotas. High-range amplified scores are averaged without overflowing into artificial ties.</p></li>
+<li><p>Additional synthetic contract regressions cover these boundaries. They establish software behavior, not segmentation accuracy or optical resolution.</p></li>
+<li><p>First functional version: single-frame Mean-Shift Super-Resolution (<code><a href="../reference/mssr.html">mssr()</a></code>) with explicit result objects (role, grid transform, parameters, engine identity <code>mssr_r_rev2</code>, diagnostics).</p></li>
+<li><p><code><a href="../reference/mssr_coords.html">mssr_coords()</a></code> returns output pixel-center coordinates in input-pixel units.</p></li>
+<li><p><code><a href="../reference/mssr_mask.html">mssr_mask()</a></code> derives exact-count structural masks on the input grid with seeded tie-breaking and reports the share decided by tie-breaking.</p></li>
+<li><p><code><a href="../reference/mssr_selftest.html">mssr_selftest()</a></code> recomputes the bundled synthetic fixtures as a regression check of the installation.</p></li>
+<li><p>Defined results for degenerate input: flat frames return flagged zeros at every amplification, and undefined refinement steps (impulses on an exactly zero background) leave the map unchanged and are counted.</p></li>
+<li><p>Classed <code>cli</code> errors (<code>mssrscopR_error_*</code>) and warnings (<code>mssrscopR_warning_negative</code>); guards for output size, kernel size and total work.</p></li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="mssrscopr-0009000">mssrscopR 0.0.0.9000<a class="anchor" aria-label="anchor" href="#mssrscopr-0009000"></a></h2>

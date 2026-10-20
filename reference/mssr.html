@@ -78,7 +78,8 @@ data (see <code><a href="mssr_mask.html">mssr_mask()</a></code>).</p>
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>A numeric matrix (rows = y, columns = x) with finite values.</p></dd>
+<dd><p>A plain integer or double matrix (rows = y, columns = x) with
+finite values and no explicit class.</p></dd>
 
 
 <dt id="arg-fwhm">fwhm<a class="anchor" aria-label="anchor" href="#arg-fwhm"></a></dt>
@@ -156,6 +157,12 @@ these cases.</p>
 input the structure map depends on the offset of the data and
 intensity-weighted output can be negative, so a warning of class
 <code>mssrscopR_warning_negative</code> is given.</p>
+<p><strong>Numeric domain.</strong> Input and numeric parameters must use plain integer or
+double storage, without explicit classes. Convert calibrated or other
+classed data deliberately before calling. Finite input can still overflow
+intermediate arithmetic; this raises <code>mssrscopR_error_numerical</code> rather than
+returning an invalid or misleading zero map. Extreme underflow is not a
+calibrated intensity regime; retain any input rescaling in provenance.</p>
 <p><strong>Cost.</strong> Every order step uses image-wide maxima, so frames must be
 processed whole. Time grows with the number of output pixels times the
 number of neighborhood offsets (about <code>pi * (0.5 * fwhm * amp)^2</code>). Calls whose
