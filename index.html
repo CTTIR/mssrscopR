@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Mean-Shift Super-Resolution Image Processing and Validation • mssrscopR</title>
+<title>Single-Frame Mean-Shift Super-Resolution Structure Maps • mssrscopR</title>
 <!-- katex math --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script><script src="katex-auto.js"></script><script src="lightswitch.js"></script><script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
@@ -13,9 +13,9 @@
 <link href="deps/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Mean-Shift Super-Resolution Image Processing and Validation">
-<meta name="description" content="Computes the single-frame Mean-Shift Super-Resolution (MSSR) structure map of Torres-Garcia et al. (2022) &lt;doi:10.1038/s41467-022-34693-9&gt; with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, and a self-test against bundled synthetic fixtures. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.">
-<meta property="og:description" content="Computes the single-frame Mean-Shift Super-Resolution (MSSR) structure map of Torres-Garcia et al. (2022) &lt;doi:10.1038/s41467-022-34693-9&gt; with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, and a self-test against bundled synthetic fixtures. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Single-Frame Mean-Shift Super-Resolution Structure Maps">
+<meta name="description" content="Computes the single-frame Mean-Shift Super-Resolution (MSSR) structure map of Torres-Garcia et al. (2022) &lt;doi:10.1038/s41467-022-34693-9&gt; with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, a self-test against bundled synthetic fixtures and an interactive shiny app for exploring parameters. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.">
+<meta property="og:description" content="Computes the single-frame Mean-Shift Super-Resolution (MSSR) structure map of Torres-Garcia et al. (2022) &lt;doi:10.1038/s41467-022-34693-9&gt; with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, a self-test against bundled synthetic fixtures and an interactive shiny app for exploring parameters. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.">
 <meta property="og:image" content="https://cttir.github.io/mssrscopR/logo.svg">
 <meta name="theme-color" content="#1565c0">
 </head>
@@ -65,7 +65,7 @@
 </div>
 <!-- badges: start -->
 
-<p><code>mssrscopR</code> computes single-frame Mean-Shift Super-Resolution (MSSR; Torres-García et al. 2022) structure maps in R. Geometry is explicit, degenerate input has a defined result, and a self-test checks every installation.</p>
+<p><code>mssrscopR</code> computes single-frame Mean-Shift Super-Resolution (MSSR; Torres-García et al. 2022) structure maps in R. Geometry is explicit, degenerate input has a defined result, and a self-test can check any installation.</p>
 <ul>
 <li>
 <strong>Compute:</strong> <code><a href="reference/mssr.html">mssr()</a></code> returns the MSSR structure map of one 2D frame, with its role, grid transform, parameters and diagnostics.</li>
@@ -77,7 +77,7 @@
 <strong>Verify:</strong> <code><a href="reference/mssr_selftest.html">mssr_selftest()</a></code> recomputes bundled synthetic fixtures.</li>
 </ul>
 <blockquote>
-<p><strong>Status: 0.1.0, experimental.</strong> At amplification 1 the engine matches the authors’ single-frame R and Python code wherever their output is finite; the bundled synthetic fixtures guard against regressions. Its benefit for fluorescence, histology or hyperspectral analyses has not been established.</p>
+<p><strong>Status: 0.1.0, experimental.</strong> At amplification 1 with intensity normalization off, the engine matches the authors’ single-frame R code (disk kernel, rotation undone) and Python code (square kernel) wherever their output is finite, apart from undefined refinement steps; the bundled synthetic fixtures guard against regressions. Its benefit for fluorescence, histology or hyperspectral analyses has not been established.</p>
 </blockquote>
 <div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
@@ -158,9 +158,13 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 <td>fixture errors, with attribute <code>all_passed</code>
 </td>
 </tr>
+<tr>
+<td><code>mssr_app(max_upload_mb = 50, ...)</code></td>
+<td>interactive Shiny explorer (needs shiny, bslib and jsonlite): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads</td>
+</tr>
 </tbody>
 </table>
-<p><code>fwhm</code> is the point-spread-function width in <strong>input pixels</strong> and has no default. Errors inherit from <code>mssrscopR_error</code> (subclasses <code>_input</code>, <code>_nonfinite</code>, <code>_parameter</code>, <code>_resource</code>, <code>_unsupported</code>, <code>_numerical</code>); negative input gives a <code>mssrscopR_warning_negative</code> warning, because MSSR assumes non-negative intensities.</p>
+<p><code>fwhm</code> is the point-spread-function width in <strong>input pixels</strong> and has no default. Errors inherit from <code>mssrscopR_error</code> (subclasses <code>_input</code>, <code>_nonfinite</code>, <code>_parameter</code>, <code>_resource</code>, <code>_unsupported</code>, <code>_numerical</code>, <code>_dependency</code>); negative input gives a <code>mssrscopR_warning_negative</code> warning, because MSSR assumes non-negative intensities, and undefined refinement steps give a <code>mssrscopR_warning_skipped_steps</code> warning.</p>
 <p>Use plain integer or double inputs; explicitly classed numeric objects must be converted deliberately. Intermediate overflow raises a numerical error. Coordinate and mask consumers check finite values and consistent grid metadata; they do not authenticate image provenance. Positive mask fractions select at least one pixel, but flat maps may yield entirely tie-selected masks. A quota mask is not a cell segmentation.</p>
 </div>
 <div class="section level2">
@@ -190,12 +194,15 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">x</span><span class="op">[</span><span class="va">m</span><span class="op">]</span><span class="op">)</span>                       <span class="co"># measured on the original frame</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"tie_fraction"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="reference/mssr_selftest.html">mssr_selftest</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"all_passed"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="reference/mssr_selftest.html">mssr_selftest</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"all_passed"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Explore parameters interactively (needs shiny, bslib and jsonlite):</span></span>
+<span><span class="co"># mssr_app()</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="relation-to-the-authors-code">Relation to the authors’ code<a class="anchor" aria-label="anchor" href="#relation-to-the-authors-code"></a>
 </h2>
-<p>The authors distribute R, Python, MATLAB and ImageJ code at <a href="https://github.com/adanog/MSSR" class="external-link uri">https://github.com/adanog/MSSR</a>. <code>mssrscopR</code> is an independent implementation and contains none of it. At amplification 1 with intensity normalization off, its output equals the authors’ single-frame R function once that function’s final rotation is undone, and with <code>kernel = "square"</code> their Python function, wherever their code returns finite values. For flat frames and for impulses on an exactly zero background their code returns <code>NaN</code>; <code>mssrscopR</code> returns a defined, flagged result instead. Amplification uses Keys cubic convolution on a field-of-view-preserving grid, so output for <code>amp &gt; 1</code> differs from the authors’ interpolation.</p>
+<p>The authors distribute R, Python, MATLAB and ImageJ code at <a href="https://github.com/adanog/MSSR" class="external-link uri">https://github.com/adanog/MSSR</a>. <code>mssrscopR</code> is an independent implementation and contains none of it. At amplification 1 with intensity normalization off, its output equals the authors’ single-frame R function once that function’s final rotation is undone, and with <code>kernel = "square"</code> their Python function, wherever their code returns finite values. For flat frames and for impulses on an exactly zero background their R function returns <code>NaN</code> and their Python function returns zeros; <code>mssrscopR</code> returns flagged zeros for flat frames and keeps the map, counting the skipped step, for impulses. With intensity normalization on, their R function multiplies the rotated map by the unrotated input, so it matches <code><a href="reference/mssr.html">mssr()</a></code> only for frames that a 90-degree rotation leaves unchanged (and fails for non-square frames). Their R mesh compensation shifts asymmetrically (by <code>desp + 1</code> one way and <code>desp</code> the other); <code>mssrscopR</code> uses the symmetric shifts of their Python code. Amplification uses Keys cubic convolution on a field-of-view-preserving grid, so output for <code>amp &gt; 1</code> differs from the authors’ interpolation.</p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>

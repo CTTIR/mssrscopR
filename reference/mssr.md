@@ -79,7 +79,12 @@ mssr(
 
 An object of class `mssr_result`: a list with `values` (numeric matrix),
 `role` (`"structure"` or `"intensity_weighted_structure"`), `transform`,
-`parameters`, `engine` and `diagnostics`. The input is not stored.
+`parameters`, `engine` and `diagnostics`. `transform` holds `amp`,
+`grid`, `input_dim`, `output_dim`, the first output pixel center and the
+spacing (input-pixel units), and `field_of_view`: the input frame's
+extent from pixel edge 0.5 to `n + 0.5`. Output samples cover it exactly
+on the extent grid; on the endpoint grid they span only the first to the
+last input pixel center. The input is not stored.
 
 ## Details
 
@@ -93,18 +98,26 @@ independent observations.
 `intensity_normalize = FALSE`, the output equals the authors'
 single-frame R function after its final 90-degree rotation is undone
 (`kernel = "disk"`) or their Python function (`kernel = "square"`),
-wherever their code returns finite values. For `amp > 1`, Keys cubic
-convolution is used, which is not numerically identical to the authors'
-interpolation.
+wherever their code returns finite values, except for undefined
+refinement steps (see below). For `amp > 1`, Keys cubic convolution is
+used, which is not numerically identical to the authors' interpolation.
+With the default `intensity_normalize = TRUE` their R function
+multiplies the rotated map by the unrotated input, so it agrees with
+`mssr()` only for frames that a 90-degree rotation leaves unchanged (and
+fails for non-square frames).
 
 **Degenerate input.** A flat frame, a frame whose amplified maximum is
 not positive, and a frame without any positive mean shift return zeros
 with `diagnostics$degenerate = TRUE` and a `degenerate_reason`. A
 refinement step (`order >= 1`) is undefined when the mean-shift map
 already equals the normalized input, for example for isolated impulses
-on an exactly zero background. Such a step leaves the map unchanged and
-is counted in `diagnostics$order_steps_skipped`. The authors' code
-returns `NaN` in all of these cases.
+on an exactly zero background. Such a step leaves the map unchanged, is
+counted in `diagnostics$order_steps_skipped` and gives a warning of
+class `mssrscopR_warning_skipped_steps`: the result is not the limit for
+slightly perturbed input, because any positive background makes the step
+defined and changes the map. The authors' R function returns `NaN` in
+all of these cases; their Python function returns zeros, which equals
+`mssr()` for the degenerate frames but not for skipped refinement steps.
 
 **Negative values.** MSSR assumes non-negative intensities. With
 negative input the structure map depends on the offset of the data and
@@ -117,14 +130,18 @@ classed data deliberately before calling. Finite input can still
 overflow intermediate arithmetic; this raises
 `mssrscopR_error_numerical` rather than returning an invalid or
 misleading zero map. Extreme underflow is not a calibrated intensity
-regime; retain any input rescaling in provenance.
+regime; retain any input rescaling in provenance. A large constant
+offset relative to the signal's variation (for example 1e12 added to
+values that vary by 1) costs accuracy through cancellation; subtract
+such offsets first.
 
 **Cost.** Every order step uses image-wide maxima, so frames must be
 processed whole. Time grows with the number of output pixels times the
-number of neighborhood offsets (about `pi * (0.5 * fwhm * amp)^2`).
-Calls whose estimated work exceeds 1e10 operations, whose output exceeds
-`max_output_pixels`, or whose kernel half-size exceeds 1000 pixels are
-refused before computing.
+number of neighborhood offsets (about `pi * h^2` for the disk kernel and
+`(2 * h + 1)^2 - 1` for the square kernel, with half-size
+`h = round(0.5 * fwhm * amp)`). Calls whose estimated work exceeds 1e10
+operations, whose output exceeds `max_output_pixels`, or whose kernel
+half-size exceeds 1000 pixels are refused before computing.
 
 ## References
 

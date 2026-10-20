@@ -152,26 +152,45 @@ try(mssr(matrix(c(1, NA, 3, 4), 2), fwhm = 3)) # non-finite input
 #>   `x` contains NA, NaN or infinite values; MSSR is undefined for them.
 ```
 
+## Interactive exploration
+
+[`mssr_app()`](https://cttir.github.io/mssrscopR/reference/mssr_app.md)
+opens the same computations in a Shiny app (it needs the shiny, bslib
+and jsonlite packages). It shows the input and the structure map on the
+same input-pixel axes, line profiles, masks measured on the input and
+the self-test, and offers the results for download. The examples above
+are available there, and frames can be uploaded as text tables, PNG or
+TIFF.
+
+``` r
+
+mssr_app()
+```
+
 ## Checking an installation
 
 [`mssr_selftest()`](https://cttir.github.io/mssrscopR/reference/mssr_selftest.md)
 recomputes the bundled synthetic fixtures. They were produced by the
-accepted engine definition, so this is a regression check of the
+package’s engine definition, so this is a regression check of the
 installation, not an independent validation:
 
 ``` r
 
 st <- mssr_selftest()
 st[, c("fixture_id", "max_abs_error", "passed")]
-#>               fixture_id max_abs_error passed
-#> 1           fx01_amp1_o1  0.000000e+00   TRUE
-#> 2    fx02_amp1_o1_nonorm  0.000000e+00   TRUE
-#> 3      fx02_amp1_o1_norm  0.000000e+00   TRUE
-#> 4       fx03_constant_o2  0.000000e+00   TRUE
-#> 5           fx04_zero_o1  0.000000e+00   TRUE
-#> 6           fx05_amp1_o0  0.000000e+00   TRUE
-#> 7           fx05_amp1_o1  0.000000e+00   TRUE
-#> 8    fx06_amp2_extent_o1  9.436896e-15   TRUE
-#> 9  fx06_amp2_endpoint_o1  6.883383e-15   TRUE
-#> 10   fx07_amp1_o3_nonorm  0.000000e+00   TRUE
+#>                           fixture_id max_abs_error passed
+#> 1                       fx01_amp1_o1  0.000000e+00   TRUE
+#> 2                fx02_amp1_o1_nonorm  0.000000e+00   TRUE
+#> 3                  fx02_amp1_o1_norm  0.000000e+00   TRUE
+#> 4                   fx03_constant_o2  0.000000e+00   TRUE
+#> 5                       fx04_zero_o1  0.000000e+00   TRUE
+#> 6                       fx05_amp1_o0  0.000000e+00   TRUE
+#> 7                       fx05_amp1_o1  0.000000e+00   TRUE
+#> 8                fx06_amp2_extent_o1  9.436896e-15   TRUE
+#> 9              fx06_amp2_endpoint_o1  6.883383e-15   TRUE
+#> 10               fx07_amp1_o3_nonorm  0.000000e+00   TRUE
+#> 11 fx08_amp2_extent_o1_halfup_nomesh  0.000000e+00   TRUE
+#> 12      fx09_amp3_endpoint_o2_nonorm  0.000000e+00   TRUE
+#> 13               fx10_amp2_square_o1  0.000000e+00   TRUE
+#> 14        fx11_amp1_square_o2_nonorm  0.000000e+00   TRUE
 ```

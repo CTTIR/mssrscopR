@@ -192,26 +192,42 @@ cannot honor fail with classed errors:</p>
 <span><span class="co">#&gt;   `x` contains NA, NaN or infinite values; MSSR is undefined for them.</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="interactive-exploration">Interactive exploration<a class="anchor" aria-label="anchor" href="#interactive-exploration"></a>
+</h2>
+<p><code><a href="../reference/mssr_app.html">mssr_app()</a></code> opens the same computations in a Shiny app
+(it needs the shiny, bslib and jsonlite packages). It shows the input
+and the structure map on the same input-pixel axes, line profiles, masks
+measured on the input and the self-test, and offers the results for
+download. The examples above are available there, and frames can be
+uploaded as text tables, PNG or TIFF.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/mssr_app.html">mssr_app</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="checking-an-installation">Checking an installation<a class="anchor" aria-label="anchor" href="#checking-an-installation"></a>
 </h2>
 <p><code><a href="../reference/mssr_selftest.html">mssr_selftest()</a></code> recomputes the bundled synthetic
-fixtures. They were produced by the accepted engine definition, so this
+fixtures. They were produced by the package’s engine definition, so this
 is a regression check of the installation, not an independent
 validation:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">st</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr_selftest.html">mssr_selftest</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">st</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fixture_id"</span>, <span class="st">"max_abs_error"</span>, <span class="st">"passed"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;               fixture_id max_abs_error passed</span></span>
-<span><span class="co">#&gt; 1           fx01_amp1_o1  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 2    fx02_amp1_o1_nonorm  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 3      fx02_amp1_o1_norm  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 4       fx03_constant_o2  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 5           fx04_zero_o1  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 6           fx05_amp1_o0  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 7           fx05_amp1_o1  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 8    fx06_amp2_extent_o1  9.436896e-15   TRUE</span></span>
-<span><span class="co">#&gt; 9  fx06_amp2_endpoint_o1  6.883383e-15   TRUE</span></span>
-<span><span class="co">#&gt; 10   fx07_amp1_o3_nonorm  0.000000e+00   TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt;                           fixture_id max_abs_error passed</span></span>
+<span><span class="co">#&gt; 1                       fx01_amp1_o1  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 2                fx02_amp1_o1_nonorm  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 3                  fx02_amp1_o1_norm  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 4                   fx03_constant_o2  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 5                       fx04_zero_o1  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 6                       fx05_amp1_o0  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 7                       fx05_amp1_o1  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 8                fx06_amp2_extent_o1  9.436896e-15   TRUE</span></span>
+<span><span class="co">#&gt; 9              fx06_amp2_endpoint_o1  6.883383e-15   TRUE</span></span>
+<span><span class="co">#&gt; 10               fx07_amp1_o3_nonorm  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 11 fx08_amp2_extent_o1_halfup_nomesh  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 12      fx09_amp3_endpoint_o2_nonorm  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 13               fx10_amp2_square_o1  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 14        fx11_amp1_square_o2_nonorm  0.000000e+00   TRUE</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -1,4 +1,4 @@
-# mssrscopR: Mean-Shift Super-Resolution Image Processing and Validation
+# mssrscopR: Single-Frame Mean-Shift Super-Resolution Structure Maps
 
 Computes the single-frame Mean-Shift Super-Resolution ('MSSR') structure
 map of Torres-Garcia et al. (2022)
@@ -6,9 +6,10 @@ map of Torres-Garcia et al. (2022)
 with an independently written implementation that keeps the input
 orientation, accepts non-square frames and defines the result for flat
 input. Provides output-grid coordinates, structural masks for measuring
-the original data, and a self-test against bundled synthetic fixtures.
-Results are structural maps, not quantitative intensities; no gain in
-physical resolution or benefit for any application is implied.
+the original data, a self-test against bundled synthetic fixtures and an
+interactive 'shiny' app for exploring parameters. Results are structural
+maps, not quantitative intensities; no gain in physical resolution or
+benefit for any application is implied.
 
 ## See also
 

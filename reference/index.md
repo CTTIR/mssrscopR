@@ -13,3 +13,8 @@
 
 - [`mssr_selftest()`](https://cttir.github.io/mssrscopR/reference/mssr_selftest.md)
   : Check the engine against the bundled synthetic fixtures
+
+## Interactive app
+
+- [`mssr_app()`](https://cttir.github.io/mssrscopR/reference/mssr_app.md)
+  : Interactive MSSR explorer

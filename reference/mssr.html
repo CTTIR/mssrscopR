@@ -130,7 +130,12 @@ computation.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>mssr_result</code>: a list with <code>values</code> (numeric
 matrix), <code>role</code> (<code>"structure"</code> or <code>"intensity_weighted_structure"</code>),
-<code>transform</code>, <code>parameters</code>, <code>engine</code> and <code>diagnostics</code>. The input is not
+<code>transform</code>, <code>parameters</code>, <code>engine</code> and <code>diagnostics</code>. <code>transform</code> holds
+<code>amp</code>, <code>grid</code>, <code>input_dim</code>, <code>output_dim</code>, the first output pixel center
+and the spacing (input-pixel units), and <code>field_of_view</code>: the input frame's
+extent from pixel edge 0.5 to <code>n + 0.5</code>. Output samples cover it exactly on
+the extent grid; on the endpoint grid they span only the first to the last
+input pixel center. The input is not
 stored.</p>
     </div>
     <div class="section level2">
@@ -143,16 +148,24 @@ exactly <code>1 / amp</code>. Amplification adds samples, not independent observ
 <code>intensity_normalize = FALSE</code>, the output equals the authors' single-frame R
 function after its final 90-degree rotation is undone (<code>kernel = "disk"</code>) or
 their Python function (<code>kernel = "square"</code>), wherever their code returns
-finite values. For <code>amp &gt; 1</code>, Keys cubic convolution is used, which is not
-numerically identical to the authors' interpolation.</p>
+finite values, except for undefined refinement steps (see below). For
+<code>amp &gt; 1</code>, Keys cubic convolution is used, which is not numerically
+identical to the authors' interpolation. With the default
+<code>intensity_normalize = TRUE</code> their R function multiplies the rotated map by
+the unrotated input, so it agrees with <code>mssr()</code> only for frames that a
+90-degree rotation leaves unchanged (and fails for non-square frames).</p>
 <p><strong>Degenerate input.</strong> A flat frame, a frame whose amplified maximum is not
 positive, and a frame without any positive mean shift return zeros with
 <code>diagnostics$degenerate = TRUE</code> and a <code>degenerate_reason</code>. A refinement step
 (<code>order &gt;= 1</code>) is undefined when the mean-shift map already equals the
 normalized input, for example for isolated impulses on an exactly zero
-background. Such a step leaves the map unchanged and is counted in
-<code>diagnostics$order_steps_skipped</code>. The authors' code returns <code>NaN</code> in all of
-these cases.</p>
+background. Such a step leaves the map unchanged, is counted in
+<code>diagnostics$order_steps_skipped</code> and gives a warning of class
+<code>mssrscopR_warning_skipped_steps</code>: the result is not the limit for slightly
+perturbed input, because any positive background makes the step defined and
+changes the map. The authors' R function returns <code>NaN</code> in
+all of these cases; their Python function returns zeros, which equals
+<code>mssr()</code> for the degenerate frames but not for skipped refinement steps.</p>
 <p><strong>Negative values.</strong> MSSR assumes non-negative intensities. With negative
 input the structure map depends on the offset of the data and
 intensity-weighted output can be negative, so a warning of class
@@ -162,10 +175,15 @@ double storage, without explicit classes. Convert calibrated or other
 classed data deliberately before calling. Finite input can still overflow
 intermediate arithmetic; this raises <code>mssrscopR_error_numerical</code> rather than
 returning an invalid or misleading zero map. Extreme underflow is not a
-calibrated intensity regime; retain any input rescaling in provenance.</p>
+calibrated intensity regime; retain any input rescaling in provenance. A
+large constant offset relative to the signal's variation (for example 1e12
+added to values that vary by 1) costs accuracy through cancellation;
+subtract such offsets first.</p>
 <p><strong>Cost.</strong> Every order step uses image-wide maxima, so frames must be
 processed whole. Time grows with the number of output pixels times the
-number of neighborhood offsets (about <code>pi * (0.5 * fwhm * amp)^2</code>). Calls whose
+number of neighborhood offsets (about <code>pi * h^2</code> for the disk kernel and
+<code>(2 * h + 1)^2 - 1</code> for the square kernel, with half-size
+<code>h = round(0.5 * fwhm * amp)</code>). Calls whose
 estimated work exceeds 1e10 operations, whose output exceeds
 <code>max_output_pixels</code>, or whose kernel half-size exceeds 1000 pixels are
 refused before computing.</p>

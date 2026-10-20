@@ -43,10 +43,17 @@
 <li><p>Result consumers validate matrix dimensions, finiteness and grid metadata.</p></li>
 <li><p>Positive mask fractions always select at least one pixel; rounding only absorbs machine-precision noise near integer quotas. High-range amplified scores are averaged without overflowing into artificial ties.</p></li>
 <li><p>Additional synthetic contract regressions cover these boundaries. They establish software behavior, not segmentation accuracy or optical resolution.</p></li>
+<li><p><code><a href="../reference/mssr_mask.html">mssr_mask()</a></code> reports <code>cut_relative</code> (lowest selected score / highest score): interpolation and rounding leave tiny positive scores that rank above exact zeros without counting as ties, so a small value shows that the mask reaches beyond the structure. Tie-breaking no longer depends on the caller’s <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">RNGkind()</a></code>.</p></li>
+<li><p>Undefined refinement steps now also give a <code>mssrscopR_warning_skipped_steps</code> warning: the result is not the limit for slightly perturbed input.</p></li>
+<li><p><code>grid</code>, <code>kernel</code> and <code>rounding</code> are checked with classed <code>mssrscopR_error_parameter</code> errors and need exact values.</p></li>
+<li><p>Four more fixtures (asymmetric frames at amp 2 and 3 on both grids, half-up rounding, <code>mesh = FALSE</code>, the square kernel) let <code><a href="../reference/mssr_selftest.html">mssr_selftest()</a></code> detect orientation and option errors at amp &gt; 1.</p></li>
+<li><p><code>rlang</code> is imported, because <code>cli</code>’s condition functions need it.</p></li>
+<li><p>Documentation states the relation to the authors’ R and Python code exactly (intensity normalization, skipped steps, mesh shifts) and the title no longer claims validation.</p></li>
 <li><p>First functional version: single-frame Mean-Shift Super-Resolution (<code><a href="../reference/mssr.html">mssr()</a></code>) with explicit result objects (role, grid transform, parameters, engine identity <code>mssr_r_rev2</code>, diagnostics).</p></li>
 <li><p><code><a href="../reference/mssr_coords.html">mssr_coords()</a></code> returns output pixel-center coordinates in input-pixel units.</p></li>
 <li><p><code><a href="../reference/mssr_mask.html">mssr_mask()</a></code> derives exact-count structural masks on the input grid with seeded tie-breaking and reports the share decided by tie-breaking.</p></li>
 <li><p><code><a href="../reference/mssr_selftest.html">mssr_selftest()</a></code> recomputes the bundled synthetic fixtures as a regression check of the installation.</p></li>
+<li><p><code><a href="../reference/mssr_app.html">mssr_app()</a></code> opens an interactive Shiny explorer: synthetic examples or an uploaded frame (text, PNG, TIFF), input and structure map on shared input-pixel axes, line profiles, masks measured on the input, the self-test, and downloads of the map, the mask, a figure and a run record. It calls the exported functions and adds no processing of its own.</p></li>
 <li><p>Defined results for degenerate input: flat frames return flagged zeros at every amplification, and undefined refinement steps (impulses on an exactly zero background) leave the map unchanged and are counted.</p></li>
 <li><p>Classed <code>cli</code> errors (<code>mssrscopR_error_*</code>) and warnings (<code>mssrscopR_warning_negative</code>); guards for output size, kernel size and total work.</p></li>
 </ul></div>
