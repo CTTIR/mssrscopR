@@ -78,7 +78,10 @@ mssr_app_example <- function(id) {
     id,
     pair_3 = pair(3),
     pair_2p4 = pair(2.4),
-    pair_3_noisy = withr::with_seed(1L, pmax(pair(3) + stats::rnorm(31 * 41, sd = 0.03), 0)),
+    pair_3_noisy = withr::with_seed(
+      1L, pmax(pair(3) + stats::rnorm(31 * 41, sd = 0.03), 0),
+      .rng_kind = "Mersenne-Twister", .rng_normal_kind = "Inversion", .rng_sample_kind = "Rejection"
+    ),
     dim_bright = matrix(spot(16, 14) + spot(16, 21.5, 0.1) + 0.02, 31, 41),
     disk = outer(1:31, 1:41, function(r, c) as.numeric((r - 16)^2 + (c - 21)^2 <= 81)) + 0.02,
     mssr_abort("parameter", sprintf("Unknown example '%s'.", id))
@@ -223,19 +226,25 @@ mssr_app_image <- function(m, rows, cols, input_dim, palette, main) {
   graphics::image(cols, rows, t(m), col = palette, useRaster = TRUE, asp = 1, axes = FALSE,
                   xlim = c(0.5, input_dim[2] + 0.5), ylim = c(input_dim[1] + 0.5, 0.5),
                   xlab = "column (input px)", ylab = "row (input px)", main = main)
-  graphics::axis(1)
-  graphics::axis(2, las = 1)
+  # Ticks only within the frame; asp = 1 can widen the axis range far beyond it.
+  ticks <- function(n) {
+    at <- pretty(c(1, n))
+    at[at >= 1 & at <= n]
+  }
+  graphics::axis(1, at = ticks(input_dim[2]))
+  graphics::axis(2, at = ticks(input_dim[1]), las = 1)
 }
 
-mssr_app_plot_maps <- function(x, res, palette = "gray", dark = FALSE, guide = NULL) {
-  op <- mssr_app_par(dark, c(1, 2))
+mssr_app_plot_maps <- function(x, res, palette = "gray", dark = FALSE, guide = NULL,
+                               stacked = FALSE) {
+  op <- mssr_app_par(dark, if (stacked) c(2, 1) else c(1, 2))
   on.exit(graphics::par(op))
   pal <- mssr_app_palette(palette)
   co <- mssr_coords(res)
   p <- res$parameters
   mssr_app_image(x, seq_len(nrow(x)), seq_len(ncol(x)), dim(x), pal, "Input")
   mssr_app_guide(guide, dark)
-  main <- sprintf("MSSR structure map (amp %d, order %d)", p$amp, p$order)
+  main <- sprintf("MSSR (amp %d, order %d)", p$amp, p$order)
   mssr_app_image(res$values, co$row, co$col, dim(x), pal, main)
   mssr_app_guide(guide, dark)
 }
@@ -309,9 +318,11 @@ mssr_app_mask_table <- function(x, mask) {
   mean_or_na <- function(v) if (length(v)) mean(v) else NA_real_
   data.frame(
     quantity = c("selected pixels", "coverage of the region", "tie_fraction",
+                 "lowest selected score / maximum (cut_relative)",
                  "input mean inside the mask", "input mean outside the mask"),
     value = c(format(sum(mask)), sprintf("%.4g", attr(mask, "coverage")),
               sprintf("%.4g", attr(mask, "tie_fraction")),
+              sprintf("%.3g", attr(mask, "cut_relative")),
               sprintf("%.6g", mean_or_na(inside)), sprintf("%.6g", mean_or_na(outside))),
     stringsAsFactors = FALSE
   )
@@ -447,7 +458,7 @@ mssr_app_ui <- function() {
                    shiny::selectInput("palette", NULL, width = "160px",
                                       choices = c(Gray = "gray", Viridis = "viridis",
                                                   Inferno = "inferno"))),
-        shiny::plotOutput("maps", height = "440px"),
+        shiny::plotOutput("maps", height = "auto"),
         shiny::verbatimTextOutput("summary")
       ),
       bslib::nav_panel(
@@ -468,8 +479,8 @@ mssr_app_ui <- function() {
         "Mask",
         bslib::layout_columns(
           col_widths = c(6, 3, 3),
-          shiny::sliderInput("mask_fraction", "Fraction of pixels to keep", min = 0.01, max = 1,
-                             value = 0.2, step = 0.01, width = "100%"),
+          shiny::sliderInput("mask_fraction", "Fraction of pixels to keep", min = 0.005, max = 1,
+                             value = 0.02, step = 0.005, width = "100%"),
           shiny::numericInput("mask_seed", "Tie-break seed", 1, step = 1),
           shiny::div(class = "pt-4", shiny::downloadButton("dl_mask", "Mask (CSV)",
                                                            class = "btn-sm"))
@@ -479,6 +490,7 @@ mssr_app_ui <- function() {
           shiny::plotOutput("mask_plot", height = "380px"),
           shiny::div(
             shiny::tableOutput("mask_table"),
+            shiny::uiOutput("mask_warning"),
             shiny::div(class = "ms-note",
                        paste("The mask selects pixels by their MSSR value; the means are measured",
                              "on the original input. Selecting by MSSR is not known to improve",
@@ -588,10 +600,14 @@ mssr_app_server <- function(input, output, session) {
     }
   })
 
+  # Below 700 px the two maps are stacked instead of side by side.
+  narrow <- shiny::reactive(mssr_app_or(session$clientData$output_maps_width, 900) < 700)
+
   output$maps <- shiny::renderPlot({
     r <- run()
-    mssr_app_plot_maps(r$x, r$result, mssr_app_or(input$palette, "gray"), dark(), guide())
-  }, bg = "transparent")
+    mssr_app_plot_maps(r$x, r$result, mssr_app_or(input$palette, "gray"), dark(), guide(),
+                       stacked = narrow())
+  }, height = function() if (narrow()) 760 else 440, bg = "transparent")
 
   output$summary <- shiny::renderText({
     r <- run()
@@ -612,7 +628,7 @@ mssr_app_server <- function(input, output, session) {
       tr$amp == 1L || tr$grid == "extent",
       "Masks need the extent grid when amp > 1 (More options > Output grid)."
     ))
-    fraction <- mssr_app_or(input$mask_fraction, 0.2)
+    fraction <- mssr_app_or(input$mask_fraction, 0.02)
     seed <- mssr_app_or(input$mask_seed, 1)
     m <- mssr_app_try(mssr_mask(r$result, fraction = fraction, seed = seed))
     shiny::req(m)
@@ -625,6 +641,16 @@ mssr_app_server <- function(input, output, session) {
 
   output$mask_table <- shiny::renderTable(mssr_app_mask_table(run()$x, mask()$mask),
                                           colnames = FALSE)
+
+  output$mask_warning <- shiny::renderUI({
+    m <- mask()$mask
+    if (attr(m, "cut_relative") < 1e-6 || attr(m, "tie_fraction") > 0) {
+      shiny::div(class = "ms-stale mb-2", paste(
+        "The mask reaches pixels where MSSR found no structure (scores below 1e-6 of the",
+        "maximum or decided by tie-breaking). Lower the fraction to stay on the structure."
+      ))
+    }
+  })
 
   selftest <- shiny::bindEvent(shiny::reactive(mssr_selftest()), input$selftest)
 

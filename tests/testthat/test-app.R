@@ -179,19 +179,23 @@ test_that("the mask tab measures the original input and needs the extent grid", 
     expect_identical(m$mask, mssr_mask(run()$result, fraction = 0.2, seed = 3))
     expect_match(output$mask_table, "input mean inside the mask", fixed = TRUE)
     expect_match(output$mask_plot$src, "^data:image/png")
+    expect_match(output$mask_warning$html, "no structure", fixed = TRUE)
+    session$setInputs(mask_fraction = 0.01)
+    expect_null(output$mask_warning)
     session$setInputs(grid = "endpoint", compute = 1)
     expect_error(mask(), class = "validation")
   })
   x <- matrix(1:4, 2)
-  tab <- mssr_app_mask_table(x, structure(matrix(TRUE, 2, 2), coverage = 1, tie_fraction = 0))
-  expect_identical(tab$value[5], "NA")
+  all_in <- structure(matrix(TRUE, 2, 2), coverage = 1, tie_fraction = 0, cut_relative = 0.5)
+  tab <- mssr_app_mask_table(x, all_in)
+  expect_identical(tab$value[6], "NA")
 })
 
 test_that("the self-test runs on request", {
   shiny::testServer(mssr_app_server, {
     session$setInputs(selftest = 1)
     expect_true(attr(selftest(), "all_passed"))
-    expect_match(output$selftest_status$html, "10 of 10 fixtures passed.", fixed = TRUE)
+    expect_match(output$selftest_status$html, "14 of 14 fixtures passed.", fixed = TRUE)
     expect_match(output$selftest_table, "fx01", fixed = TRUE)
   })
 })
@@ -230,6 +234,17 @@ test_that("mssr_app() checks its dependencies and launches", {
   expect_identical(got$value$max, 2 * 1024^2)
   expect_identical(got$value$dots$port, 1234)
   expect_false(identical(getOption("shiny.maxRequestSize"), 2 * 1024^2))
+})
+
+test_that("the maps can be stacked for narrow screens", {
+  x <- mssr_app_example("pair_3")
+  res <- mssr(x, fwhm = 3, amp = 2)
+  path <- withr::local_tempfile(fileext = ".png")
+  grDevices::png(path, width = 400, height = 760)
+  mssr_app_plot_maps(x, res, stacked = TRUE, guide = list(axis = "col", index = 20))
+  expect_identical(graphics::par("mfrow"), c(1L, 1L))
+  grDevices::dev.off()
+  expect_gt(file.size(path), 0)
 })
 
 test_that("palettes and dark mode change the rendering, not the result", {
