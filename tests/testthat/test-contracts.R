@@ -85,3 +85,15 @@ test_that("amplified mask averaging preserves finite high-range scores", {
     expect_equal(attr(mask, "tie_fraction"), 0)
   }
 })
+
+test_that("a bright block cannot erase distinct scores in other blocks", {
+  r <- mssr(matrix(1:6, 2, 3), fwhm = 2, amp = 2)
+  scores <- matrix(c(1e308, 1e-100, 2e-100, 3e-100, 4e-100, 5e-100), 2, 3)
+  r$values <- scores[rep(1:2, each = 2), rep(1:3, each = 2)]
+  expect_identical(mssr_block_mean(r$values, 2), scores)
+  for (seed in 1:5) {
+    mask <- mssr_mask(r, fraction = 2 / 6, seed = seed)
+    expect_identical(which(mask), c(1L, 6L))
+    expect_equal(attr(mask, "tie_fraction"), 0)
+  }
+})

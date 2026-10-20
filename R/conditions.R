@@ -59,7 +59,7 @@ check_matrix <- function(x, call = NULL) {
   }
   if (!is.matrix(x) || !plain_real(x)) {
     mssr_abort("input", paste("`x` must be a plain integer or double matrix, without an",
-                             "explicit class, with rows = y and columns = x."), call)
+                              "explicit class, with rows = y and columns = x."), call)
   }
   if (nrow(x) < 1L || ncol(x) < 1L) {
     mssr_abort("input", "`x` must have at least one row and one column.", call)
@@ -78,12 +78,16 @@ check_result <- function(result, call = NULL) {
     mssr_abort("input", "`result` must contain a finite matrix and a consistent MSSR grid.", call)
   }
   if (!inherits(result, "mssr_result") || !is.list(result) ||
-      anyDuplicated(names(result))) fail()
+        anyDuplicated(names(result))) {
+    fail()
+  }
   v <- result[["values"]]
   tr <- result[["transform"]]
   if (!is.matrix(v) || !plain_real(v) || any(dim(v) < 1L) ||
-      any(!is.finite(v)) || !is.list(tr) || is.object(tr) ||
-      anyDuplicated(names(tr))) fail()
+        any(!is.finite(v)) || !is.list(tr) || is.object(tr) ||
+        anyDuplicated(names(tr))) {
+    fail()
+  }
   vector_ok <- function(x, n) {
     plain_real(x) && is.null(dim(x)) && length(x) == n && all(is.finite(x))
   }
@@ -91,22 +95,30 @@ check_result <- function(result, call = NULL) {
   amp <- tr[["amp"]]
   grid <- tr[["grid"]]
   if (!vector_ok(dims, 2L) || any(dims < 1 | dims != round(dims)) ||
-      !vector_ok(amp, 1L) || amp < 1 || amp > 64 || amp != round(amp) ||
-      !is.character(grid) || is.object(grid) || length(grid) != 1L ||
-      is.na(grid) || !grid %in% c("extent", "endpoint")) fail()
+        !vector_ok(amp, 1L) || amp < 1 || amp > 64 || amp != round(amp) ||
+        !is.character(grid) || is.object(grid) || length(grid) != 1L ||
+        is.na(grid) || !grid %in% c("extent", "endpoint")) {
+    fail()
+  }
   out <- tr[["output_dim"]]
   if (!vector_ok(out, 2L) || any(out != dim(v)) ||
-      any(as.double(dims) * amp != dim(v)) ||
-      (grid == "endpoint" && amp > 1L && min(dims) < 2L)) fail()
+        any(as.double(dims) * amp != dim(v)) ||
+        (grid == "endpoint" && amp > 1L && min(dims) < 2L)) {
+    fail()
+  }
   same <- function(x, expected) {
     vector_ok(x, length(expected)) && all(x == expected)
   }
   first <- if (grid == "extent") rep(0.5 / amp + 0.5, 2L) else c(1, 1)
-  spacing <- if (grid == "extent") rep(1 / amp, 2L) else {
+  spacing <- if (grid == "extent") {
+    rep(1 / amp, 2L)
+  } else {
     ifelse(dims > 1, (dims - 1) / (dims * amp - 1), 1)
   }
   extent <- c(0.5, dims[1] + 0.5, 0.5, dims[2] + 0.5)
   if (!same(tr[["first_center"]], first) || !same(tr[["spacing"]], spacing) ||
-      !same(tr[["field_of_view"]], extent)) fail()
+        !same(tr[["field_of_view"]], extent)) {
+    fail()
+  }
   invisible(result)
 }

@@ -94,18 +94,26 @@ mssr_mesh <- function(img, desp) {
 mssr_block_mean <- function(img, amp) {
   nr <- nrow(img) %/% amp
   nc <- ncol(img) %/% amp
-  scale <- max(abs(img))
-  if (scale > .Machine$double.xmax / amp^2) {
-    img <- img / scale
-  } else {
-    scale <- 1
+  scale <- 1
+  if (max(abs(img)) > .Machine$double.xmax / amp^2) {
+    # Scale only the blocks at risk of overflow. A distant bright block must
+    # not underflow otherwise representable scores in a dim block.
+    scale <- matrix(0, nr, nc)
+    for (a in seq_len(amp)) {
+      for (b in seq_len(amp)) {
+        rows <- seq(a, by = amp, length.out = nr)
+        cols <- seq(b, by = amp, length.out = nc)
+        scale <- pmax(scale, abs(img[rows, cols, drop = FALSE]))
+      }
+    }
+    scale[scale <= .Machine$double.xmax / amp^2] <- 1
   }
   out <- matrix(0, nr, nc)
   for (a in seq_len(amp)) {
     for (b in seq_len(amp)) {
       rows <- seq(a, by = amp, length.out = nr)
       cols <- seq(b, by = amp, length.out = nc)
-      out <- out + img[rows, cols, drop = FALSE]
+      out <- out + img[rows, cols, drop = FALSE] / scale
     }
   }
   (out / amp^2) * scale
