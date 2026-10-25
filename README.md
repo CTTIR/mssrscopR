@@ -1,4 +1,4 @@
-# mssrscopR <img src="man/figures/logo.png" align="right" width="120" height="139" alt="mssrscopR logo" />
+# mssrscopR <picture class="cttir-readme-logo"><source class="cttir-logo-dark-source" media="(prefers-color-scheme: dark)" srcset="man/figures/logo-with-name-dark.png" /><img src="man/figures/logo-with-name.png" align="right" alt="mssrscopR logo" width="120" height="155" /></picture>
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
