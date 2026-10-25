@@ -85,3 +85,9 @@
 **/*.pem
 **/*.key
 **/.DS_Store
+
+# Versioned branding sources for pkgdown.
+!/pkgdown/
+/pkgdown/*
+!/pkgdown/favicon/
+!/pkgdown/favicon/**
