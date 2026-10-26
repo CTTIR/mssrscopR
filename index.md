@@ -1,4 +1,4 @@
-# mssrscopR
+# mssrscopR ![mssrscopR logo](reference/figures/logo-with-name.png)
 
 `mssrscopR` computes single-frame Mean-Shift Super-Resolution (MSSR;
 Torres-García et al. 2022) structure maps in R. Geometry is explicit,
@@ -197,3 +197,8 @@ material must be reviewed and revised before inclusion, and references
 must be verified against their DOI, arXiv ID or ISBN.
 
 Local software setup: vLLM with Python/PyTorch, plus R and RStudio.
+
+## Branding
+
+Editable R sources and regeneration instructions are in
+[tools/branding](https://github.com/CTTIR/mssrscopR/tree/main/tools/branding).
