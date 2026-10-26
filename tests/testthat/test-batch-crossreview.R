@@ -1,0 +1,68 @@
+test_that("cached result geometry is checked even after its file hash is updated", {
+  skip_if_not_installed("digest")
+  skip_if_not_installed("jsonlite")
+  root <- withr::local_tempdir()
+  frame <- matrix(1:12, 3, 4)
+  first <- mssr_batch(list(a = frame), root, list(fwhm = 3))
+  wrong <- mssr(matrix(1:12, 4, 3), fwhm = 3)
+  mssr_write_result(wrong, first$output, overwrite = TRUE)
+  path <- list.files(root, pattern = "^a-.*json$", full.names = TRUE)
+  record <- jsonlite::fromJSON(path, simplifyVector = FALSE)
+  record$output_sha256 <- digest::digest(file = first$output, algo = "sha256")
+  jsonlite::write_json(record, path, auto_unbox = TRUE)
+  actual <- mssr_batch(list(a = frame), root, list(fwhm = 3))
+  expect_identical(actual$status, "failed")
+  expect_match(actual$message, "input grid or settings")
+})
+
+test_that("visible recovery settings must agree with their recorded identity", {
+  skip_if_not_installed("digest")
+  skip_if_not_installed("jsonlite")
+  root <- withr::local_tempdir()
+  frames <- list(a = matrix(1:12, 3, 4))
+  first <- mssr_batch(frames, root, list(fwhm = 3))
+  path <- list.files(root, pattern = "^a-.*json$", full.names = TRUE)
+  record <- jsonlite::fromJSON(path, simplifyVector = FALSE)
+  record$settings$fwhm <- 9
+  jsonlite::write_json(record, path, auto_unbox = TRUE)
+  actual <- mssr_batch(frames, root, list(fwhm = 3))
+  expect_identical(actual$status, "failed")
+  expect_false(actual$reused)
+  expect_true(file.exists(first$output))
+})
+
+test_that("normalized defaults reuse identity and high-order warnings remain recorded", {
+  skip_if_not_installed("digest")
+  skip_if_not_installed("jsonlite")
+  root <- withr::local_tempdir()
+  frames <- list(a = matrix(1:12, 3, 4))
+  first <- mssr_batch(frames, root, list(fwhm = 3))
+  second <- mssr_batch(frames, root, list(fwhm = 3, amp = 1, order = 1,
+                                          intensity_normalize = TRUE, mesh = TRUE,
+                                          grid = "extent", kernel = "disk",
+                                          rounding = "half_even", max_output_pixels = 5e7))
+  expect_true(second$reused)
+  expect_identical(second$output, first$output)
+  higher <- mssr_batch(frames, root, list(fwhm = 3, order = 4))
+  expect_identical(higher$status, "complete")
+  records <- list.files(root, pattern = "^a-.*json$", full.names = TRUE)
+  decoded <- lapply(records, jsonlite::fromJSON, simplifyVector = FALSE)
+  high <- decoded[vapply(decoded, function(z) identical(z$settings$order, 4L), logical(1))]
+  expect_length(high, 1)
+  expect_true("mssrscopR_warning_unqualified_order" %in% unlist(high[[1]]$warning_classes))
+})
+
+test_that("recovery directories are refused without removing previous outputs", {
+  skip_if_not_installed("digest")
+  skip_if_not_installed("jsonlite")
+  root <- withr::local_tempdir()
+  frames <- list(a = matrix(1:12, 3, 4))
+  first <- mssr_batch(frames, root, list(fwhm = 3))
+  path <- list.files(root, pattern = "^a-.*json$", full.names = TRUE)
+  unlink(path)
+  dir.create(path)
+  actual <- mssr_batch(frames, root, list(fwhm = 3))
+  expect_identical(actual$status, "failed")
+  expect_true(dir.exists(path))
+  expect_true(file.exists(first$output))
+})

@@ -18,12 +18,17 @@ input has a defined result, and a self-test can check any installation.
   decided.
 - **Verify:** `mssr_selftest()` recomputes bundled synthetic fixtures.
 
-> **Status: 0.1.0, experimental.** At amplification 1 with intensity
-> normalization off, the engine matches the authors' single-frame R code (disk
-> kernel, rotation undone) and Python code (square kernel) wherever their output
-> is finite, apart from undefined refinement steps; the bundled synthetic
-> fixtures guard against regressions. Its benefit for
+> **Status: 0.1.0.9003, development candidate.** At amplification 1 with intensity
+> normalization off, comparisons with the authors' single-frame R code (disk
+> kernel, rotation undone) and Python code (square kernel) agree on the tested
+> non-degenerate examples. Engine `mssr_r_rev3` improves numerical stability;
+> the unchanged bundled synthetic fixtures guard against regressions. Its benefit for
 > fluorescence, histology or hyperspectral analyses has not been established.
+
+The method concordance in `vignette("method-concordance")` maps the official
+supplementary equations to the engine and records implementation differences,
+unresolved temporal definitions and qualification boundaries
+([Markdown source](https://github.com/CTTIR/mssrscopR/blob/main/tools/qualification/METHOD_CONCORDANCE.md)).
 
 ## Why
 
@@ -46,7 +51,9 @@ is labeled as a non-quantitative structure map.
 **In scope**
 
 - Single-frame MSSR of finite 2D numeric matrices of any shape, orders 0–10,
-  integer amplification 1–64 on a field-of-view-preserving grid.
+  integer amplification 1–64 on a field-of-view-preserving grid. This is the
+  accepted syntax; independent qualification covers a bounded subset, and
+  orders above 3 are experimental.
 - Defined results for degenerate input (flat frames, impulses on an exactly
   zero background), reported in the diagnostics.
 - Structural masks with exact coverage for measurements on the original data.
@@ -57,7 +64,7 @@ is labeled as a non-quantitative structure map.
 
 - Temporal MSSR summaries over frame stacks (mean, variance, TPM).
 - Tiled or out-of-core processing: every order step uses image-wide maxima.
-- File readers, physical calibration, and claims of resolution gain,
+- General-purpose file readers, physical calibration, and claims of resolution gain,
   intensity fidelity or diagnostic value.
 
 ## Where it sits in CTTIR
@@ -86,7 +93,7 @@ or segmentation workflows has not been validated.
 | `mssr_coords(result)` | output pixel-center coordinates (`row`, `col`) in input-pixel units |
 | `mssr_mask(result, fraction = 0.5, region = NULL, seed = 1)` | logical mask on the input grid with `coverage`, `tie_fraction`, `n_region` |
 | `mssr_selftest(tolerance = 1e-10)` | fixture errors, with attribute `all_passed` |
-| `mssr_app(max_upload_mb = 50, ...)` | interactive Shiny explorer (needs shiny, bslib and jsonlite): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads |
+| `mssr_app(max_upload_mb = 50, ...)` | interactive Shiny explorer (needs shiny, bslib, jsonlite, callr and digest): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads |
 
 `fwhm` is the point-spread-function width in **input pixels** and has no
 default. Errors inherit from `mssrscopR_error` (subclasses `_input`,
@@ -96,7 +103,13 @@ because MSSR assumes non-negative intensities, and undefined refinement steps
 give a `mssrscopR_warning_skipped_steps` warning.
 
 Use plain integer or double inputs; explicitly classed numeric objects must be
-converted deliberately. Intermediate overflow raises a numerical error.
+converted deliberately. The engine scales internally and accumulates local
+differences to reduce overflow, underflow and cancellation. It reports a numerical
+error if scaling loses a nonzero input or the final output overflows. Very small
+intensity-weighted outputs remain subject to subnormal rounding, including zero.
+This cannot recover precision already lost in the supplied frame. A constant
+background can change higher-order MSSR mathematically; subtracting it remains
+an explicit preprocessing decision.
 Coordinate and mask consumers check finite values and consistent grid metadata;
 they do not authenticate image provenance. Positive mask fractions select at
 least one pixel, but flat maps may yield entirely tie-selected masks. A quota
@@ -130,7 +143,7 @@ attr(m, "tie_fraction")
 
 attr(mssr_selftest(), "all_passed")
 
-# Explore parameters interactively (needs shiny, bslib and jsonlite):
+# Explore parameters interactively (needs shiny, bslib, jsonlite, callr and digest):
 # mssr_app()
 ```
 
@@ -139,9 +152,11 @@ attr(mssr_selftest(), "all_passed")
 The authors distribute R, Python, MATLAB and ImageJ code at
 <https://github.com/adanog/MSSR>. `mssrscopR` is an independent implementation
 and contains none of it. At amplification 1 with intensity normalization off,
-its output equals the authors' single-frame R function once that function's
-final rotation is undone, and with `kernel = "square"` their Python function,
-wherever their code returns finite values. For flat frames and for impulses on
+comparisons agree on tested non-degenerate examples with the authors' single-frame
+R function once its final rotation is undone, and with `kernel = "square"` their
+Python function. This is a bounded numerical comparison, not a guarantee for
+every finite input: the revised engine avoids numerical failures of the direct
+arithmetic at extreme intensity ranges. For flat frames and for impulses on
 an exactly zero background their R function returns `NaN` and their Python
 function returns zeros; `mssrscopR` returns flagged zeros for flat frames and
 keeps the map, counting the skipped step, for impulses. With intensity
@@ -187,3 +202,121 @@ must be reviewed and revised before inclusion, and references must be verified
 against their DOI, arXiv ID or ISBN.
 
 Local software setup: vLLM with Python/PyTorch, plus R and RStudio.
+
+## Inspect, preserve and resume results
+
+The development interface adds `summary()`, `plot()` and
+`mssr_validate_result()` for result inspection. Results carry a separate schema
+version, engine/package identity and an explicit evidence scope. Unknown
+acquisition calibration stays unknown; arbitrary matrix attributes are not
+copied into outputs.
+
+```r
+x <- matrix(seq_len(120), 10, 12)
+r <- mssr(x, fwhm = 3, order = 1, max_memory_bytes = 1024^3)
+summary(r)
+mssr_validate_result(r)
+mssr_estimate_resources(dim(x), fwhm = 3)
+
+# Optional packages digest and jsonlite are needed only for file exchange/batches.
+# Paths are explicit and output replacement is refused by default.
+# mssr_write_result(r, "frame.mssr")
+# restored <- mssr_read_result("frame.mssr")
+# run <- mssr_batch(list(frame_a = x, frame_b = t(x)), "batch-output",
+#                   settings = list(fwhm = 3, order = 1))
+```
+
+Result files preserve exact binary64 values with SHA-256 integrity checks and
+bounded, non-executable metadata parsing. Readback establishes consistency,
+not source authenticity or biological validity. Batch processing is sequential:
+complete frames, verified reuse, retained failed/cancelled rows and separate
+attempt files. Cancellation takes effect between frames. The returned table's
+`run_record` attribute identifies the durable invocation summary.
+
+The allocation model was calibrated on a bounded Linux workload ladder
+(1,536–393,216 output pixels, amplification 1–3, orders 0–3). It includes a
+192 MiB runtime allowance and conservative working buffers. Larger workloads,
+other runtimes and retained objects can change RSS; this is not an OS memory cap.
+
+### Recompute a saved result
+
+`mssr_settings()` validates a result and returns the eight resolved computation
+arguments, including its grid. Use it instead of passing `result$parameters`
+directly: that field includes the derived `half_size` and omits the grid.
+Resolved settings describe what ran; for example, mesh compensation is recorded
+as off at amplification 1. Resource budgets must be set explicitly for replay.
+
+```r
+# Continue from x and r above; keep the original input separately.
+if (requireNamespace("digest", quietly = TRUE) &&
+    requireNamespace("jsonlite", quietly = TRUE)) {
+  path <- tempfile(fileext = ".mssr")
+  mssr_write_result(r, path)
+  restored <- mssr_read_result(path)
+  stopifnot(identical(restored$engine$package_version,
+                      as.character(packageVersion("mssrscopR"))))
+  replay <- do.call(mssr, c(
+    list(x = x, max_output_pixels = 5e7, max_memory_bytes = 1024^3),
+    mssr_settings(restored)
+  ))
+  stopifnot(identical(replay$values, restored$values),
+            identical(replay$transform, restored$transform))
+  unlink(path)
+}
+```
+
+This demonstration retains the original input in memory. For a durable analysis,
+preserve it in trusted storage together with its identity, preprocessing,
+channel/frame selection, acquisition information, and mask region, fraction and
+seed. These are not stored in the `.mssr` result. Preserve the package artifact
+and runtime environment too. `mssr_settings()` refuses records from other
+numerical engines; it does not migrate them. Matching engine/settings alone
+does not guarantee identical arithmetic across package versions or environments,
+so compare the recomputed values as above. See the vignette for a worked example
+that also reproduces the original-data measurement.
+
+## Numerical qualification boundary
+
+The portable kit in `tools/qualification/` evaluates independent high-precision
+references and keeps failing cases visible. The current bounded core contains
+76 passing cases at orders 0–3; this does not establish accuracy for every
+possible input or parameter combination. Across the wider 98-case sample,
+two order-10 cases exceed the unchanged tolerance. Small perturbations can be
+strongly amplified by repeated nonlinear refinement. Orders above 3 therefore
+produce an explicit qualification warning and remain experimental.
+
+A small map difference does not guarantee an identical mask: near a cutoff,
+score perturbations can change selected pixels and measurements made on the
+original frame. A fixed retained fraction is a quota, not a detector threshold,
+probability or confidence score. Always inspect retained coverage, cutoff ties,
+parameter sensitivity and the consequences for the original-data measurement.
+
+
+## Background app computation
+
+The app runs one owned background R job per session. **Cancel computation** stops
+that job; pending, failed or cancelled work cannot be downloaded. **Restore
+previous completed result** recovers the prior input, settings and mask with an
+explicit restored-state label. Controls edited while a job runs do not change
+its captured inputs. Current mask controls can update a normally completed
+result; restored results retain their previous mask settings.
+
+Jobs stop when the session closes or after five minutes. They inherit CPU
+constraints and use one numerical thread. The app verifies package files and
+loaded function definitions in the child, preventing an unnoticed switch to an
+older installed version. Development-source launches additionally need pkgload;
+installed packages do not. Dependencies are never installed automatically.
+
+
+The app's Run record uses schema 1.1.0 and includes SHA-256 identities for the
+uploaded file bytes and decoded frame. It retains neither the filename nor the
+local path. Keep the source file separately: these hashes establish content
+identity, not authenticity or acquisition provenance. You can compare the raw
+file hash with `digest::digest(file = "your-frame.csv", algo = "sha256", serialize = FALSE)`.
+
+The decoded-frame format `mssr-input-binary64-v1` hashes this concatenation:
+the ASCII tag `mssr-input-binary64-v1` followed by a newline, two little-endian
+signed 32-bit integers (row count, then column count), and all finite samples
+as little-endian IEEE-754 binary64 values in column-major order. Matrix
+attributes are excluded. Equal decoded frames from different file encodings
+have the same frame hash, while their uploaded-file hashes can differ.

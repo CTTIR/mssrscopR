@@ -38,14 +38,14 @@ check_positive <- function(x, name, call = NULL, allow_zero = FALSE) {
     kind <- if (allow_zero) "non-negative" else "positive"
     mssr_abort("parameter", sprintf("`%s` must be a single %s number.", name, kind), call)
   }
-  x
+  as.double(x)
 }
 
 check_flag <- function(x, name, call = NULL) {
-  if (!is.logical(x) || length(x) != 1L || is.na(x)) {
+  if (!is.logical(x) || is.object(x) || length(x) != 1L || is.na(x)) {
     mssr_abort("parameter", sprintf("`%s` must be TRUE or FALSE.", name), call)
   }
-  x
+  as.logical(x)
 }
 
 check_matrix <- function(x, call = NULL) {
@@ -69,7 +69,9 @@ check_matrix <- function(x, call = NULL) {
                "`x` contains NA, NaN or infinite values; MSSR is undefined for them.", call)
   }
   storage.mode(x) <- "double"
-  dimnames(x) <- NULL
+  # Matrix attributes can contain private acquisition paths or identifiers.
+  # Keep only dimensions; metadata requires a separate explicit contract.
+  attributes(x) <- list(dim = dim(x))
   x
 }
 
@@ -132,5 +134,5 @@ check_choice <- function(x, choices, name, call = NULL) {
                    paste0("\"", choices, "\"", collapse = ", "))
     mssr_abort("parameter", msg, call)
   }
-  x
+  as.character(x)
 }

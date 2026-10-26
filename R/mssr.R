@@ -14,10 +14,11 @@
 #' exactly `1 / amp`. Amplification adds samples, not independent observations.
 #'
 #' **Relation to the authors' code.** At `amp = 1` with
-#' `intensity_normalize = FALSE`, the output equals the authors' single-frame R
-#' function after its final 90-degree rotation is undone (`kernel = "disk"`) or
-#' their Python function (`kernel = "square"`), wherever their code returns
-#' finite values, except for undefined refinement steps (see below). For
+#' `intensity_normalize = FALSE`, tested non-degenerate examples agree with
+#' the authors' single-frame R function after its final 90-degree rotation is
+#' undone (`kernel = "disk"`) or
+#' their Python function (`kernel = "square"`) within floating-point tolerance.
+#' Extreme numeric ranges and undefined refinement steps can differ (see below). For
 #' `amp > 1`, Keys cubic convolution is used, which is not numerically
 #' identical to the authors' interpolation. With the default
 #' `intensity_normalize = TRUE` their R function multiplies the rotated map by
@@ -44,13 +45,16 @@
 #'
 #' **Numeric domain.** Input and numeric parameters must use plain integer or
 #' double storage, without explicit classes. Convert calibrated or other
-#' classed data deliberately before calling. Finite input can still overflow
-#' intermediate arithmetic; this raises `mssrscopR_error_numerical` rather than
-#' returning an invalid or misleading zero map. Extreme underflow is not a
-#' calibrated intensity regime; retain any input rescaling in provenance. A
-#' large constant offset relative to the signal's variation (for example 1e12
-#' added to values that vary by 1) costs accuracy through cancellation;
-#' subtract such offsets first.
+#' classed data deliberately before calling. The engine uses internal
+#' power-of-two scaling, centered interpolation for non-negative input and
+#' weighted local differences to limit overflow, underflow and cancellation.
+#' A nonzero input lost during scaling or an overflowing final result
+#' raises `mssrscopR_error_numerical`. Rounding already present in the supplied
+#' data cannot be recovered. Large offsets can change higher-order maps
+#' mathematically, so subtracting a background is a separate preprocessing
+#' decision that must be recorded. Intensity-weighted output is rescaled to
+#' the original numeric units but remains non-quantitative; subnormal output
+#' still has limited precision and can round to zero.
 #'
 #' **Cost.** Every order step uses image-wide maxima, so frames must be
 #' processed whole. Time grows with the number of output pixels times the
@@ -62,12 +66,16 @@
 #' refused before computing.
 #'
 #' @param x A plain integer or double matrix (rows = y, columns = x) with
-#'   finite values and no explicit class.
+#'   finite values and no explicit class. Input dimnames and other attributes
+#'   are discarded; acquisition metadata are never inferred from attributes.
 #' @param fwhm Full width at half maximum of the point-spread function, in
 #'   **input pixels**. Required; there is no default because it is a property
 #'   of the acquisition.
 #' @param amp Amplification factor (whole number from 1 to 64).
-#' @param order MSSR order (whole number from 0 to 10).
+#' @param order MSSR order (whole number from 0 to 10). Orders above 3
+#'   are experimental: bounded high-precision checks found larger errors at
+#'   order 10. They emit `mssrscopR_warning_unqualified_order`. Checks at orders
+#'   0 through 3 cover only the documented synthetic domain, not every input.
 #' @param intensity_normalize If `TRUE` (the authors' default) the structure
 #'   map is multiplied by the (amplified) input.
 #' @param mesh Mesh compensation after amplification (only used if `amp > 1`).
@@ -80,6 +88,9 @@
 #'   `"half_even"` (R and Python default) or `"half_up"`.
 #' @param max_output_pixels Upper limit on output pixels, checked before any
 #'   computation.
+#' @param max_memory_bytes Optional positive allocation-estimate ceiling.
+#'   `NULL` leaves this guard disabled. This is not a hard process-memory cap;
+#'   see [mssr_estimate_resources()].
 #'
 #' @return An object of class `mssr_result`: a list with `values` (numeric
 #'   matrix), `role` (`"structure"` or `"intensity_weighted_structure"`),
@@ -89,7 +100,10 @@
 #'   extent from pixel edge 0.5 to `n + 0.5`. Output samples cover it exactly on
 #'   the extent grid; on the endpoint grid they span only the first to the last
 #'   input pixel center. The input is not
-#'   stored.
+#'   stored. `schema_version` identifies the result contract separately from
+#'   the numerical engine; `input` records known axes and unknown calibration;
+#'   `evidence` identifies the numerical-only scope. Qualification diagnostics
+#'   disclose conservative high-order limits without assigning confidence.
 #' @references Torres-Garcia E, Pinto-Camara R, Linares A, et al. Extending
 #'   resolution within a single imaging frame. *Nature Communications*
 #'   2022;13:7452. \doi{10.1038/s41467-022-34693-9}
@@ -105,7 +119,8 @@
 #' @export
 mssr <- function(x, fwhm, amp = 1L, order = 1L, intensity_normalize = TRUE, mesh = TRUE,
                  grid = c("extent", "endpoint"), kernel = c("disk", "square"),
-                 rounding = c("half_even", "half_up"), max_output_pixels = 5e7) {
+                 rounding = c("half_even", "half_up"), max_output_pixels = 5e7,
+                 max_memory_bytes = NULL) {
   call <- sys.call()
   x <- check_matrix(x, call)
   if (missing(fwhm)) {
@@ -137,11 +152,27 @@ mssr <- function(x, fwhm, amp = 1L, order = 1L, intensity_normalize = TRUE, mesh
                    n_out, max_output_pixels)
     mssr_abort("resource", msg, call)
   }
-  work <- n_out * nrow(mssr_offsets(hs, kernel))
+  estimate <- mssr_estimate_resources(dim(x), fwhm, amp, kernel, rounding,
+                                      max_output_pixels)
+  work <- estimate$estimated_work
   if (work > 1e10) {
     msg <- sprintf("Estimated work of %.2g operations exceeds 1e10; %s", work,
                    "reduce the frame size, `amp` or `fwhm`.")
     mssr_abort("resource", msg, call)
+  }
+  if (!is.null(max_memory_bytes)) {
+    max_memory_bytes <- check_positive(max_memory_bytes, "max_memory_bytes", call)
+    if (estimate$estimated_peak_bytes > max_memory_bytes) {
+      mssr_abort("resource", "Estimated allocation exceeds `max_memory_bytes`.", call)
+    }
+  }
+  if (order > 3L) {
+    mssr_warn("unqualified_order", paste(
+      "Orders above 3 are outside the conservatively qualified numerical domain.",
+      "High-order refinement can amplify rounding errors; independent checks found",
+      "larger discrepancies at order 10. Lower orders have bounded synthetic evidence",
+      "and are not guaranteed accurate for every input."
+    ))
   }
   if (any(x < 0)) {
     mssr_warn("negative", paste("`x` contains negative values. MSSR assumes non-negative",
@@ -171,14 +202,19 @@ mssr <- function(x, fwhm, amp = 1L, order = 1L, intensity_normalize = TRUE, mesh
     parameters = list(fwhm = fwhm, amp = amp, order = order,
                       intensity_normalize = intensity_normalize, mesh = mesh && amp > 1L,
                       kernel = kernel, rounding = rounding, half_size = e$half_size),
-    engine = list(id = "mssr_r_rev2",
+    engine = list(id = "mssr_r_rev3",
                   package_version = as.character(utils::packageVersion("mssrscopR")),
                   method = "Torres-Garcia et al. 2022, doi:10.1038/s41467-022-34693-9"),
     diagnostics = list(degenerate = e$degenerate, degenerate_reason = e$degenerate_reason,
                        order_steps_skipped = e$order_steps_skipped,
                        zero_fraction = mean(e$values == 0),
                        negative_fraction = mean(e$values < 0),
-                       n_offsets = e$n_offsets, quantitative = FALSE)
+                       n_offsets = e$n_offsets, quantitative = FALSE,
+                       qualification_scope = "bounded_synthetic_domain",
+                       high_order_unqualified = order > 3L),
+    schema_version = mssr_result_contract()$schema_version,
+    input = mssr_result_contract()$input,
+    evidence = mssr_result_contract()$evidence
   ), class = "mssr_result")
 }
 

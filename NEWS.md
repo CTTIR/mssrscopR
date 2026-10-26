@@ -1,3 +1,55 @@
+# mssrscopR 0.1.0.9003
+
+* Added validated callable settings for reproducible result replay, including
+  the output grid and explicit refusal of historical engine definitions.
+* Run records now identify uploaded bytes and decoded matrix content with
+  SHA-256 hashes while excluding source filenames and paths.
+* Figure downloads retain interpretation, computed settings and run identity.
+  Download actions are unavailable until their result or mask is ready.
+* Notification dismissal restores keyboard focus, and Browse has a visible
+  focus indicator in both themes.
+
+# mssrscopR 0.1.0.9002
+
+* Reviewed the official supplementary methods and documented equation-to-code
+  concordance, including the published cubic kernel, symmetric mesh scheme and
+  unresolved temporal definitions. Numerical engine equations, regression
+  values and scientific claims are unchanged.
+* Expanded synthetic TIFF coverage for LZW, Deflate and PackBits across supported
+  sample types and storage layouts. Invalid strip/tile extents are now refused
+  before decoding.
+* Replaced app sliders with native numeric controls and improved document
+  semantics, keyboard focus, summary reflow and status/hover contrast.
+
+# mssrscopR 0.1.0.9001
+
+* Added versioned result inspection, strict validation and bounded binary result
+  exchange with SHA-256 checks, exact numeric readback and no implicit overwrite.
+* Added a calibrated allocation estimate, opt-in memory guard and sequential
+  complete-frame batches with verified reuse, retained failures and recovery.
+* Expanded independent numerical qualification. Orders above 3 now warn that
+  they are outside the bounded qualified core; two order-10 cases fail the
+  unchanged tolerance. The engine equations and frozen fixtures are unchanged.
+* TIFF metadata traversal is bounded. Packed 12-bit, non-top-left orientation
+  and other unqualified layouts are refused before pixel decoding. Application
+  state, exports, keyboard access and textual diagnostics are more explicit.
+* Arbitrary source matrix attributes are removed so identifying metadata do not
+  silently propagate into computed values.
+
+# mssrscopR 0.1.0.9000
+
+* Engine `mssr_r_rev3` uses internal power-of-two scaling, centered interpolation
+  and weighted local differences to reduce overflow, underflow and cancellation.
+  Existing expected fixture values are unchanged. Background subtraction is
+  still a distinct preprocessing choice; higher-order MSSR is not invariant to
+  additive background.
+* Image uploads preserve single-row and single-column channel dimensions,
+  report decoder failures with classed errors, and check decoded dimensions
+  before reading PNG pixels or a selected TIFF page. TIFF page selection needs
+  tiff >= 0.1-8. Run records include the mask's relative cutoff diagnostic.
+  Multichannel planar-separate TIFFs are refused because the underlying reader
+  can silently corrupt them; explicit volumetric TIFFs are outside the 2D scope.
+
 # mssrscopR 0.1.0
 
 * Input qualification rejects explicit numeric classes before arithmetic;

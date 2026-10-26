@@ -12,6 +12,16 @@ reference:
   - title: Validation
     contents:
       - mssr_selftest
+      - mssr_validate_result
+      - summary.mssr_result
+      - plot.mssr_result
+  - title: Resources and result files
+    contents:
+      - mssr_estimate_resources
+      - mssr_batch
+      - mssr_write_result
+      - mssr_read_result
+      - mssr_settings
   - title: Interactive app
     contents:
       - mssr_app
@@ -20,3 +30,4 @@ articles:
     navbar: ~
     contents:
       - mssrscopR
+      - method-concordance

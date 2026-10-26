@@ -14,12 +14,14 @@ mssr(
   grid = c("extent", "endpoint"),
   kernel = c("disk", "square"),
   rounding = c("half_even", "half_up"),
-  max_output_pixels = 5e+07
+  max_output_pixels = 5e+07,
+  max_memory_bytes = NULL
 )
 }
 \arguments{
 \item{x}{A plain integer or double matrix (rows = y, columns = x) with
-finite values and no explicit class.}
+finite values and no explicit class. Input dimnames and other attributes
+are discarded; acquisition metadata are never inferred from attributes.}
 
 \item{fwhm}{Full width at half maximum of the point-spread function, in
 \strong{input pixels}. Required; there is no default because it is a property
@@ -27,7 +29,10 @@ of the acquisition.}
 
 \item{amp}{Amplification factor (whole number from 1 to 64).}
 
-\item{order}{MSSR order (whole number from 0 to 10).}
+\item{order}{MSSR order (whole number from 0 to 10). Orders above 3
+are experimental: bounded high-precision checks found larger errors at
+order 10. They emit \code{mssrscopR_warning_unqualified_order}. Checks at orders
+0 through 3 cover only the documented synthetic domain, not every input.}
 
 \item{intensity_normalize}{If \code{TRUE} (the authors' default) the structure
 map is multiplied by the (amplified) input.}
@@ -46,6 +51,10 @@ code does; for comparison only).}
 
 \item{max_output_pixels}{Upper limit on output pixels, checked before any
 computation.}
+
+\item{max_memory_bytes}{Optional positive allocation-estimate ceiling.
+\code{NULL} leaves this guard disabled. This is not a hard process-memory cap;
+see \code{\link[=mssr_estimate_resources]{mssr_estimate_resources()}}.}
 }
 \value{
 An object of class \code{mssr_result}: a list with \code{values} (numeric
@@ -56,7 +65,10 @@ and the spacing (input-pixel units), and \code{field_of_view}: the input frame's
 extent from pixel edge 0.5 to \code{n + 0.5}. Output samples cover it exactly on
 the extent grid; on the endpoint grid they span only the first to the last
 input pixel center. The input is not
-stored.
+stored. \code{schema_version} identifies the result contract separately from
+the numerical engine; \code{input} records known axes and unknown calibration;
+\code{evidence} identifies the numerical-only scope. Qualification diagnostics
+disclose conservative high-order limits without assigning confidence.
 }
 \description{
 Computes the Mean-Shift Super-Resolution (MSSR) structure map of one 2D
@@ -73,10 +85,11 @@ pixel centers lie at \code{(k - 0.5) / amp + 0.5} input pixels, so the spacing i
 exactly \code{1 / amp}. Amplification adds samples, not independent observations.
 
 \strong{Relation to the authors' code.} At \code{amp = 1} with
-\code{intensity_normalize = FALSE}, the output equals the authors' single-frame R
-function after its final 90-degree rotation is undone (\code{kernel = "disk"}) or
-their Python function (\code{kernel = "square"}), wherever their code returns
-finite values, except for undefined refinement steps (see below). For
+\code{intensity_normalize = FALSE}, tested non-degenerate examples agree with
+the authors' single-frame R function after its final 90-degree rotation is
+undone (\code{kernel = "disk"}) or
+their Python function (\code{kernel = "square"}) within floating-point tolerance.
+Extreme numeric ranges and undefined refinement steps can differ (see below). For
 \code{amp > 1}, Keys cubic convolution is used, which is not numerically
 identical to the authors' interpolation. With the default
 \code{intensity_normalize = TRUE} their R function multiplies the rotated map by
@@ -103,13 +116,16 @@ intensity-weighted output can be negative, so a warning of class
 
 \strong{Numeric domain.} Input and numeric parameters must use plain integer or
 double storage, without explicit classes. Convert calibrated or other
-classed data deliberately before calling. Finite input can still overflow
-intermediate arithmetic; this raises \code{mssrscopR_error_numerical} rather than
-returning an invalid or misleading zero map. Extreme underflow is not a
-calibrated intensity regime; retain any input rescaling in provenance. A
-large constant offset relative to the signal's variation (for example 1e12
-added to values that vary by 1) costs accuracy through cancellation;
-subtract such offsets first.
+classed data deliberately before calling. The engine uses internal
+power-of-two scaling, centered interpolation for non-negative input and
+weighted local differences to limit overflow, underflow and cancellation.
+A nonzero input lost during scaling or an overflowing final result
+raises \code{mssrscopR_error_numerical}. Rounding already present in the supplied
+data cannot be recovered. Large offsets can change higher-order maps
+mathematically, so subtracting a background is a separate preprocessing
+decision that must be recorded. Intensity-weighted output is rescaled to
+the original numeric units but remains non-quantitative; subnormal output
+still has limited precision and can round to zero.
 
 \strong{Cost.} Every order step uses image-wide maxima, so frames must be
 processed whole. Time grows with the number of output pixels times the

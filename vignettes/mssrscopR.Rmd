@@ -120,10 +120,18 @@ try(mssr(matrix(c(1, NA, 3, 4), 2), fwhm = 3)) # non-finite input
 ## Interactive exploration
 
 `mssr_app()` opens the same computations in a Shiny app (it needs the shiny,
-bslib and jsonlite packages). It shows the input and the structure map on the
+bslib, jsonlite, callr and digest packages). It shows the input and the structure map on the
 same input-pixel axes, line profiles, masks measured on the input and the
 self-test, and offers the results for download. The examples above are
 available there, and frames can be uploaded as text tables, PNG or TIFF.
+
+Computation runs in one background job per app session. Cancel stops the owned
+job, and incomplete results cannot be exported. A previous completed input,
+settings and mask can be explicitly restored. The run record distinguishes
+restored results and settings captured at computation from current controls.
+A session closing or a five-minute limit stops its unfinished job. Development
+source launches need pkgload; installed-package launches use the exact installed
+namespace and verify their loaded definitions.
 
 ```{r app, eval = FALSE}
 mssr_app()
@@ -139,3 +147,102 @@ installation, not an independent validation:
 st <- mssr_selftest()
 st[, c("fixture_id", "max_abs_error", "passed")]
 ```
+
+## Reproducible expert workflow
+
+Choose FWHM from the acquisition PSF in input-pixel units. Record its source and
+uncertainty; an image's dimensions do not establish physical calibration. Fix
+preprocessing, channel selection, frame boundaries and parameter-selection rules
+before evaluating outcomes. Cropping changes the neighborhood context and global
+normalizers, so a cropped reconstruction need not equal a crop of the full-frame
+result. Background subtraction is a distinct preprocessing decision.
+
+Start with a low order and compare plausible acquisition-informed settings.
+Orders above 3 are accepted for compatibility but produce a qualification warning:
+the expanded independent reference suite found sensitive high-order failures.
+The bounded passing domain is evidence about the tested scenes, not a guarantee
+for an arbitrary noisy acquisition. Review broad-object hollowing/splitting,
+missing dim structures and blank/noise-only fields alongside favorable examples.
+
+```{r expert-inspection}
+frame <- outer(1:13, 1:17, function(r, c) 0.05 + exp(-((r-7)^2+(c-9)^2)/8))
+result <- mssr(frame, fwhm = 3, order = 1)
+summary(result)
+mssr_estimate_resources(dim(frame), fwhm = 3)
+```
+
+`mssr_validate_result()` checks a result's internal contract. `mssr_write_result()`
+and `mssr_read_result()` use explicit paths, integrity hashes and exact binary
+values; optional `digest` and `jsonlite` are needed for these operations. They do
+not establish acquisition provenance. Never use reconstructed intensities as
+calibrated measurements. Original-data measurements under a mask still reflect
+selection bias: report retained coverage, compare with sensible controls and
+inspect how small score changes alter the selected population.
+
+`mssr_batch()` processes a named list of independent whole frames with one worker.
+It records failures and cancellations, checks completed results before reuse and
+retains separate attempts. It checks cancellation between frames. Its memory
+budget is a conservative estimate; use a separate process-level limit when a
+hard memory cap is required. It does not implement tiling or infer time, depth,
+wavelength, specimen identity or physical units from an array.
+
+## Save and replay an analysis
+
+`mssr_settings()` validates the result and returns only callable computation
+settings, including the grid. Passing `result$parameters` directly is not a
+replay recipe: it includes a derived kernel half-size and omits the grid.
+Settings are resolved values, so mesh compensation is recorded as off when
+amplification is 1. Resource budgets are not retained settings; choose them
+explicitly when recomputing.
+
+The example below retains the original synthetic frame and mask context in
+memory, then reads the exact result from a file. For a durable analysis, keep
+the original frame in trusted storage and retain its identity, preprocessing,
+channel/frame selection, acquisition information and mask context alongside it.
+The `.mssr` file does not contain those inputs. Here no acquisition calibration
+is available, and FWHM is a chosen synthetic setting.
+
+```{r replay-analysis}
+original <- frame
+context <- list(
+  preprocessing = "none; authored synthetic frame",
+  region = outer(seq_len(nrow(original)), seq_len(ncol(original)),
+                 function(r, c) r <= 10 & c >= 4),
+  fraction = 0.2,
+  seed = 23L
+)
+result <- mssr(original, fwhm = 3, amp = 2, order = 1,
+               max_output_pixels = 5e7, max_memory_bytes = 1024^3)
+mask <- mssr_mask(result, fraction = context$fraction,
+                  region = context$region, seed = context$seed)
+measurement <- mean(original[mask])
+
+if (requireNamespace("digest", quietly = TRUE) &&
+    requireNamespace("jsonlite", quietly = TRUE)) {
+  path <- tempfile(fileext = ".mssr")
+  mssr_write_result(result, path)
+  restored <- mssr_read_result(path)
+  stopifnot(identical(restored$engine$package_version,
+                      as.character(packageVersion("mssrscopR"))))
+  replay <- do.call(mssr, c(
+    list(x = original, max_output_pixels = 5e7, max_memory_bytes = 1024^3),
+    mssr_settings(restored)
+  ))
+  replay_mask <- mssr_mask(replay, fraction = context$fraction,
+                           region = context$region, seed = context$seed)
+  stopifnot(identical(replay$values, restored$values),
+            identical(replay$transform, restored$transform),
+            identical(replay_mask, mask),
+            identical(mean(original[replay_mask]), measurement))
+  unlink(path)
+}
+```
+
+Preserve the package artifact and runtime environment with a durable analysis,
+for example by retaining `sessionInfo()` output. The helper refuses results from
+a different numerical engine and does not migrate historical results. A legacy
+result schema with the current engine can still supply validated settings.
+Matching engine and settings is not a promise of identical arithmetic across
+package versions or environments: verify values and the original-data
+measurement after replay. The measurement remains subject to mask selection;
+successful reproduction does not validate the scientific choice of mask.

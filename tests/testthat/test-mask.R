@@ -63,10 +63,34 @@ test_that("cut_relative exposes masks that reach into near-zero scores", {
   wide <- mssr_mask(r, fraction = 0.2)
   expect_gt(attr(small, "cut_relative"), 0.01)
   expect_lt(attr(wide, "cut_relative"), 1e-6)
-  expect_identical(attr(wide, "tie_fraction"), 0)
+  # Derive boundary ties independently from each input pixel's four children.
+  # Stable arithmetic may leave exact zeros where subtraction used to leave
+  # positive rounding noise, so this scene need not have zero boundary ties.
+  v <- r$values
+  rows <- seq.int(1L, nrow(v), 2L)
+  cols <- seq.int(1L, ncol(v), 2L)
+  score <- (v[rows, cols] + v[rows + 1L, cols] +
+              v[rows, cols + 1L] + v[rows + 1L, cols + 1L]) / 4
+  boundary <- min(score[wide])
+  tied_selected <- sum(score[wide] == boundary)
+  tied_excluded <- sum(score[!wide] == boundary)
+  expected <- if (tied_excluded > 0) tied_selected / sum(wide) else 0
+  expect_identical(attr(wide, "tie_fraction"), expected)
   expect_identical(attr(mssr_mask(r, fraction = 1 / 1271), "cut_relative"), 1)
   flat <- mssr_mask(mssr(matrix(1, 4, 4), fwhm = 2), fraction = 0.5)
   expect_identical(attr(flat, "cut_relative"), 0)
+})
+
+test_that("distinct tiny positive mask scores are not reported as ties", {
+  r <- mssr(matrix(1, 4, 4), fwhm = 2)
+  r$values <- matrix(c(1, 1e-8, 1e-16, rep(0, 13)), 4, 4)
+  positive <- mssr_mask(r, fraction = 3 / 16)
+  expect_identical(which(positive), 1:3)
+  expect_identical(attr(positive, "cut_relative"), 1e-16)
+  expect_identical(attr(positive, "tie_fraction"), 0)
+  into_zeros <- mssr_mask(r, fraction = 4 / 16)
+  expect_identical(attr(into_zeros, "cut_relative"), 0)
+  expect_identical(attr(into_zeros, "tie_fraction"), 1 / 4)
 })
 
 test_that("masks do not depend on the caller's RNG kind", {

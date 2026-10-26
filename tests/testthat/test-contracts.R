@@ -65,13 +65,18 @@ test_that("coordinate and mask consumers refuse corrupt result geometry", {
   }
 })
 
-test_that("finite input overflow raises a typed numerical error", {
+test_that("high finite input is conditioned without intermediate overflow", {
   positive <- matrix(c(rep(1e308, 8), 1e307), 3, 3)
   signed <- matrix(c(-1e308, 1e308, rep(0, 7)), 3, 3)
-  expect_s3_class(tryCatch(mssr(positive, fwhm = 3), error = identity),
-                  "mssrscopR_error_numerical")
-  expect_s3_class(suppressWarnings(tryCatch(mssr(signed, fwhm = 3), error = identity)),
-                  "mssrscopR_error_numerical")
+  for (x in list(positive, signed)) {
+    got <- suppressWarnings(mssr(x, fwhm = 3, intensity_normalize = FALSE))
+    ref <- suppressWarnings(mssr(x / 1e308, fwhm = 3, intensity_normalize = FALSE))
+    expect_equal(got$values, ref$values, tolerance = 1e-12)
+    expect_true(all(is.finite(suppressWarnings(mssr(x, fwhm = 3))$values)))
+  }
+  x <- matrix(c(0, 0, 1, 1, 0, 1, 1, 0, 0), 3) * .Machine$double.xmax
+  expect_error(mssr(x, fwhm = 2, amp = 2, mesh = FALSE, order = 0),
+               class = "mssrscopR_error_numerical")
 })
 
 test_that("amplified mask averaging preserves finite high-range scores", {

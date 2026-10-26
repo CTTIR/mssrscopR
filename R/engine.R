@@ -1,4 +1,4 @@
-# Internal numerical kernel: engine definition "mssr_r_rev2".
+# Internal numerical kernel: engine definition "mssr_r_rev3".
 #
 # Single-frame Mean-Shift Super-Resolution (Torres-Garcia et al. 2022,
 # doi:10.1038/s41467-022-34693-9), independently implemented. Relative to the
@@ -15,6 +15,10 @@
 #     already equals the normalized input, e.g. impulses on an exactly zero
 #     background) leaves the map unchanged instead of zeroing it; such steps
 #     are counted in the diagnostics.
+# rev3 evaluates the same non-degenerate operator with power-of-two scaling,
+# centered interpolation and a weighted sum of local differences. This avoids
+# intermediate overflow/underflow and cancellation of a large background.
+# Existing regression fixtures remain unchanged; final rounding can differ.
 
 # Kernel half-size; the authors' R and Python code round halves to even.
 mssr_half_size <- function(fwhm, amp, rounding) {
@@ -145,15 +149,32 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
          half_size = hs, n_offsets = nrow(offs), order_steps_skipped = skipped)
   }
   zeros <- function() matrix(0, nrow(img) * amp, ncol(img) * amp)
-  if (diff(range(img)) == 0) {
+  input_range <- range(img)
+  if (input_range[1] == input_range[2]) {
     return(result(zeros(), TRUE, "flat input"))
   }
-  amplified <- if (amp > 1L) {
-    up <- mssr_upsample(img, amp, grid)
+  # Division by a power of two preserves binary precision while moving both
+  # subnormal and near-overflow frames into a safe range. Do not silently erase
+  # small nonzero inputs when one frame spans an unrepresentable ratio.
+  exponent <- max(-1074, min(1023, floor(log2(max(abs(img))))))
+  scale <- 2^exponent
+  scaled <- img / scale
+  if (any(img != 0 & scaled == 0)) {
+    mssr_abort("numerical", paste("The input dynamic range loses nonzero values",
+                                  "during numerical scaling."), call)
+  }
+  # For non-negative frames, retain the background separately through the
+  # interpolation and mean shift. Subtracting it after interpolation would
+  # already have lost small spatial variation. Signed input keeps offset zero.
+  offset <- max(0, min(scaled))
+  centered <- scaled - offset
+  amplified_centered <- if (amp > 1L) {
+    up <- mssr_upsample(centered, amp, grid)
     if (mesh) mssr_mesh(up, ceiling(amp / 2)) else up
   } else {
-    img
+    centered
   }
+  amplified <- amplified_centered + offset
   finite(amplified)
   if (max(amplified) <= 0) {
     return(result(zeros(), TRUE, "non-positive maximum"))
@@ -162,7 +183,7 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
   # Pass 1: maximum absolute local difference (range normalizer).
   range_max <- NULL
   for (k in seq_len(nrow(offs))) {
-    d <- abs(amplified - shift(amplified, offs$i[k], offs$j[k]))
+    d <- abs(amplified_centered - shift(amplified_centered, offs$i[k], offs$j[k]))
     range_max <- if (is.null(range_max)) d else pmax(range_max, d)
   }
   finite(range_max)
@@ -170,17 +191,19 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
   # is zero, so dividing by 1 there gives the defined ratio 0.
   divisor <- range_max
   divisor[range_max == 0] <- 1
-  weight_sum <- value_sum <- matrix(0, nrow(amplified), ncol(amplified))
+  weight_sum <- difference_sum <- matrix(0, nrow(amplified), ncol(amplified))
   for (k in seq_len(nrow(offs))) {
-    x <- shift(amplified, offs$i[k], offs$j[k])
-    ratio <- (amplified - x) / divisor
+    delta <- amplified_centered - shift(amplified_centered, offs$i[k], offs$j[k])
+    ratio <- delta / divisor
     w <- exp(-(offs$i[k]^2 + offs$j[k]^2) / hs^2) * exp(-ratio^2)
     weight_sum <- weight_sum + w
-    value_sum <- value_sum + x * w
+    difference_sum <- difference_sum + delta * w
   }
-  finite(value_sum)
+  finite(difference_sum)
   finite(weight_sum)
-  mean_shift <- amplified - value_sum / weight_sum
+  # This is algebraically amplified - weighted_mean(neighbors), without
+  # subtracting two almost equal intensities.
+  mean_shift <- difference_sum / weight_sum
   finite(mean_shift)
   mean_shift[mean_shift < 0] <- 0
   if (max(mean_shift) <= 0) {
@@ -204,5 +227,18 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
     x3 <- i3
     i3 <- i7
   }
-  result(if (int_norm) i3 * amplified else i3, FALSE, skipped = skipped)
+  values <- i3
+  if (int_norm) {
+    if (scale >= 1) {
+      # Rescale before weighting where the amplified value is representable.
+      # Weighting two tiny normalized values first could underflow even when
+      # their final value in the input units is representable.
+      safe <- abs(amplified) <= .Machine$double.xmax / scale
+      values[safe] <- i3[safe] * (amplified[safe] * scale)
+      values[!safe] <- (i3[!safe] * amplified[!safe]) * scale
+    } else {
+      values <- (i3 * amplified) * scale
+    }
+  }
+  result(values, FALSE, skipped = skipped)
 }

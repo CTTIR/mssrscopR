@@ -1,0 +1,28 @@
+Synthetic TIFF codec regression fixtures
+
+All headers, sample values and compressed streams are generated independently by
+tools/qualification/tiff_codec_fixtures.py. The fixed integer and signed-dyadic
+float formulas define expected CSV values before any package read. No source
+image, external pixel payload or output from mssrscopR was used as ground truth.
+The subset index selects compression/storage/channel/boundary cases from the
+larger bounded qualification matrix. Python/NumPy/zlib are needed only to
+regenerate the optional fixture corpus; package tests read the retained files.
+The generator implements PackBits and TIFF MSB-first LZW; Python zlib encodes
+Deflate. LZW stress includes 12-bit dictionary growth and resets. Multi-strip,
+partial-edge tiles, both byte orders, predictor2, RGB, alpha and multipage cases
+are represented. No biological or physical-calibration claim is supported.
+
+The authored generator and fixtures are distributed under the package license.
+Format references: TIFF Revision6 (Adobe1992), sections13-14 and PackBits;
+https://download.osgeo.org/libtiff/doc/TIFF6.pdf
+https://libtiff.gitlab.io/libtiff/specification/coverage.html
+
+Malformed short-stream fixtures retain a valid segment extent but replace the
+first StripByteCount by2 and its two encoded bytes by 00 00 (LZW/Deflate) or
+7f 01 (PackBits); the decoder must reject these incomplete streams.
+
+Compact names keep package tar paths below the portable 100-byte limit:
+s/t denote strips/tiles; le/be denote little/big endian; u/f denote unsigned
+integer/floating samples followed by bit depth; c and p denote channel count
+and predictor; pg/ch identify the expected page and channel. index.csv retains
+the full metadata. Renaming preserves every TIFF and expected-value CSV byte.

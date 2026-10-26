@@ -1,6 +1,6 @@
 Package: mssrscopR
 Title: Single-Frame Mean-Shift Super-Resolution Structure Maps
-Version: 0.1.0
+Version: 0.1.0.9003
 Authors@R:
     person("R.", "Heller",
            email = "raban.heller@uni-ulm.de",
@@ -32,13 +32,16 @@ Imports:
     withr (>= 2.5.0)
 Suggests:
     bslib (>= 0.6.0),
+    callr,
+    digest,
     jsonlite,
     knitr,
+    pkgload,
     png,
     rmarkdown,
     shiny (>= 1.8.0),
     testthat (>= 3.0.0),
-    tiff
+    tiff (>= 0.1-8)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)

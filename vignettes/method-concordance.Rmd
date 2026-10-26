@@ -1,0 +1,19 @@
+---
+title: "Method concordance"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Method concordance}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r concordance, echo = FALSE, results = 'asis'}
+source_file <- file.path("..", "tools", "qualification", "METHOD_CONCORDANCE.md")
+method_text <- readLines(source_file, warn = FALSE)
+stopifnot(identical(method_text[[1L]], "# Method concordance"))
+# The numerical boundary is included below; its source-relative link belongs
+# to the standalone Markdown file rather than the installed vignette.
+method_text <- sub("[numerical qualification](README.md)",
+                   "numerical qualification", method_text, fixed = TRUE)
+cat(method_text[-c(1L, 2L)], sep = "\n")
+```

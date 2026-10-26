@@ -6,11 +6,12 @@ on:
 
 name: test-coverage
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   coverage:
-    uses: CTTIR/.github/.github/workflows/test-coverage.yaml@main
+    uses: CTTIR/.github/.github/workflows/test-coverage.yaml@bd4664ca7168f9c5f86c521bf81293e2db006eec
     with:
       floor: 95
     secrets:
