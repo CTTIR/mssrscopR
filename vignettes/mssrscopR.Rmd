@@ -61,13 +61,31 @@ mid_ratio <- function(sep) {
   at_mssr <- function(cc) stats::approx(co$col, v[row, ], cc)$y
   c(input = at_input(18 + sep / 2) / at_input(18), mssr = at_mssr(18 + sep / 2) / at_mssr(18))
 }
-round(rbind(`2.4 px` = mid_ratio(2.4), `3 px` = mid_ratio(3)), 3)
+round(rbind(`2.4 px` = mid_ratio(2.4), `2.6 px` = mid_ratio(2.6), `3 px` = mid_ratio(3)), 3)
 ```
 
 At 3 px the input shows only a shallow dip, which MSSR deepens strongly. At
-2.4 px the blurred sources form a single hump, and MSSR returns a single,
-sharper hump: it enhances existing structure but does not split sources that
-the blur has already merged.
+2.6 px the input pixels have a single maximum, between the sources, yet MSSR
+returns two peaks with a clear dip (ratio below 1): it can separate sources that
+the pixels show merged. Its peaks move toward each other, so a ratio taken at the
+source centers can stay above 1 although two peaks exist. The peak positions
+along row 16 show this directly (true sources at 18 and 18 + separation):
+
+```{r peaks}
+peaks <- function(sep, amp = 2) {
+  r <- mssr(pair(sep), fwhm = 3, amp = amp)
+  co <- mssr_coords(r)
+  v <- as.matrix(r)[which.min(abs(co$row - 16)), ]
+  i <- which(diff(sign(diff(v))) == -2) + 1
+  co$col[i[v[i] > 0.05 * max(v)]]
+}
+list(`2.4 px` = peaks(2.4), `2.4 px, amp 4` = peaks(2.4, amp = 4), `2.6 px` = peaks(2.6))
+```
+
+At 2.4 px MSSR returns a single, sharper peak at `amp = 2`; at `amp = 4` it shows
+two peaks with a barely visible dip, 1 px apart for sources 2.4 px apart. The
+spacing of MSSR peaks therefore underestimates the true separation near this
+limit.
 
 ## Known failure modes
 
@@ -86,8 +104,31 @@ show(ry, "dim beside bright"); show(disk, "filled disk"); show(rd, "mssr(disk)")
 par(op)
 ```
 
-The outputs are therefore **not quantitative**; `res$diagnostics$quantitative`
-is always `FALSE`.
+Extended objects are emphasized at their edges. A rod three FWHM long becomes
+two peaks near its ends, with a lower interior:
+
+```{r rod}
+rod <- matrix(Reduce(`+`, lapply(seq(16.5, 25.5, length.out = 41),
+                                 function(cc) spot(16, cc, 1 / 41))) + 0.002, 31, 41)
+rr <- mssr(rod, fwhm = 3, amp = 2)
+co <- mssr_coords(rr)
+op <- par(mar = c(4, 4, 0.5, 0.5))
+plot(co$col, as.matrix(rr)[which.min(abs(co$row - 16)), ], type = "l",
+     xlab = "column (input px)", ylab = "mssr along row 16")
+lines(1:41, rod[16, ] / max(rod[16, ]) * max(rr$values), lty = 2)
+legend("topright", c("mssr", "input (scaled)"), lty = 1:2, bty = "n")
+par(op)
+```
+
+With noise, the mean shift also responds to noise maxima: single sources and
+short rods can break into several peaks, one source can look like a pair, and
+dim sources are lost first. An `fwhm` smaller than the true PSF makes false
+pairs more likely, and higher `order` values add further, mostly weak, maxima. Compare results with the
+input, and test settings on a synthetic noisy scene of known content that
+resembles your data.
+
+These failure modes are why the outputs are **not quantitative**;
+`res$diagnostics$quantitative` is always `FALSE`.
 
 ## Masks with measurements on the original data
 

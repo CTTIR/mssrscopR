@@ -8,6 +8,12 @@
   Download actions are unavailable until their result or mask is ready.
 * Notification dismissal restores keyboard focus, and Browse has a visible
   focus indicator in both themes.
+* Corrected the vignette and app: MSSR can separate sources that the pixels show
+  merged (at amp 2, two peaks for sources 2.6 px apart with FWHM 3 px, where the
+  input pixels show one maximum), with the peaks closer together than the
+  sources. Documented that a rod three FWHM long becomes two peaks near its ends,
+  and that under noise single sources and short rods can break up, more so with
+  an `fwhm` below the true PSF.
 
 # mssrscopR 0.1.0.9002
 
