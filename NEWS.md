@@ -14,6 +14,15 @@
   sources. Documented that a rod three FWHM long becomes two peaks near its ends,
   and that under noise single sources and short rods can break up, more so with
   an `fwhm` below the true PSF.
+* Documented that channels or bands processed one at a time are guaranteed to
+  keep their intensity ratios only when one whole frame is a scaled copy of
+  another (intensity-weighted output), so ratios, indices and spectra belong to
+  the original data (help, vignette example, app, tests), and that filled
+  objects are hollowed and should be segmented on the original data.
+* Added guidance on `fwhm`: prefer a measured PSF, since a theoretical value
+  describes an ideal system; under noise a too-small `fwhm` adds false peaks and
+  a larger one weakens the separation of close sources, so when unsure choose
+  the larger plausible value. Only the kernel half-size enters the computation.
 
 # mssrscopR 0.1.0.9002
 

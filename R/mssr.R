@@ -25,6 +25,17 @@
 #' the unrotated input, so it agrees with `mssr()` only for frames that a
 #' 90-degree rotation leaves unchanged (and fails for non-square frames).
 #'
+#' **Several channels or bands.** `mssr()` processes one 2D frame. Applied to
+#' each channel or band of multichannel or spectral data, it gives every channel
+#' its own nonlinear structure map, scaled by that channel's maxima.
+#' Intensity-weighted outputs (the default) are guaranteed to keep the channels'
+#' intensity ratios only when one whole frame, background included, is a scaled
+#' copy of another; a different background or another object elsewhere in the
+#' frame can change the ratios, and the structure maps
+#' (`intensity_normalize = FALSE`) of scaled copies are identical. So do not
+#' compare channels, form ratios or indices, or assemble spectra from the
+#' outputs; measure them on the original data.
+#'
 #' **Degenerate input.** A flat frame, a frame whose amplified maximum is not
 #' positive, and a frame without any positive mean shift return zeros with
 #' `diagnostics$degenerate = TRUE` and a `degenerate_reason`. A refinement step
@@ -59,8 +70,8 @@
 #' **Cost.** Every order step uses image-wide maxima, so frames must be
 #' processed whole. Time grows with the number of output pixels times the
 #' number of neighborhood offsets (about `pi * h^2` for the disk kernel and
-#' `(2 * h + 1)^2 - 1` for the square kernel, with half-size
-#' `h = round(0.5 * fwhm * amp)`). Calls whose
+#' `(2 * h + 1)^2 - 1` for the square kernel, with half-size `h`, recorded in
+#' `parameters$half_size`). Calls whose
 #' estimated work exceeds 1e10 operations, whose output exceeds
 #' `max_output_pixels`, or whose kernel half-size exceeds 1000 pixels are
 #' refused before computing.
@@ -70,7 +81,15 @@
 #'   are discarded; acquisition metadata are never inferred from attributes.
 #' @param fwhm Full width at half maximum of the point-spread function, in
 #'   **input pixels**. Required; there is no default because it is a property
-#'   of the acquisition.
+#'   of the acquisition. Prefer a measured PSF: a theoretical value such as
+#'   `0.51 * wavelength / NA` (emission wavelength, divided by the pixel size)
+#'   describes an ideal widefield system, and aberrations, defocus and pixel
+#'   size can widen the recorded PSF. Under noise an `fwhm` below the true PSF
+#'   makes false peaks more likely, while a larger one gives a shallower dip
+#'   between close sources; when unsure, choose the larger plausible value. Only
+#'   the kernel half-size, `0.5 * fwhm * amp` rounded as set by `rounding` and at
+#'   least 1 (recorded in `parameters$half_size`), enters the computation, so
+#'   nearby values can give identical results.
 #' @param amp Amplification factor (whole number from 1 to 64).
 #' @param order MSSR order (whole number from 0 to 10). Orders above 3
 #'   are experimental: bounded high-precision checks found larger errors at

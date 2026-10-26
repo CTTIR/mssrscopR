@@ -70,7 +70,8 @@ is labeled as a non-quantitative structure map.
 ## Where it sits in CTTIR
 
 ```
-2D frame from any reader (one channel / one band at a time)
+2D frame from any reader (one channel / one band at a time; results of
+different channels need not keep their intensity ratios)
       │
       ▼
 mssrscopR::mssr()  →  structure map + coordinates + diagnostics

@@ -63,6 +63,70 @@ test_that("intensity weighting returns to input scale with subnormal rounding", 
   }
 })
 
+test_that("channel ratios are kept only by whole-frame scaled copies", {
+  g <- expand.grid(r = 1:21, c = 1:31)
+  spot <- function(c0, a = 1, r0 = 11) {
+    a * exp(-((g$r - r0)^2 + (g$c - c0)^2) / (2 * (3 / 2.3548)^2))
+  }
+  a <- matrix(spot(10) + spot(21) + 0.05, 21, 31)
+  b <- matrix(spot(10) + spot(21, 0.5) + 0.05, 21, 31)
+  ra <- mssr(a, fwhm = 3)$values
+  for (factor in c(0.37, 3.1)) {
+    expect_equal(mssr(factor * a, fwhm = 3)$values, factor * ra, tolerance = 1e-12)
+  }
+  expect_equal(mssr(0.5 * a, fwhm = 3, intensity_normalize = FALSE)$values,
+               mssr(a, fwhm = 3, intensity_normalize = FALSE)$values, tolerance = 1e-12)
+  ratio <- mssr(b, fwhm = 3)$values[11, 21] / ra[11, 21]
+  expect_lt(ratio, 0.75 * b[11, 21] / a[11, 21])
+  # Output ratio relative to the input ratio, over the signal pixels.
+  sel <- ra > 0.05 * max(ra)
+  deviation <- function(z) range((mssr(z, fwhm = 3)$values / ra)[sel] / (z / a)[sel])
+  expect_gt(deviation(a + 0.5)[2], 1.2)
+  expect_gt(deviation(0.5 * a + 0.05)[2], 1.1)
+  expect_lt(deviation(0.5 * a + matrix(spot(27, 2, r0 = 4), 21, 31))[1], 0.5)
+})
+
+test_that("under noise an fwhm below the PSF splits single sources more often", {
+  g <- expand.grid(r = 1:21, c = 1:21)
+  x0 <- matrix(exp(-((g$r - 11)^2 + (g$c - 11)^2) / (2 * (3 / 2.3548)^2)) + 0.05, 21, 21)
+  split_share <- function(fwhm) {
+    mean(vapply(1:30, function(seed) {
+      set.seed(seed)
+      v <- mssr(pmax(x0 + stats::rnorm(length(x0), sd = 0.08), 0), fwhm = fwhm)$values
+      peaks <- 0L
+      for (i in 7:15) for (j in 7:15) {
+        w <- v[(i - 1):(i + 1), (j - 1):(j + 1)]
+        strict_max <- v[i, j] == max(w) && sum(w == v[i, j]) == 1L
+        if (v[i, j] > 0.2 * max(v) && strict_max) peaks <- peaks + 1L
+      }
+      peaks >= 2L
+    }, TRUE))
+  }
+  expect_gt(split_share(2), split_share(3) + 0.2)
+})
+
+test_that("a larger fwhm gives a shallower dip between close sources", {
+  g <- expand.grid(r = 1:21, c = 1:31)
+  spot <- function(c0) exp(-((g$r - 11)^2 + (g$c - c0)^2) / (2 * (3 / 2.3548)^2))
+  x <- matrix(spot(18) + spot(21) + 0.05, 21, 31)
+  dip <- function(fwhm) {
+    r <- mssr(x, fwhm = fwhm, amp = 2)
+    co <- mssr_coords(r)
+    v <- as.matrix(r)[which.min(abs(co$row - 11)), ]
+    stats::approx(co$col, v, 19.5)$y / stats::approx(co$col, v, 18)$y
+  }
+  expect_gt(dip(5), dip(3) + 0.1)
+})
+
+test_that("fwhm enters only through the kernel half-size", {
+  x <- precision_frame()
+  a <- mssr(x, fwhm = 2.6, amp = 2)
+  b <- mssr(x, fwhm = 3.4, amp = 2)
+  expect_identical(a$parameters$half_size, b$parameters$half_size)
+  expect_identical(a$values, b$values)
+  expect_false(identical(a$values, mssr(x, fwhm = 3.6, amp = 2)$values))
+})
+
 test_that("conditioning refuses to erase nonzero values across an excessive range", {
   x <- matrix(c(1e308, 1e-100, rep(0, 7)), 3, 3)
   expect_error(mssr(x, fwhm = 2), class = "mssrscopR_error_numerical")
