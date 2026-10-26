@@ -1,4 +1,4 @@
-# mssrscopR <img src="man/figures/logo.svg" align="right" height="139" alt="mssrscopR hex sticker" />
+# mssrscopR <picture class="cttir-readme-logo"><source class="cttir-logo-dark-source" media="(prefers-color-scheme: dark)" srcset="man/figures/logo-with-name-dark.png" /><img src="man/figures/logo-with-name.png" align="right" alt="mssrscopR logo" width="120" height="139" /></picture>
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
@@ -320,3 +320,9 @@ signed 32-bit integers (row count, then column count), and all finite samples
 as little-endian IEEE-754 binary64 values in column-major order. Matrix
 attributes are excluded. Equal decoded frames from different file encodings
 have the same frame hash, while their uploaded-file hashes can differ.
+
+
+## Branding
+
+Editable R sources and regeneration instructions are in
+[tools/branding](https://github.com/CTTIR/mssrscopR/tree/main/tools/branding).
