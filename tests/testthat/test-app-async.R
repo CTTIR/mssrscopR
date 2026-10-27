@@ -170,7 +170,9 @@ test_that("a malformed background result is not accepted as complete", {
 })
 
 test_that("timeout retains failure status and cannot become a complete result", {
-  local_mocked_bindings(mssr_app_start_job = async_sleeping, mssr_app_job_timeout = 0)
+  # A negative limit expires even when a coarse elapsed clock (Windows) has not
+  # advanced since the job started.
+  local_mocked_bindings(mssr_app_start_job = async_sleeping, mssr_app_job_timeout = -1)
   shiny::testServer(mssr_app_server, {
     session$flushReact()
     expect_identical(state$status, "failed")
