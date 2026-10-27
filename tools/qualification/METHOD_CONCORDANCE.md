@@ -1,8 +1,10 @@
 # Method concordance
 
 The official supplementary methods for Torres-García et al. (2022) were reviewed
-against engine `mssr_r_rev3` on 24 October 2026. This comparison documents the
-defined single-frame operator and its differences from the authors' code.
+against engine `mssr_r_rev3` on 24 October 2026 and re-checked against the
+article, the supplement and the pinned R and Python scripts on 27 October 2026.
+This comparison documents the defined single-frame operator and its differences
+from the authors' code. The MATLAB code and the Fiji plugin were not compared.
 
 Sources:
 
@@ -19,13 +21,28 @@ Sources:
 | --- | --- | --- |
 | Neighbourhood | S17, p.8; Fig. S8, p.18 | The default punctured disk follows the spatial support. Radius is `max(1, round(amp*fwhm/2))`, using half-even rounding by default. The named square option follows the Python backend's different support. |
 | Local weights and mean shift | S25–S29, pp.9–10; S48, p.17 | Adaptive range-normalized Gaussian weights; centre minus weighted neighbour mean, with negatives clipped. Rev3 evaluates the equivalent weighted sum of local differences to reduce cancellation. |
-| Cubic interpolation | S50–S51, p.26 | Published `c=1/2` is exactly the separable Keys kernel `a=-1/2`. Grid alignment and repeated half-sample reflection are explicit package conventions; this does not establish amplified-image parity with the upstream library backends. |
+| Cubic interpolation | S50–S51, p.26 | Published `c=1/2` is exactly the separable Keys kernel `a=-1/2`, and S50 is the separable product that rev3 implements. Grid alignment and repeated half-sample reflection are package conventions; the authors' backends differ (below). |
 | Mesh compensation | Note 6.1.2, pp.27–28 | Average of the image and four symmetric axial shifts. Rev3 specifies `ceil(amp/2)` and reflected edges, correcting the upstream R shift asymmetry. |
-| Refinement | Note 5.1.2/Fig. S11, p.21 | Subtraction, complement, normalization and current-map multiplication agree for finite nondegenerate steps. Frame-wide maxima make independently normalized tiles different from a whole-frame computation. |
+| Refinement | Note 5.1.2/Fig. S11, p.21; article Fig. 2a | Subtraction, complement, normalization and current-map multiplication agree for finite nondegenerate steps; each further order starts from the previous map, as the article's Fig. 2a legend and both scripts describe. Frame-wide maxima make independently normalized tiles different from a whole-frame computation. |
 | Output weighting | Note 11.4, p.60 | Optional multiplication of the normalized structure map by the amplified input. Rev3 preserves orientation, correcting the R script's rotation/multiplication mismatch. Weighted values remain nonquantitative. |
 
-The paper also describes scaling zero-order output to the original maximum
-(p.17), which differs from optional pixelwise weighting. Rev3 fixes its two
+S51 cites Keys's cubic convolution and a two-dimensional cubic convolution
+([Reichenbach and Geng 2003](https://doi.org/10.1109/TIP.2003.814248)); the
+latter develops a nonseparable kernel, but S50 is the separable product. The
+authors' scripts interpolate with neither: the R script calls akima's
+`bicubic.grid` (revised Akima method), and the Python script calls SciPy's
+`interp2d`, so its default bicubic path (`ftI = False`) fails on SciPy 1.14 and
+later. Both sample endpoint-aligned positions, which `grid = "endpoint"`
+reproduces; the default `grid = "extent"` preserves the field of view. With the
+R script's asymmetric mesh shifts as well, the amplified input already differs
+beyond rounding, and MSSR's range normalization and refinement are nonlinear and
+can enlarge such differences locally. Pixel-wise agreement with the authors'
+amplified maps is therefore not expected.
+
+Supplementary Note 6 and the Python script also offer Fourier interpolation,
+which the article uses for temporal analysis; mssrscopR does not implement it. The paper
+also describes scaling zero-order output to the original maximum (p.17), which
+differs from optional pixelwise weighting. Rev3 fixes its two
 output roles explicitly. Flat-input results, zero-range handling, skipped
 undefined refinement, arithmetic conditioning and resource refusals are
 documented implementation extensions. Quota masks are a separate package feature.
@@ -53,7 +70,9 @@ contain material differences:
 - The table uses population variance; the R script uses sample variance and a
   different missing-data policy. The table labels `Var/Mean` as CV.
 - The displayed SOFI formulas use signed, distinct-lag products. The Python
-  implementation instead uses absolute deviations and aligned tail slices.
+  implementation instead uses absolute deviations, and its shifted slices are
+  re-aligned so that all factors come from one frame: orders 2 and 3 average
+  `|δx_k|²` and `|δx_k|³`, and order 4 returns `|⟨|δx|⁴⟩ − 3⟨|δx|²⟩²|`.
 
 Any future temporal operator needs a resolved formula and independent
 qualification on genuine repeated-time data. Wavelength, depth and lifetime-delay

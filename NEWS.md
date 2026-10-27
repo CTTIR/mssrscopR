@@ -23,6 +23,13 @@
   describes an ideal system; under noise a too-small `fwhm` adds false peaks and
   a larger one weakens the separation of close sources, so when unsure choose
   the larger plausible value. Only the kernel half-size enters the computation.
+* Re-checked the method concordance against the article, the supplement and the
+  authors' R and Python scripts. The concordance now names their interpolation
+  backends, the Fourier interpolation option that mssrscopR does not implement,
+  and the zero-lag products of the Python SOFI functions. `?mssr` and the README
+  now say that amplified maps are not expected to agree pixel-wise with the
+  authors' code, even with `grid = "endpoint"`, which reproduces their sample
+  positions.
 
 # mssrscopR 0.1.0.9002
 

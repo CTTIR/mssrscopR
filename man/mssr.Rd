@@ -98,8 +98,14 @@ the authors' single-frame R function after its final 90-degree rotation is
 undone (\code{kernel = "disk"}) or
 their Python function (\code{kernel = "square"}) within floating-point tolerance.
 Extreme numeric ranges and undefined refinement steps can differ (see below). For
-\code{amp > 1}, Keys cubic convolution is used, which is not numerically
-identical to the authors' interpolation. With the default
+\code{amp > 1}, \code{mssr()} uses the supplement's cubic kernel (Keys cubic
+convolution, a = -1/2). The authors' R script interpolates with akima's Akima
+method and their Python script with a SciPy spline, and their R mesh shifts
+asymmetrically, so the amplified input already differs beyond rounding;
+MSSR's range normalization and refinement are nonlinear and can enlarge such
+differences locally. Do not expect pixel-wise agreement with their amplified
+maps, even with \code{grid = "endpoint"}, which reproduces their sample positions.
+With the default
 \code{intensity_normalize = TRUE} their R function multiplies the rotated map by
 the unrotated input, so it agrees with \code{mssr()} only for frames that a
 90-degree rotation leaves unchanged (and fails for non-square frames).

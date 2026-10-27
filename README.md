@@ -167,7 +167,8 @@ unchanged (and fails for non-square frames). Their R mesh compensation shifts
 asymmetrically (by `desp + 1` one way and `desp` the other); `mssrscopR` uses
 the symmetric shifts of their Python code. Amplification uses Keys cubic convolution on a
 field-of-view-preserving grid, so output for `amp > 1` differs from the
-authors' interpolation.
+authors' interpolation, also with `grid = "endpoint"`, which reproduces their
+sample positions: pixel-wise agreement is not expected.
 
 ## Citation
 
