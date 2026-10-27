@@ -63,7 +63,9 @@ test_that("failures and cancellation retain the input denominator", {
   counter <- 0L
   interrupt <- function() {
     counter <<- counter + 1L
-    if (counter == 2L) stop(structure(list(message = "stop"), class = c("interrupt", "condition")))
+    if (counter == 2L) {
+      rlang::cnd_signal(structure(list(message = "stop"), class = c("interrupt", "condition")))
+    }
     FALSE
   }
   partial <- mssr_batch(frames, root, list(fwhm = 3), cancel = interrupt)

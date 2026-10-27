@@ -183,7 +183,7 @@ test_that("oversized or out-of-file tag payloads fail before decoding", {
 
 test_that("reader warnings cannot silently return incomplete pixels", {
   expect_error(mssr_app_decode({
-    warning("incomplete strip")
+    cli::cli_warn("incomplete strip")
     matrix(0, 2, 3)
   }),
   class = "mssrscopR_error_input")
@@ -195,7 +195,7 @@ test_that("huge TIFF dimensions are refused before library metadata allocation",
   f <- reader_fixture(path)
   f$bytes[19:22] <- reader_uint(2^32 - 1, 4)
   writeBin(f$bytes, path)
-  local_mocked_bindings(readTIFF = function(...) stop("library must not open this file"),
+  local_mocked_bindings(readTIFF = function(...) cli::cli_abort("library must not open this file"),
                         .package = "tiff")
   expect_error(mssr_app_read(path, "huge.tif"), class = "mssrscopR_error_resource")
 })
@@ -203,7 +203,7 @@ test_that("huge TIFF dimensions are refused before library metadata allocation",
 test_that("TIFF segment bounds are checked before the library can allocate", {
   skip_if_not_installed("tiff")
   path <- withr::local_tempfile(fileext = ".tif")
-  local_mocked_bindings(readTIFF = function(...) stop("library must not open this file"),
+  local_mocked_bindings(readTIFF = function(...) cli::cli_abort("library must not open this file"),
                         .package = "tiff")
   for (endian in c("little", "big")) {
     for (tiled in c(FALSE, TRUE)) {

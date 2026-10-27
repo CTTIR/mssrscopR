@@ -252,7 +252,7 @@ test_that("a valid checksum never substitutes for record validation", {
 
 test_that("memory refusal precedes neighborhood allocation", {
   testthat::local_mocked_bindings(mssr_offsets = function(...) {
-    stop("neighborhood should not have been allocated")
+    cli::cli_abort("neighborhood should not have been allocated")
   })
   expect_error(mssr(matrix(1:6, 2, 3), fwhm = 2000, max_memory_bytes = 100),
                class = "mssrscopR_error_resource")

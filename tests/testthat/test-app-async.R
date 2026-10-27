@@ -16,7 +16,9 @@ async_wait <- function(session, state, poll_job, timeout = 20) {
     session$flushReact()
     status <- shiny::isolate(state$status)
     if (status != "running") return(status)
-    if (proc.time()[["elapsed"]] > deadline) stop("Background test exceeded its deadline.")
+    if (proc.time()[["elapsed"]] > deadline) {
+      cli::cli_abort("Background test exceeded its deadline.")
+    }
     Sys.sleep(0.025)
   }
 }

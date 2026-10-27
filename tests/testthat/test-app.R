@@ -173,7 +173,8 @@ test_that("oversized PNG headers are refused before decoding", {
   writeBin(c(100000L, 100000L), con, size = 4, endian = "big")
   writeBin(as.raw(c(8, 2)), con)
   close(con)
-  local_mocked_bindings(readPNG = function(...) stop("decoder must not run"), .package = "png")
+  local_mocked_bindings(readPNG = function(...) cli::cli_abort("decoder must not run"),
+                        .package = "png")
   expect_error(mssr_app_read(path, "large.png"), class = "mssrscopR_error_resource")
 })
 

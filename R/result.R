@@ -463,7 +463,7 @@ mssr_read_result <- function(path, max_bytes = 64 * 1024^2, max_output_pixels = 
   decoded <- tryCatch(
     {
       text <- rawToChar(meta)
-      if (!jsonlite::validate(text)) stop("invalid JSON")
+      if (!jsonlite::validate(text)) mssr_abort("result", "Invalid result metadata.", call)
       result_decode_node(jsonlite::fromJSON(text, simplifyVector = FALSE))
     },
     error = function(e) mssr_abort("result", "Invalid result metadata.", call)

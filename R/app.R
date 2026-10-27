@@ -296,7 +296,7 @@ mssr_app_decode <- function(expr) {
     mssr_abort("input", paste("The image reader reported a warning;",
                               "incomplete or ambiguous images are refused."))
   }), error = function(e) {
-    if (inherits(e, "mssrscopR_error")) stop(e)
+    if (inherits(e, "mssrscopR_error")) rlang::cnd_signal(e)
     mssr_abort("input", "The image could not be decoded; check that it is a valid PNG or TIFF.")
   })
 }
@@ -519,9 +519,18 @@ mssr_app_start_job <- function(frame, args, mask, run_id) {
       identical(files, identity$files) &&
         identical(unname(tools::md5sum(files)), identity$file_md5)
     }
-    if (!unchanged()) stop("Package files changed before the background job loaded them.")
+    # The child has no package namespace yet, so conditions are raised through
+    # cli directly, with the package's condition classes.
+    integrity <- c("mssrscopR_error_integrity", "mssrscopR_error")
+    if (!unchanged()) {
+      cli::cli_abort("Package files changed before the background job loaded them.",
+                     class = integrity)
+    }
     if (identity$development) {
-      if (!requireNamespace("pkgload", quietly = TRUE)) stop("Development jobs require pkgload.")
+      if (!requireNamespace("pkgload", quietly = TRUE)) {
+        cli::cli_abort("Development jobs require pkgload.",
+                       class = c("mssrscopR_error_dependency", "mssrscopR_error"))
+      }
       pkgload::load_all(identity$root, quiet = TRUE)
     } else {
       loadNamespace("mssrscopR", lib.loc = dirname(identity$root))
@@ -529,10 +538,14 @@ mssr_app_start_job <- function(frame, args, mask, run_id) {
     ns <- asNamespace("mssrscopR")
     signature <- get("mssr_app_code_signature", ns)()
     if (!unchanged() || !identical(signature, identity$functions)) {
-      stop("Loaded package definitions differ from the app session; reload the app and retry.")
+      cli::cli_abort(paste("Loaded package definitions differ from the app session;",
+                           "reload the app and retry."), class = integrity)
     }
     value <- get("mssr_app_job_value", ns)(snapshot)
-    if (!unchanged()) stop("Package files changed while the background job was running.")
+    if (!unchanged()) {
+      cli::cli_abort("Package files changed while the background job was running.",
+                     class = integrity)
+    }
     value$source_definition_verified <- TRUE
     value$source_kind <- if (identity$development) "development" else "installed"
     value
