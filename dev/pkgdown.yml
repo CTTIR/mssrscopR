@@ -1,0 +1,10 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  method-concordance: method-concordance.html
+  mssrscopR: mssrscopR.html
+last_built: 2026-10-27T16:32Z
+urls:
+  reference: https://cttir.github.io/mssrscopR/reference
+  article: https://cttir.github.io/mssrscopR/articles
