@@ -2,7 +2,9 @@
 # Assets are local package files, independent of application data.
 .cttir_brand_text <- function(file) {
   path <- system.file("branding", file, package = "mssrscopR")
-  if (!nzchar(path)) stop("The packaged branding asset is missing: ", file)
+  if (!nzchar(path)) {
+    mssr_abort("asset", paste0("The packaged branding asset is missing: ", file))
+  }
   paste(readLines(path, warn = FALSE), collapse = "\n")
 }
 
