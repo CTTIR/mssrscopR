@@ -1,3 +1,17 @@
+# mssrscopR 0.1.0.9004
+
+* The two neighborhood passes of engine `mssr_r_rev3` (range normalizer and
+  weighted mean shift) now run in compiled C code. They form the same sums in
+  the same order as before, so results are unchanged: the R passes are kept as
+  an internal reference, and the tests and the qualification kit compare the
+  two. No offset stack is held in memory, so peak memory falls, and frames run
+  about 2 to 4 times faster; the gain grows with the neighborhood size, and the
+  remaining time is mostly the weight's exponential. The computation stays
+  single-threaded and can still be interrupted. The engine identity is
+  unchanged; the package version identifies the implementation.
+* The app's background job also checks the package's C sources for changes in
+  development checkouts.
+
 # mssrscopR 0.1.0.9003
 
 * Standardize the named v5 package logo across README, documentation pages

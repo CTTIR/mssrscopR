@@ -231,3 +231,14 @@ test_that("valid results with mismatched grid, settings or run identity are refu
   changed$value$mask_settings$fraction <- 0.8
   expect_error(mssr_app_validate_job(job, changed), class = "mssrscopR_error_integrity")
 })
+
+test_that("the code identity covers compiled sources and native routines", {
+  identity <- mssr_app_code_identity()
+  if (identity$development) {
+    expect_true(any(grepl("[/\\\\]src[/\\\\]neighbourhood[.]c$", identity$files)))
+  }
+  # A registered routine is identified by name and arity, not by its address.
+  expect_identical(unname(identity$functions["mssr_neighbourhood_c"]),
+                   "native mssr_neighbourhood_c 4")
+  expect_identical(mssr_app_code_signature(), identity$functions)
+})

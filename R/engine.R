@@ -19,6 +19,12 @@
 # centered interpolation and a weighted sum of local differences. This avoids
 # intermediate overflow/underflow and cancellation of a large background.
 # Existing regression fixtures remain unchanged; final rounding can differ.
+#
+# From version 0.1.0.9004 the two neighborhood passes run in compiled code
+# (src/neighbourhood.c). The engine definition is unchanged, so results keep
+# the identity "mssr_r_rev3"; the package version identifies the
+# implementation. The R passes are kept as the reference
+# (`implementation = "r"`) and the test suite compares the two.
 
 # Kernel half-size; the authors' R and Python code round halves to even.
 mssr_half_size <- function(fwhm, amp, rounding) {
@@ -131,9 +137,41 @@ mssr_offsets <- function(hs, kernel) {
   offs
 }
 
-# The operator. Inputs are already validated by mssr().
+# Neighborhood passes in R: the reference for the compiled implementation
+# (src/neighbourhood.c), which forms the same sums in the same order.
+mssr_neighbourhood_r <- function(img, offs, hs) {
+  shift <- mssr_shifter(nrow(img), ncol(img))
+  # Pass 1: maximum absolute local difference (range normalizer).
+  range_max <- NULL
+  for (k in seq_len(nrow(offs))) {
+    d <- abs(img - shift(img, offs$i[k], offs$j[k]))
+    range_max <- if (is.null(range_max)) d else pmax(range_max, d)
+  }
+  # Pass 2: spatial x range weights. Where range_max is zero every difference
+  # is zero, so dividing by 1 there gives the defined ratio 0.
+  divisor <- range_max
+  divisor[range_max == 0] <- 1
+  weight_sum <- difference_sum <- matrix(0, nrow(img), ncol(img))
+  for (k in seq_len(nrow(offs))) {
+    delta <- img - shift(img, offs$i[k], offs$j[k])
+    ratio <- delta / divisor
+    w <- exp(-(offs$i[k]^2 + offs$j[k]^2) / hs^2) * exp(-ratio^2)
+    weight_sum <- weight_sum + w
+    difference_sum <- difference_sum + delta * w
+  }
+  list(range_max = range_max, weight_sum = weight_sum, difference_sum = difference_sum)
+}
+
+mssr_neighbourhood <- function(img, offs, hs, implementation) {
+  if (identical(implementation, "r")) return(mssr_neighbourhood_r(img, offs, hs))
+  storage.mode(img) <- "double"
+  .Call(mssr_neighbourhood_c, img, as.integer(offs$i), as.integer(offs$j), as.double(hs))
+}
+
+# The operator. Inputs are already validated by mssr(). `implementation`
+# selects the compiled neighborhood passes (default) or the R reference.
 mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rounding,
-                        call = NULL) {
+                        call = NULL, implementation = "compiled") {
   finite <- function(x) {
     if (any(!is.finite(x))) {
       mssr_abort("numerical", paste("MSSR arithmetic exceeded the finite numeric range.",
@@ -179,31 +217,14 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
   if (max(amplified) <= 0) {
     return(result(zeros(), TRUE, "non-positive maximum"))
   }
-  shift <- mssr_shifter(nrow(amplified), ncol(amplified))
-  # Pass 1: maximum absolute local difference (range normalizer).
-  range_max <- NULL
-  for (k in seq_len(nrow(offs))) {
-    d <- abs(amplified_centered - shift(amplified_centered, offs$i[k], offs$j[k]))
-    range_max <- if (is.null(range_max)) d else pmax(range_max, d)
-  }
-  finite(range_max)
-  # Pass 2: spatial x range weights. Where range_max is zero every difference
-  # is zero, so dividing by 1 there gives the defined ratio 0.
-  divisor <- range_max
-  divisor[range_max == 0] <- 1
-  weight_sum <- difference_sum <- matrix(0, nrow(amplified), ncol(amplified))
-  for (k in seq_len(nrow(offs))) {
-    delta <- amplified_centered - shift(amplified_centered, offs$i[k], offs$j[k])
-    ratio <- delta / divisor
-    w <- exp(-(offs$i[k]^2 + offs$j[k]^2) / hs^2) * exp(-ratio^2)
-    weight_sum <- weight_sum + w
-    difference_sum <- difference_sum + delta * w
-  }
-  finite(difference_sum)
-  finite(weight_sum)
+  passes <- mssr_neighbourhood(amplified_centered, offs, hs, implementation)
+  finite(passes$range_max)
+  finite(passes$difference_sum)
+  finite(passes$weight_sum)
   # This is algebraically amplified - weighted_mean(neighbors), without
   # subtracting two almost equal intensities.
-  mean_shift <- difference_sum / weight_sum
+  mean_shift <- passes$difference_sum / passes$weight_sum
+  rm(passes)
   finite(mean_shift)
   mean_shift[mean_shift < 0] <- 0
   if (max(mean_shift) <= 0) {

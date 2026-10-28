@@ -67,6 +67,31 @@ for (i in seq_len(nrow(plan$cases))) {
 }
 results <- do.call(rbind, rows)
 utils::write.csv(results, file.path(out, "oracle_domain_results.csv"), row.names = FALSE)
+
+# The compiled neighborhood passes against the retained R reference passes.
+engine_case <- function(c, implementation) {
+  s <- c$settings
+  x <- matrix(as.double(c$input), nrow(c$input), ncol(c$input))
+  tryCatch(mssr_engine(x, s$amp, s$fwhm, s$order, s$intensity_normalize, s$mesh,
+                       s$grid, s$kernel, s$rounding, implementation = implementation),
+           error = identity)
+}
+agreement <- do.call(rbind, lapply(seq_len(nrow(plan$cases)), function(i) {
+  c <- read_case(i)
+  a <- engine_case(c, "compiled")
+  b <- engine_case(c, "r")
+  both <- !inherits(a, "error") && !inherits(b, "error")
+  difference <- if (!both) NA_real_ else {
+    peak <- max(abs(b$values))
+    if (peak > 0) max(abs(a$values - b$values)) / peak else max(abs(a$values))
+  }
+  data.frame(case = c$case$id, same_condition = inherits(a, "error") == inherits(b, "error"),
+             identical_values = both && identical(a$values, b$values),
+             normalized_difference = difference)
+}))
+utils::write.csv(agreement, file.path(out, "implementation_agreement.csv"), row.names = FALSE)
+agreement_passed <- all(agreement$same_condition) &&
+  all(is.na(agreement$normalized_difference) | agreement$normalized_difference <= 1e-12)
 utils::write.csv(do.call(rbind, masks), file.path(out, "map_mask_measurement_sensitivity.csv"), row.names = FALSE)
 
 # Independent geometric and homogeneity expectations, not output snapshots.
@@ -110,7 +135,7 @@ utils::write.csv(metamorphic, file.path(out, "metamorphic_results.csv"), row.nam
 # Mutants are isolated in private environments, never written into production.
 engine_text <- readLines(file.path(package, "R", "engine.R"), warn = FALSE)
 mutants <- c("orientation", "global_normalizer", "kernel_support", "grid", "rounding",
-             "conditioning", "skipped_step", "weighting")
+             "conditioning", "skipped_step", "weighting", "spatial_bandwidth")
 mutation_rows <- list()
 for (mutation in mutants) {
   env <- new.env(parent = asNamespace("mssrscopR"))
@@ -120,6 +145,10 @@ for (mutation in mutants) {
   if (mutation == "conditioning") src <- sub("scale <- 2^exponent", "scale <- 1", src, fixed = TRUE)
   if (mutation == "skipped_step") src <- sub("skipped <- skipped + 1L",
                                               "i3[] <- 0; skipped <- skipped + 1L", src, fixed = TRUE)
+  # The compiled passes cannot be edited at run time; this mutant changes the
+  # spatial bandwidth they receive.
+  if (mutation == "spatial_bandwidth") src <- sub("as.double(hs))", "as.double(2 * hs))", src,
+                                                   fixed = TRUE)
   eval(parse(text = src), envir = env)
   sys.source(file.path(package, "R", "mssr.R"), envir = env)
   if (mutation == "kernel_support") {
@@ -173,9 +202,13 @@ summary <- list(scope = if (core_only) "bounded_synthetic_core_orders_0_to_3" el
   maximum_normalized_error = max(results$normalized_max_error),
   metamorphic_checks = nrow(metamorphic), metamorphic_passed = sum(metamorphic$passed),
   mutations = nrow(mutations), mutations_detected = sum(mutations$detected),
+  implementation_cases = nrow(agreement),
+  implementation_identical = sum(agreement$identical_values),
+  implementation_max_difference = max(c(0, agreement$normalized_difference), na.rm = TRUE),
+  implementation_agreement_passed = agreement_passed,
   mask_comparisons = length(masks),
   mask_comparisons_with_differences = sum(vapply(masks, function(x) x$differing_selected_pixels > 0, logical(1))))
 jsonlite::write_json(summary, file.path(out, "summary.json"), pretty = TRUE, auto_unbox = TRUE, digits = NA)
 print(summary)
 stopifnot(all(results$passed[if (core_only) core else rep(TRUE, nrow(results))]),
-          all(metamorphic$passed), all(mutations$detected))
+          all(metamorphic$passed), all(mutations$detected), agreement_passed)

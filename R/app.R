@@ -455,6 +455,10 @@ mssr_app_code_signature <- function() {
     if (is.function(f)) {
       paste(c(deparse(formals(f), width.cutoff = 500L), deparse(body(f), width.cutoff = 500L)),
             collapse = "\n")
+    } else if (inherits(f, "NativeSymbolInfo")) {
+      # Registered routines hold process-specific addresses; their sources are
+      # covered by the file identity.
+      paste("native", f$name, f$numParameters)
     } else {
       paste(deparse(f, width.cutoff = 500L), collapse = "\n")
     }
@@ -467,7 +471,8 @@ mssr_app_code_identity <- function() {
   development <- exists(".__DEVTOOLS__", ns, inherits = FALSE)
   if (development) mssr_app_need("pkgload", "a development-source app in a background process")
   files <- c(file.path(root, c("DESCRIPTION", "NAMESPACE")),
-             list.files(file.path(root, "R"), full.names = TRUE))
+             list.files(file.path(root, "R"), full.names = TRUE),
+             list.files(file.path(root, "src"), "[.][ch]$", full.names = TRUE))
   files <- sort(files[file.exists(files) & !dir.exists(files)])
   list(root = root, development = development, files = files,
        file_md5 = unname(tools::md5sum(files)), functions = mssr_app_code_signature())
@@ -514,7 +519,8 @@ mssr_app_start_job <- function(frame, args, mask, run_id) {
   process <- callr::r_bg(function(snapshot, identity) {
     unchanged <- function() {
       files <- c(file.path(identity$root, c("DESCRIPTION", "NAMESPACE")),
-                 list.files(file.path(identity$root, "R"), full.names = TRUE))
+                 list.files(file.path(identity$root, "R"), full.names = TRUE),
+                 list.files(file.path(identity$root, "src"), "[.][ch]$", full.names = TRUE))
       files <- sort(files[file.exists(files) & !dir.exists(files)])
       identical(files, identity$files) &&
         identical(unname(tools::md5sum(files)), identity$file_md5)

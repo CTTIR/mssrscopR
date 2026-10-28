@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite the MSSR method paper and this package."
 type: software
 title: "mssrscopR: Single-Frame Mean-Shift Super-Resolution Structure Maps"
-version: 0.1.0.9003
+version: 0.1.0.9004
 authors:
   - family-names: Heller
     given-names: "R."
