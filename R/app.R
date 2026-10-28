@@ -863,7 +863,7 @@ mssr_app_ui <- function() {
     ),
     shiny::div(
       class = "ms-brand",
-      shiny::tags$img(src = "mssrscopR-www/logo.svg", alt = "mssrscopR hex sticker"),
+      .cttir_brand_logo(),
       shiny::div(shiny::h1(class = "ms-title", "mssrscopR"),
                  shiny::div(class = "ms-sub", "Mean-Shift Super-Resolution explorer")),
       shiny::div(class = "ms-auto ms-3", style = "margin-left:auto;",

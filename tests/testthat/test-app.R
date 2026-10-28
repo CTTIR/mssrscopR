@@ -27,7 +27,7 @@ test_that("the user interface contains every control and output", {
            "profile_axis", "profile_index", "profile", "mask_fraction", "mask_seed",
            "dl_mask", "mask_plot", "mask_table", "selftest", "selftest_table", "dark_mode")
   for (id in ids) expect_match(html, sprintf("id=\"%s\"", id), fixed = TRUE)
-  expect_match(html, "mssrscopR-www/logo.svg", fixed = TRUE)
+  expect_match(html, "cttir-app-brand", fixed = TRUE)
   expect_false(grepl(" resizable=", html, fixed = TRUE))
   expect_s3_class(mssr_app_object(), "shiny.appobj")
 })

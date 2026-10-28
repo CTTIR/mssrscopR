@@ -1,5 +1,8 @@
 # mssrscopR 0.1.0.9003
 
+* Standardize the named v5 package logo across README, documentation pages
+  and available application headers, with matching light and dark artwork.
+
 * Added validated callable settings for reproducible result replay, including
   the output grid and explicit refusal of historical engine definitions.
 * Run records now identify uploaded bytes and decoded matrix content with
