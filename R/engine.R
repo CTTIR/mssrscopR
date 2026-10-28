@@ -244,9 +244,13 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
       next
     }
     i6 <- (i5 / max(i5)) * i3
-    i7 <- if (max(i6) > 0) i6 / max(i6) else i6
+    if (max(i6) <= 0) {
+      # The step removes every positive structure (reachable with signed
+      # input); later steps would keep the zero map.
+      return(result(zeros(), TRUE, "zero refinement map"))
+    }
     x3 <- i3
-    i3 <- i7
+    i3 <- i6 / max(i6)
   }
   values <- i3
   if (int_norm) {

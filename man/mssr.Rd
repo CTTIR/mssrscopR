@@ -122,7 +122,8 @@ compare channels, form ratios or indices, or assemble spectra from the
 outputs; measure them on the original data.
 
 \strong{Degenerate input.} A flat frame, a frame whose amplified maximum is not
-positive, and a frame without any positive mean shift return zeros with
+positive, a frame without any positive mean shift and a refinement step that
+leaves no positive value (possible only with signed input) return zeros with
 \code{diagnostics$degenerate = TRUE} and a \code{degenerate_reason}. A refinement step
 (\code{order >= 1}) is undefined when the mean-shift map already equals the
 normalized input, for example for isolated impulses on an exactly zero

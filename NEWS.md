@@ -9,6 +9,9 @@
   remaining time is mostly the weight's exponential. The computation stays
   single-threaded and can still be interrupted. The engine identity is
   unchanged; the package version identifies the implementation.
+* A refinement step that leaves no positive value (possible only with signed
+  input) now returns a degenerate result with reason `"zero refinement map"`
+  instead of an unflagged all-zero map.
 * The app's background job also checks the package's C sources for changes in
   development checkouts.
 

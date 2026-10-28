@@ -44,6 +44,23 @@ test_that("negative input warns and is reported", {
   expect_no_warning(mssr(x, fwhm = 3))
 })
 
+test_that("a refinement step that removes all structure is degenerate", {
+  # A positive impulse on a negative background: the first refinement step
+  # weights the normalized difference by the impulse map, which is zero there.
+  x <- matrix(-1, 5, 5)
+  x[3, 3] <- 1
+  r0 <- suppressWarnings(mssr(x, fwhm = 2, order = 0))
+  expect_false(r0$diagnostics$degenerate)
+  for (ord in 1:2) {
+    r <- suppressWarnings(mssr(x, fwhm = 2, order = ord))
+    expect_true(r$diagnostics$degenerate)
+    expect_identical(r$diagnostics$degenerate_reason, "zero refinement map")
+    expect_true(all(as.matrix(r) == 0))
+    expect_identical(r$diagnostics$order_steps_skipped, 0L)
+    expect_silent(mssr_validate_result(r))
+  }
+})
+
 test_that("tiny frames work", {
   expect_equal(dim(as.matrix(mssr(matrix(3, 1, 1), fwhm = 2))), c(1L, 1L))
   expect_true(all(is.finite(as.matrix(mssr(matrix(1:6 + 0, 2, 3), fwhm = 2)))))
