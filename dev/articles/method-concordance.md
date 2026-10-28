@@ -1,5 +1,8 @@
 # Method concordance
 
+![mssrscopR logo](figures/logo.svg)![mssrscopR
+logo](figures/logo-dark.svg)
+
 The official supplementary methods for Torres-García et al. (2022) were
 reviewed against engine `mssr_r_rev3` on 24 October 2026 and re-checked
 against the article, the supplement and the pinned R and Python scripts

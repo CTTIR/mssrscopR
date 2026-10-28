@@ -12,6 +12,7 @@
 
     <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
+    <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="../index.html"><img src="../logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="../reference/figures/logo-dark.svg">mssrscopR</a>
 
     <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.1.0.9003</small>
@@ -50,14 +51,15 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0.9003" id="mssrscopr-0109003">mssrscopR 0.1.0.9003<a class="anchor" aria-label="anchor" href="#mssrscopr-0109003"></a></h2>
-<ul><li>Added validated callable settings for reproducible result replay, including the output grid and explicit refusal of historical engine definitions.</li>
-<li>Run records now identify uploaded bytes and decoded matrix content with SHA-256 hashes while excluding source filenames and paths.</li>
-<li>Figure downloads retain interpretation, computed settings and run identity. Download actions are unavailable until their result or mask is ready.</li>
-<li>Notification dismissal restores keyboard focus, and Browse has a visible focus indicator in both themes.</li>
-<li>Corrected the vignette and app: MSSR can separate sources that the pixels show merged (at amp 2, two peaks for sources 2.6 px apart with FWHM 3 px, where the input pixels show one maximum), with the peaks closer together than the sources. Documented that a rod three FWHM long becomes two peaks near its ends, and that under noise single sources and short rods can break up, more so with an <code>fwhm</code> below the true PSF.</li>
-<li>Documented that channels or bands processed one at a time are guaranteed to keep their intensity ratios only when one whole frame is a scaled copy of another (intensity-weighted output), so ratios, indices and spectra belong to the original data (help, vignette example, app, tests), and that filled objects are hollowed and should be segmented on the original data.</li>
-<li>Added guidance on <code>fwhm</code>: prefer a measured PSF, since a theoretical value describes an ideal system; under noise a too-small <code>fwhm</code> adds false peaks and a larger one weakens the separation of close sources, so when unsure choose the larger plausible value. Only the kernel half-size enters the computation.</li>
-<li>Re-checked the method concordance against the article, the supplement and the authors’ R and Python scripts. The concordance now names their interpolation backends, the Fourier interpolation option that mssrscopR does not implement, and the zero-lag products of the Python SOFI functions. <code><a href="../reference/mssr.html">?mssr</a></code> and the README now say that amplified maps are not expected to agree pixel-wise with the authors’ code, even with <code>grid = "endpoint"</code>, which reproduces their sample positions.</li>
+<ul><li><p>Standardize the named v5 package logo across README, documentation pages and available application headers, with matching light and dark artwork.</p></li>
+<li><p>Added validated callable settings for reproducible result replay, including the output grid and explicit refusal of historical engine definitions.</p></li>
+<li><p>Run records now identify uploaded bytes and decoded matrix content with SHA-256 hashes while excluding source filenames and paths.</p></li>
+<li><p>Figure downloads retain interpretation, computed settings and run identity. Download actions are unavailable until their result or mask is ready.</p></li>
+<li><p>Notification dismissal restores keyboard focus, and Browse has a visible focus indicator in both themes.</p></li>
+<li><p>Corrected the vignette and app: MSSR can separate sources that the pixels show merged (at amp 2, two peaks for sources 2.6 px apart with FWHM 3 px, where the input pixels show one maximum), with the peaks closer together than the sources. Documented that a rod three FWHM long becomes two peaks near its ends, and that under noise single sources and short rods can break up, more so with an <code>fwhm</code> below the true PSF.</p></li>
+<li><p>Documented that channels or bands processed one at a time are guaranteed to keep their intensity ratios only when one whole frame is a scaled copy of another (intensity-weighted output), so ratios, indices and spectra belong to the original data (help, vignette example, app, tests), and that filled objects are hollowed and should be segmented on the original data.</p></li>
+<li><p>Added guidance on <code>fwhm</code>: prefer a measured PSF, since a theoretical value describes an ideal system; under noise a too-small <code>fwhm</code> adds false peaks and a larger one weakens the separation of close sources, so when unsure choose the larger plausible value. Only the kernel half-size enters the computation.</p></li>
+<li><p>Re-checked the method concordance against the article, the supplement and the authors’ R and Python scripts. The concordance now names their interpolation backends, the Fourier interpolation option that mssrscopR does not implement, and the zero-lag products of the Python SOFI functions. <code><a href="../reference/mssr.html">?mssr</a></code> and the README now say that amplified maps are not expected to agree pixel-wise with the authors’ code, even with <code>grid = "endpoint"</code>, which reproduces their sample positions.</p></li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0.9002" id="mssrscopr-0109002">mssrscopR 0.1.0.9002<a class="anchor" aria-label="anchor" href="#mssrscopr-0109002"></a></h2>

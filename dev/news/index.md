@@ -2,16 +2,24 @@
 
 ## mssrscopR 0.1.0.9003
 
+- Standardize the named v5 package logo across README, documentation
+  pages and available application headers, with matching light and dark
+  artwork.
+
 - Added validated callable settings for reproducible result replay,
   including the output grid and explicit refusal of historical engine
   definitions.
+
 - Run records now identify uploaded bytes and decoded matrix content
   with SHA-256 hashes while excluding source filenames and paths.
+
 - Figure downloads retain interpretation, computed settings and run
   identity. Download actions are unavailable until their result or mask
   is ready.
+
 - Notification dismissal restores keyboard focus, and Browse has a
   visible focus indicator in both themes.
+
 - Corrected the vignette and app: MSSR can separate sources that the
   pixels show merged (at amp 2, two peaks for sources 2.6 px apart with
   FWHM 3 px, where the input pixels show one maximum), with the peaks
@@ -19,17 +27,20 @@
   long becomes two peaks near its ends, and that under noise single
   sources and short rods can break up, more so with an `fwhm` below the
   true PSF.
+
 - Documented that channels or bands processed one at a time are
   guaranteed to keep their intensity ratios only when one whole frame is
   a scaled copy of another (intensity-weighted output), so ratios,
   indices and spectra belong to the original data (help, vignette
   example, app, tests), and that filled objects are hollowed and should
   be segmented on the original data.
+
 - Added guidance on `fwhm`: prefer a measured PSF, since a theoretical
   value describes an ideal system; under noise a too-small `fwhm` adds
   false peaks and a larger one weakens the separation of close sources,
   so when unsure choose the larger plausible value. Only the kernel
   half-size enters the computation.
+
 - Re-checked the method concordance against the article, the supplement
   and the authors’ R and Python scripts. The concordance now names their
   interpolation backends, the Fourier interpolation option that

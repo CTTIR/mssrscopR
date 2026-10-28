@@ -1,5 +1,8 @@
 # Single-frame MSSR with mssrscopR
 
+![mssrscopR logo](figures/logo.svg)![mssrscopR
+logo](figures/logo-dark.svg)
+
 All images here are synthetic and generated in this document, so the
 true scene is known.
 
