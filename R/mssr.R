@@ -99,7 +99,11 @@
 #'   describes an ideal widefield system, and aberrations, defocus and pixel
 #'   size can widen the recorded PSF. Under noise an `fwhm` below the true PSF
 #'   makes false peaks more likely, while a larger one gives a shallower dip
-#'   between close sources; when unsure, choose the larger plausible value. Only
+#'   between close sources; when unsure, choose the larger plausible value. An
+#'   `fwhm` larger than the PSF's FWHM enlarges the neighborhood and gives
+#'   smoother maps with fewer fragments; choose it per data set and record it.
+#'   Whatever the value, MSSR maps are visual aids, not a basis for segmentation
+#'   or quantification. Only
 #'   the kernel half-size, `0.5 * fwhm * amp` rounded as set by `rounding` and at
 #'   least 1 (recorded in `parameters$half_size`), enters the computation, so
 #'   nearby values can give identical results.
@@ -139,7 +143,8 @@
 #' @references Torres-Garcia E, Pinto-Camara R, Linares A, et al. Extending
 #'   resolution within a single imaging frame. *Nature Communications*
 #'   2022;13:7452. \doi{10.1038/s41467-022-34693-9}
-#' @seealso [mssr_coords()], [mssr_mask()], [mssr_selftest()]
+#' @seealso [mssr_coords()], [mssr_mask()], [mssr_selftest()], and
+#'   [mssr_temporal()] for temporal statistics of a frame sequence
 #' @examples
 #' # Two point sources 3 pixels apart, blurred with FWHM 3 px.
 #' g <- expand.grid(r = 1:21, c = 1:25)

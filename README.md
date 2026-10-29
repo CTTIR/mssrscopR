@@ -97,7 +97,10 @@ or segmentation workflows has not been validated.
 | `mssr_app(max_upload_mb = 50, ...)` | interactive Shiny explorer (needs shiny, bslib, jsonlite, callr and digest): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads |
 
 `fwhm` is the point-spread-function width in **input pixels** and has no
-default. Errors inherit from `mssrscopR_error` (subclasses `_input`,
+default. An `fwhm` larger than the PSF's FWHM enlarges the neighborhood and gives
+smoother maps with fewer fragments; choose it per data set and record it.
+Whatever the value, MSSR maps are visual aids, not a basis for segmentation or
+quantification. Errors inherit from `mssrscopR_error` (subclasses `_input`,
 `_nonfinite`, `_parameter`, `_resource`, `_unsupported`, `_numerical`,
 `_dependency`); negative input gives a `mssrscopR_warning_negative` warning,
 because MSSR assumes non-negative intensities, and undefined refinement steps

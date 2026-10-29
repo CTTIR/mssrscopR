@@ -30,7 +30,11 @@ of the acquisition. Prefer a measured PSF: a theoretical value such as
 describes an ideal widefield system, and aberrations, defocus and pixel
 size can widen the recorded PSF. Under noise an \code{fwhm} below the true PSF
 makes false peaks more likely, while a larger one gives a shallower dip
-between close sources; when unsure, choose the larger plausible value. Only
+between close sources; when unsure, choose the larger plausible value. An
+\code{fwhm} larger than the PSF's FWHM enlarges the neighborhood and gives
+smoother maps with fewer fragments; choose it per data set and record it.
+Whatever the value, MSSR maps are visual aids, not a basis for segmentation
+or quantification. Only
 the kernel half-size, \code{0.5 * fwhm * amp} rounded as set by \code{rounding} and at
 least 1 (recorded in \code{parameters$half_size}), enters the computation, so
 nearby values can give identical results.}
@@ -183,5 +187,6 @@ resolution within a single imaging frame. \emph{Nature Communications}
 2022;13:7452. \doi{10.1038/s41467-022-34693-9}
 }
 \seealso{
-\code{\link[=mssr_coords]{mssr_coords()}}, \code{\link[=mssr_mask]{mssr_mask()}}, \code{\link[=mssr_selftest]{mssr_selftest()}}
+\code{\link[=mssr_coords]{mssr_coords()}}, \code{\link[=mssr_mask]{mssr_mask()}}, \code{\link[=mssr_selftest]{mssr_selftest()}}, and
+\code{\link[=mssr_temporal]{mssr_temporal()}} for temporal statistics of a frame sequence
 }
