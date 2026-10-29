@@ -209,7 +209,39 @@ test_that("package files changed before the child loads them are refused", {
   withr::defer(mssr_app_stop_job(job))
   job$process$wait(timeout = 20000)
   err <- tryCatch(job$process$get_result(), error = function(e) e)
-  expect_match(conditionMessage(err$parent), "changed before the background job loaded them")
+  expect_match(conditionMessage(err$parent), "changed since this R session loaded them")
+  expect_s3_class(err$parent, "mssrscopR_error_integrity")
+})
+
+test_that("a source file edited after the package loaded is refused", {
+  loaded <- mssr_loaded_code$files
+  skip_if(is.null(loaded), "no load-time snapshot")
+  withr::defer(mssr_loaded_code$files <- loaded)
+  # Pretend the file on disk was different when this session loaded it; in a
+  # development checkout that file is the C source of the compiled passes.
+  edited <- grep("[/\\\\]src[/\\\\]neighborhood[.]c$", loaded$files)
+  if (!length(edited)) edited <- 1L
+  mssr_loaded_code$files$file_md5[edited] <- strrep("0", 32)
+  job <- mssr_app_start_job(async_frame(), mssr_app_args(list()),
+                            list(fraction = 0.1, seed = 1), "edited-after-load")
+  withr::defer(mssr_app_stop_job(job))
+  job$process$wait(timeout = 20000)
+  err <- tryCatch(job$process$get_result(), error = function(e) e)
+  expect_match(conditionMessage(err$parent), "changed since this R session loaded them")
+})
+
+test_that("a native library that differs from the session's is refused", {
+  identity <- mssr_app_code_identity()
+  local_mocked_bindings(mssr_app_code_identity = function() {
+    identity$dll_md5 <- strrep("0", 32)
+    identity
+  })
+  job <- mssr_app_start_job(async_frame(), mssr_app_args(list()),
+                            list(fraction = 0.1, seed = 1), "native-drift")
+  withr::defer(mssr_app_stop_job(job))
+  job$process$wait(timeout = 20000)
+  err <- tryCatch(job$process$get_result(), error = function(e) e)
+  expect_match(conditionMessage(err$parent), "native library differs")
   expect_s3_class(err$parent, "mssrscopR_error_integrity")
 })
 
@@ -252,6 +284,8 @@ test_that("the code identity covers compiled sources and native routines", {
   if (identity$development) {
     expect_true(any(grepl("[/\\\\]src[/\\\\]neighborhood[.]c$", identity$files)))
   }
+  dll <- getLoadedDLLs()[["mssrscopR"]][["path"]]
+  expect_identical(identity$dll_md5, unname(tools::md5sum(dll)))
   # A registered routine is identified by name and arity, not by its address.
   expect_identical(unname(identity$functions["mssr_neighborhood_c"]),
                    "native mssr_neighborhood_c 4")

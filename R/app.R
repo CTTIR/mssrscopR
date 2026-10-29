@@ -42,7 +42,8 @@
 #' when its session closes or after five minutes. The child inherits CPU affinity
 #' and uses one numerical thread. Changed settings are marked stale; downloads
 #' retain the computed input and settings. Development-source launches also need
-#' `pkgload`; source/function drift is refused instead of loading an older build.
+#' `pkgload`. A job is refused when package files, functions or the native
+#' library differ from what the R session loaded, instead of running other code.
 #'
 #' @param max_upload_mb Maximum upload size in megabytes.
 #' @param ... Passed to [shiny::runApp()], for example `port` or
@@ -465,17 +466,37 @@ mssr_app_code_signature <- function() {
   }, character(1))
 }
 
-mssr_app_code_identity <- function() {
+# Package files and the native library as this R session loaded them. The
+# snapshot is taken when the namespace loads (see .onLoad()), so a file edited
+# afterwards, before or during an app session, is detected.
+mssr_loaded_code <- new.env(parent = emptyenv())
+
+# Radix sorting orders the file lists identically in every locale, also in a
+# child process whose collation differs from the session's.
+mssr_app_code_files <- function() {
   ns <- asNamespace("mssrscopR")
   root <- normalizePath(getNamespaceInfo(ns, "path"), mustWork = TRUE)
-  development <- exists(".__DEVTOOLS__", ns, inherits = FALSE)
-  if (development) mssr_app_need("pkgload", "a development-source app in a background process")
   files <- c(file.path(root, c("DESCRIPTION", "NAMESPACE")),
              list.files(file.path(root, "R"), full.names = TRUE),
              list.files(file.path(root, "src"), "[.][ch]$", full.names = TRUE))
-  files <- sort(files[file.exists(files) & !dir.exists(files)])
-  list(root = root, development = development, files = files,
-       file_md5 = unname(tools::md5sum(files)), functions = mssr_app_code_signature())
+  files <- sort(files[file.exists(files) & !dir.exists(files)], method = "radix")
+  list(root = root, files = files, file_md5 = unname(tools::md5sum(files)),
+       dll_md5 = mssr_app_dll_md5())
+}
+
+mssr_app_dll_md5 <- function() {
+  dll <- getLoadedDLLs()[["mssrscopR"]]
+  if (is.null(dll)) return(NA_character_)
+  unname(tools::md5sum(dll[["path"]]))
+}
+
+mssr_app_code_identity <- function() {
+  ns <- asNamespace("mssrscopR")
+  development <- exists(".__DEVTOOLS__", ns, inherits = FALSE)
+  if (development) mssr_app_need("pkgload", "a development-source app in a background process")
+  loaded <- mssr_loaded_code$files
+  if (is.null(loaded)) loaded <- mssr_app_code_files()
+  c(loaded, list(development = development, functions = mssr_app_code_signature()))
 }
 
 mssr_app_mask_args <- function(input) {
@@ -521,7 +542,7 @@ mssr_app_start_job <- function(frame, args, mask, run_id) {
       files <- c(file.path(identity$root, c("DESCRIPTION", "NAMESPACE")),
                  list.files(file.path(identity$root, "R"), full.names = TRUE),
                  list.files(file.path(identity$root, "src"), "[.][ch]$", full.names = TRUE))
-      files <- sort(files[file.exists(files) & !dir.exists(files)])
+      files <- sort(files[file.exists(files) & !dir.exists(files)], method = "radix")
       identical(files, identity$files) &&
         identical(unname(tools::md5sum(files)), identity$file_md5)
     }
@@ -529,8 +550,8 @@ mssr_app_start_job <- function(frame, args, mask, run_id) {
     # cli directly, with the package's condition classes.
     integrity <- c("mssrscopR_error_integrity", "mssrscopR_error")
     if (!unchanged()) {
-      cli::cli_abort("Package files changed before the background job loaded them.",
-                     class = integrity)
+      cli::cli_abort(paste("Package files changed since this R session loaded them;",
+                           "restart R and load the package again."), class = integrity)
     }
     if (identity$development) {
       if (!requireNamespace("pkgload", quietly = TRUE)) {
@@ -543,6 +564,10 @@ mssr_app_start_job <- function(frame, args, mask, run_id) {
     }
     ns <- asNamespace("mssrscopR")
     signature <- get("mssr_app_code_signature", ns)()
+    if (!identical(get("mssr_app_dll_md5", ns)(), identity$dll_md5)) {
+      cli::cli_abort(paste("The loaded native library differs from the app session's;",
+                           "restart R and load the package again."), class = integrity)
+    }
     if (!unchanged() || !identical(signature, identity$functions)) {
       cli::cli_abort(paste("Loaded package definitions differ from the app session;",
                            "reload the app and retry."), class = integrity)

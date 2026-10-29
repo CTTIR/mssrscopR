@@ -12,8 +12,10 @@
 * A refinement step that leaves no positive value (possible only with signed
   input) now returns a degenerate result with reason `"zero refinement map"`
   instead of an unflagged all-zero map.
-* The app's background job also checks the package's C sources for changes in
-  development checkouts.
+* The app's background jobs are checked against the code the R session loaded:
+  package files (in development checkouts including the C sources), function
+  definitions and the loaded native library. A file edited after the package
+  was loaded is refused, also before the first job.
 * `mssr_mask()` warns (class `mssrscopR_warning_mask_ties`) when tie-breaking
   chose more than half of the selected pixels or the lowest selected score is
   at most 1e-6 of the highest, that is, when the mask reaches beyond the
