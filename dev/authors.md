@@ -26,13 +26,13 @@ resolution within a single imaging frame.” *Nature Communications*,
     }
 
 Heller R (2026). *mssrscopR: Single-Frame Mean-Shift Super-Resolution
-Structure Maps*. R package version 0.1.0.9003,
+Structure Maps*. R package version 0.1.0.9004,
 <https://github.com/CTTIR/mssrscopR>.
 
     @Manual{,
       title = {mssrscopR: Single-Frame Mean-Shift Super-Resolution Structure Maps},
       author = {R. Heller},
       year = {2026},
-      note = {R package version 0.1.0.9003},
+      note = {R package version 0.1.0.9004},
       url = {https://github.com/CTTIR/mssrscopR},
     }

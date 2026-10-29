@@ -16,7 +16,7 @@ mssr_batch(
   output_dir,
   settings,
   resume = TRUE,
-  max_memory_bytes = 1024^3,
+  max_memory_bytes = 2 * 1024^3,
   max_result_bytes = 256 * 1024^2,
   cancel = NULL
 )
@@ -46,7 +46,11 @@ mssr_batch(
 
 - max_memory_bytes:
 
-  Positive estimated-memory budget; default 1 GiB.
+  Positive estimated-memory budget; default 2 GiB. A frame runs only if
+  its
+  [`mssr_estimate_resources()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_estimate_resources.md)
+  estimate plus the size of all input frames held in `frames` fits
+  within it.
 
 - max_result_bytes:
 

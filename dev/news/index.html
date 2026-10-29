@@ -15,7 +15,7 @@
     <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="../index.html"><img src="../logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="../reference/figures/logo-dark.svg">mssrscopR</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.1.0.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.1.0.9004</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,6 +49,21 @@
       <small>Source: <a href="https://github.com/CTTIR/mssrscopR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.0.9004" id="mssrscopr-0109004">mssrscopR 0.1.0.9004<a class="anchor" aria-label="anchor" href="#mssrscopr-0109004"></a></h2>
+<ul><li>Breaking change: <code><a href="../reference/mssr_mask.html">mssr_mask()</a></code> has no default <code>fraction</code> any more. The former default of 0.5 selected exact zeros on typical maps and so mostly gave masks decided by tie-breaking; callers now choose the share, ideally below the share of positive map values.</li>
+<li>The two neighborhood passes of engine <code>mssr_r_rev3</code> (range normalizer and weighted mean shift) now run in compiled C code. They form the same sums in the same order as before and round every product before adding it, so results agree with the R passes to within 1e-12 of the map maximum; whether they are bitwise identical depends on the platform and the R version, since R’s own <code><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp()</a></code> can differ from the system’s in the last bit. The R passes are kept as an internal reference, and the tests and the qualification kit compare the two. No offset stack is held in memory, so peak memory falls, and frames run about 2 to 4 times faster; the gain grows with the neighborhood size, and the remaining time is mostly the weight’s exponential. The computation stays single-threaded and can still be interrupted. The engine identity is unchanged; the package version identifies the implementation.</li>
+<li>A refinement step that leaves no positive value (possible only with signed input) now returns a degenerate result with reason <code>"zero refinement map"</code> instead of an unflagged all-zero map.</li>
+<li>The app’s background jobs are checked against the code the R session loaded: package files (in development checkouts including the C sources), function definitions and the loaded native library. A file edited after the package was loaded is refused, also before the first job.</li>
+<li>
+<code><a href="../reference/mssr_mask.html">mssr_mask()</a></code> warns (class <code>mssrscopR_warning_mask_ties</code>) when tie-breaking chose more than half of the selected pixels or the lowest selected score is at most 1e-6 of the highest, that is, when the mask reaches beyond the structure the map shows. The README, vignette and help examples now use a share below the positive part of the map and explain <code>tie_fraction</code> and <code>cut_relative</code>. The app keeps its own inline message for this case.</li>
+<li>
+<code><a href="../reference/mssr_estimate_resources.html">mssr_estimate_resources()</a></code> uses a model recalibrated on the compiled engine (<code>whole_frame_buffers_v2</code>): it was two to eight times too high and now exceeded every measured peak on the calibration ladder by 30 to 220 percent. The default budget of <code><a href="../reference/mssr_batch.html">mssr_batch()</a></code> is now 2 GiB, so ordinary 1024 x 1024 frames at amplification 2 are no longer refused.</li>
+<li>
+<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> of a result prints a short report; the returned list keeps its fields and gains the output grid.</li>
+<li>Documented plainly that maps of order 1 and higher change with a constant background even for non-negative input, so background subtraction must be recorded, and that rounding-level ripple on an otherwise flat frame is stretched to full contrast.</li>
+<li>Added tests for corrupted result metadata, the batch record of a frame that fails after it started, and package files changing before an app job loads them, and a result file written by 0.1.0.9003 that must still read, validate and replay.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0.9003" id="mssrscopr-0109003">mssrscopR 0.1.0.9003<a class="anchor" aria-label="anchor" href="#mssrscopr-0109003"></a></h2>
 <ul><li><p>Standardize the named v5 package logo across README, documentation pages and available application headers, with matching light and dark artwork.</p></li>

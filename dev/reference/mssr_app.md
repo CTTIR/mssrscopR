@@ -76,8 +76,9 @@ can be explicitly restored. A job is cancelled when its session closes
 or after five minutes. The child inherits CPU affinity and uses one
 numerical thread. Changed settings are marked stale; downloads retain
 the computed input and settings. Development-source launches also need
-`pkgload`; source/function drift is refused instead of loading an older
-build.
+`pkgload`. A job is refused when package files, functions or the native
+library differ from what the R session loaded, instead of running other
+code.
 
 ## Examples
 

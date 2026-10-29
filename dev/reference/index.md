@@ -16,6 +16,7 @@
 - [`mssr_validate_result()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_validate_result.md)
   : Validate a complete result record
 - [`summary(`*`<mssr_result>`*`)`](https://cttir.github.io/mssrscopR/dev/reference/inspect_mssr_result.md)
+  [`print(`*`<summary.mssr_result>`*`)`](https://cttir.github.io/mssrscopR/dev/reference/inspect_mssr_result.md)
   [`plot(`*`<mssr_result>`*`)`](https://cttir.github.io/mssrscopR/dev/reference/inspect_mssr_result.md)
   : Inspect a structure-map result
 

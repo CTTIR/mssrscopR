@@ -27,7 +27,7 @@ same as in R; it adds no processing of its own."><meta property="og:image" conte
     <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="../index.html"><img src="../logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="../reference/figures/logo-dark.svg">mssrscopR</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.1.0.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.1.0.9004</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -130,7 +130,8 @@ the previous completed result can be explicitly restored. A job is cancelled
 when its session closes or after five minutes. The child inherits CPU affinity
 and uses one numerical thread. Changed settings are marked stale; downloads
 retain the computed input and settings. Development-source launches also need
-<code>pkgload</code>; source/function drift is refused instead of loading an older build.</p>
+<code>pkgload</code>. A job is refused when package files, functions or the native
+library differ from what the R session loaded, instead of running other code.</p>
     </div>
 
     <div class="section level2">

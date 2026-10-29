@@ -23,7 +23,7 @@ Failed frames remain in the returned table. No data are downloaded or sent."><me
     <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="../index.html"><img src="../logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="../reference/figures/logo-dark.svg">mssrscopR</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.1.0.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.1.0.9004</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,7 +73,7 @@ Failed frames remain in the returned table. No data are downloaded or sent.</p>
 <span>  <span class="va">output_dir</span>,</span>
 <span>  <span class="va">settings</span>,</span>
 <span>  resume <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  max_memory_bytes <span class="op">=</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span>,</span>
+<span>  max_memory_bytes <span class="op">=</span> <span class="fl">2</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span>,</span>
 <span>  max_result_bytes <span class="op">=</span> <span class="fl">256</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">2</span>,</span>
 <span>  cancel <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -102,7 +102,9 @@ unique opaque IDs containing only letters, digits, underscore or hyphen.</p></dd
 
 
 <dt id="arg-max-memory-bytes">max_memory_bytes<a class="anchor" aria-label="anchor" href="#arg-max-memory-bytes"></a></dt>
-<dd><p>Positive estimated-memory budget; default 1 GiB.</p></dd>
+<dd><p>Positive estimated-memory budget; default 2 GiB. A
+frame runs only if its <code><a href="mssr_estimate_resources.html">mssr_estimate_resources()</a></code> estimate plus the size of
+all input frames held in <code>frames</code> fits within it.</p></dd>
 
 
 <dt id="arg-max-result-bytes">max_result_bytes<a class="anchor" aria-label="anchor" href="#arg-max-result-bytes"></a></dt>

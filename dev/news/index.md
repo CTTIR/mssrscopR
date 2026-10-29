@@ -1,5 +1,64 @@
 # Changelog
 
+## mssrscopR 0.1.0.9004
+
+- Breaking change:
+  [`mssr_mask()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_mask.md)
+  has no default `fraction` any more. The former default of 0.5 selected
+  exact zeros on typical maps and so mostly gave masks decided by
+  tie-breaking; callers now choose the share, ideally below the share of
+  positive map values.
+- The two neighborhood passes of engine `mssr_r_rev3` (range normalizer
+  and weighted mean shift) now run in compiled C code. They form the
+  same sums in the same order as before and round every product before
+  adding it, so results agree with the R passes to within 1e-12 of the
+  map maximum; whether they are bitwise identical depends on the
+  platform and the R version, since R’s own
+  [`exp()`](https://rdrr.io/r/base/Log.html) can differ from the
+  system’s in the last bit. The R passes are kept as an internal
+  reference, and the tests and the qualification kit compare the two. No
+  offset stack is held in memory, so peak memory falls, and frames run
+  about 2 to 4 times faster; the gain grows with the neighborhood size,
+  and the remaining time is mostly the weight’s exponential. The
+  computation stays single-threaded and can still be interrupted. The
+  engine identity is unchanged; the package version identifies the
+  implementation.
+- A refinement step that leaves no positive value (possible only with
+  signed input) now returns a degenerate result with reason
+  `"zero refinement map"` instead of an unflagged all-zero map.
+- The app’s background jobs are checked against the code the R session
+  loaded: package files (in development checkouts including the C
+  sources), function definitions and the loaded native library. A file
+  edited after the package was loaded is refused, also before the first
+  job.
+- [`mssr_mask()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_mask.md)
+  warns (class `mssrscopR_warning_mask_ties`) when tie-breaking chose
+  more than half of the selected pixels or the lowest selected score is
+  at most 1e-6 of the highest, that is, when the mask reaches beyond the
+  structure the map shows. The README, vignette and help examples now
+  use a share below the positive part of the map and explain
+  `tie_fraction` and `cut_relative`. The app keeps its own inline
+  message for this case.
+- [`mssr_estimate_resources()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_estimate_resources.md)
+  uses a model recalibrated on the compiled engine
+  (`whole_frame_buffers_v2`): it was two to eight times too high and now
+  exceeded every measured peak on the calibration ladder by 30 to 220
+  percent. The default budget of
+  [`mssr_batch()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_batch.md)
+  is now 2 GiB, so ordinary 1024 x 1024 frames at amplification 2 are no
+  longer refused.
+- [`summary()`](https://rdrr.io/r/base/summary.html) of a result prints
+  a short report; the returned list keeps its fields and gains the
+  output grid.
+- Documented plainly that maps of order 1 and higher change with a
+  constant background even for non-negative input, so background
+  subtraction must be recorded, and that rounding-level ripple on an
+  otherwise flat frame is stretched to full contrast.
+- Added tests for corrupted result metadata, the batch record of a frame
+  that fails after it started, and package files changing before an app
+  job loads them, and a result file written by 0.1.0.9003 that must
+  still read, validate and replay.
+
 ## mssrscopR 0.1.0.9003
 
 - Standardize the named v5 package logo across README, documentation

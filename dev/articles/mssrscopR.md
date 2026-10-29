@@ -204,19 +204,39 @@ A structure map can select pixels, but measurements belong to the
 original image.
 [`mssr_mask()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_mask.md)
 keeps an exact number of pixels of a region. `tie_fraction` reports the
-share of the selected pixels that random tie-breaking decided. That
-share can be large, because the mean shift is clipped at zero and many
-pixels tie there.
+share of the selected pixels that random tie-breaking decided, and
+`cut_relative` the lowest selected score relative to the highest. The
+mean shift is clipped at zero, so most of this map is exactly zero; keep
+a share below the positive one.
 
 ``` r
 
-m <- mssr_mask(mssr(x, fwhm = 3), fraction = 0.2)
-c(coverage = attr(m, "coverage"), tie_fraction = attr(m, "tie_fraction"))
-#>     coverage tie_fraction 
-#>    0.2006294    0.8901961
+r <- mssr(x, fwhm = 3)
+mean(as.matrix(r) > 0)             # share of pixels with any structure
+#> [1] 0.0220299
+m <- mssr_mask(r, fraction = 0.02)
+c(coverage = attr(m, "coverage"), tie_fraction = attr(m, "tie_fraction"),
+  cut_relative = attr(m, "cut_relative"))
+#>     coverage tie_fraction cut_relative 
+#>  0.020456334  0.000000000  0.002531077
 c(mean_all = mean(x), mean_masked = mean(x[m]))
 #>    mean_all mean_masked 
-#>  0.06604718  0.11401186
+#>  0.06604718  0.58442567
+```
+
+A larger share reaches into the zeros. Tie-breaking then decides most of
+the mask, which
+[`mssr_mask()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_mask.md)
+reports with a warning:
+
+``` r
+
+wide <- mssr_mask(r, fraction = 0.2)
+#> Warning: The mask reaches pixels where the MSSR map shows no structure: 89% of the
+#> selected pixels were chosen by tie-breaking and the lowest selected score is 0
+#> of the highest. Choose a smaller `fraction` or a `region`.
+attr(wide, "tie_fraction")
+#> [1] 0.8901961
 ```
 
 Selecting pixels this way changes the measured population. It is not
@@ -326,93 +346,14 @@ structures and blank/noise-only fields alongside favorable examples.
 frame <- outer(1:13, 1:17, function(r, c) 0.05 + exp(-((r-7)^2+(c-9)^2)/8))
 result <- mssr(frame, fwhm = 3, order = 1)
 summary(result)
-#> $role
-#> [1] "intensity_weighted_structure"
-#> 
-#> $input_dim
-#> [1] 13 17
-#> 
-#> $output_dim
-#> [1] 13 17
-#> 
-#> $value_range
-#> [1] 0.00 1.05
-#> 
-#> $parameters
-#> $parameters$fwhm
-#> [1] 3
-#> 
-#> $parameters$amp
-#> [1] 1
-#> 
-#> $parameters$order
-#> [1] 1
-#> 
-#> $parameters$intensity_normalize
-#> [1] TRUE
-#> 
-#> $parameters$mesh
-#> [1] FALSE
-#> 
-#> $parameters$kernel
-#> [1] "disk"
-#> 
-#> $parameters$rounding
-#> [1] "half_even"
-#> 
-#> $parameters$half_size
-#> [1] 2
-#> 
-#> 
-#> $diagnostics
-#> $diagnostics$degenerate
-#> [1] FALSE
-#> 
-#> $diagnostics$degenerate_reason
-#> [1] NA
-#> 
-#> $diagnostics$order_steps_skipped
-#> [1] 0
-#> 
-#> $diagnostics$zero_fraction
-#> [1] 0.8054299
-#> 
-#> $diagnostics$negative_fraction
-#> [1] 0
-#> 
-#> $diagnostics$n_offsets
-#> [1] 12
-#> 
-#> $diagnostics$quantitative
-#> [1] FALSE
-#> 
-#> $diagnostics$qualification_scope
-#> [1] "bounded_synthetic_domain"
-#> 
-#> $diagnostics$high_order_unqualified
-#> [1] FALSE
-#> 
-#> 
-#> $engine
-#> $engine$id
-#> [1] "mssr_r_rev3"
-#> 
-#> $engine$package_version
-#> [1] "0.1.0.9003"
-#> 
-#> $engine$method
-#> [1] "Torres-Garcia et al. 2022, doi:10.1038/s41467-022-34693-9"
-#> 
-#> 
-#> $schema_version
-#> [1] "1.0.0"
-#> 
-#> $evidence
-#> $evidence$status
-#> [1] "numerical_tool_only"
-#> 
-#> $evidence$quantitative
-#> [1] FALSE
+#> MSSR result summary: intensity_weighted_structure
+#>   Grid:        input 13 x 17 -> output 13 x 17 (amp 1, extent grid)
+#>   Parameters:  fwhm 3 px, order 1, kernel disk (half-size 2), rounding half_even
+#>                intensity weighting TRUE, mesh FALSE
+#>   Values:      range 0 to 1.05; zero fraction 0.805; negative fraction 0.000
+#>   Diagnostics: defined; 0 undefined order step(s) skipped; 12 offsets
+#>   Engine:      mssr_r_rev3, mssrscopR 0.1.0.9004; result schema 1.0.0; evidence numerical_tool_only
+#>   Not a quantitative intensity: measure on the original data.
 mssr_estimate_resources(dim(frame), fwhm = 3)
 #> $input_dim
 #> [1] 13 17
@@ -433,10 +374,10 @@ mssr_estimate_resources(dim(frame), fwhm = 3)
 #> [1] 2652
 #> 
 #> $estimated_peak_bytes
-#> [1] 201450552
+#> [1] 134272136
 #> 
 #> $model
-#> [1] "whole_frame_buffers_v1"
+#> [1] "whole_frame_buffers_v2"
 #> 
 #> $hard_limit
 #> [1] FALSE

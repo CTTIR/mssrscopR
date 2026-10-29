@@ -40,7 +40,7 @@
     <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="index.html"><img src="logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="reference/figures/logo-dark.svg">mssrscopR</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.1.0.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.1.0.9004</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -96,7 +96,7 @@
 <strong>Verify:</strong> <code><a href="reference/mssr_selftest.html">mssr_selftest()</a></code> recomputes bundled synthetic fixtures.</li>
 </ul>
 <blockquote>
-<p><strong>Status: 0.1.0.9003, development candidate.</strong> At amplification 1 with intensity normalization off, comparisons with the authors’ single-frame R code (disk kernel, rotation undone) and Python code (square kernel) agree on the tested non-degenerate examples. Engine <code>mssr_r_rev3</code> improves numerical stability; the unchanged bundled synthetic fixtures guard against regressions. Its benefit for fluorescence, histology or hyperspectral analyses has not been established.</p>
+<p><strong>Status: 0.1.0.9004, development candidate.</strong> At amplification 1 with intensity normalization off, comparisons with the authors’ single-frame R code (disk kernel, rotation undone) and Python code (square kernel) agree on the tested non-degenerate examples. Engine <code>mssr_r_rev3</code> improves numerical stability; the unchanged bundled synthetic fixtures guard against regressions. Its benefit for fluorescence, histology or hyperspectral analyses has not been established.</p>
 </blockquote>
 <p>The method concordance in <code><a href="articles/method-concordance.html">vignette("method-concordance")</a></code> maps the official supplementary equations to the engine and records implementation differences, unresolved temporal definitions and qualification boundaries (<a href="https://github.com/CTTIR/mssrscopR/blob/main/tools/qualification/METHOD_CONCORDANCE.md" class="external-link">Markdown source</a>).</p>
 <div class="section level2">
@@ -170,7 +170,7 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 <td>output pixel-center coordinates (<code>row</code>, <code>col</code>) in input-pixel units</td>
 </tr>
 <tr>
-<td><code>mssr_mask(result, fraction = 0.5, region = NULL, seed = 1)</code></td>
+<td><code>mssr_mask(result, fraction, region = NULL, seed = 1)</code></td>
 <td>logical mask on the input grid with <code>coverage</code>, <code>tie_fraction</code>, <code>n_region</code>
 </td>
 </tr>
@@ -186,7 +186,9 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 </tbody>
 </table>
 <p><code>fwhm</code> is the point-spread-function width in <strong>input pixels</strong> and has no default. Errors inherit from <code>mssrscopR_error</code> (subclasses <code>_input</code>, <code>_nonfinite</code>, <code>_parameter</code>, <code>_resource</code>, <code>_unsupported</code>, <code>_numerical</code>, <code>_dependency</code>); negative input gives a <code>mssrscopR_warning_negative</code> warning, because MSSR assumes non-negative intensities, and undefined refinement steps give a <code>mssrscopR_warning_skipped_steps</code> warning.</p>
-<p>Use plain integer or double inputs; explicitly classed numeric objects must be converted deliberately. The engine scales internally and accumulates local differences to reduce overflow, underflow and cancellation. It reports a numerical error if scaling loses a nonzero input or the final output overflows. Very small intensity-weighted outputs remain subject to subnormal rounding, including zero. This cannot recover precision already lost in the supplied frame. A constant background can change higher-order MSSR mathematically; subtracting it remains an explicit preprocessing decision. Coordinate and mask consumers check finite values and consistent grid metadata; they do not authenticate image provenance. Positive mask fractions select at least one pixel, but flat maps may yield entirely tie-selected masks. A quota mask is not a cell segmentation.</p>
+<p>Use plain integer or double inputs; explicitly classed numeric objects must be converted deliberately. The engine scales internally and accumulates local differences to reduce overflow, underflow and cancellation. It reports a numerical error if scaling loses a nonzero input or the final output overflows. Very small intensity-weighted outputs remain subject to subnormal rounding, including zero. This cannot recover precision already lost in the supplied frame.</p>
+<p>A constant background changes the result, also for non-negative input: the order-0 structure map does not depend on it, but every refinement step (<code>order &gt;= 1</code>) compares the map with the input divided by its maximum, and intensity weighting multiplies by the input. Subtracting a background is therefore a preprocessing choice that changes the map; record it with the result. The range normalizer adapts to the largest local difference, so even rounding-level ripple on an otherwise flat frame is stretched to full contrast.</p>
+<p>Coordinate and mask consumers check finite values and consistent grid metadata; they do not authenticate image provenance. Positive mask fractions select at least one pixel. <code>tie_fraction</code> is the share of the selected pixels that random tie-breaking among equal scores (usually exact zeros) decided, and <code>cut_relative</code> the lowest selected score divided by the highest. A large <code>tie_fraction</code> or a <code>cut_relative</code> near 0 means the mask reaches beyond the structure that MSSR found, and <code><a href="reference/mssr_mask.html">mssr_mask()</a></code> warns; choose a smaller <code>fraction</code> or a <code>region</code>. A quota mask is not a cell segmentation.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -211,9 +213,14 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 <span><span class="va">res</span></span>
 <span><span class="fu"><a href="reference/mssr_coords.html">mssr_coords</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">$</span><span class="va">col</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span></span>
 <span></span>
-<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr_mask.html">mssr_mask</a></span><span class="op">(</span><span class="fu"><a href="reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">x</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>, fraction <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span></span>
+<span><span class="co"># A structural mask on the input grid. Only a few percent of this map is</span></span>
+<span><span class="co"># positive, so keep a smaller share than that.</span></span>
+<span><span class="va">r1</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">x</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">r1</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span>          <span class="co"># share of pixels with any structure</span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr_mask.html">mssr_mask</a></span><span class="op">(</span><span class="va">r1</span>, fraction <span class="op">=</span> <span class="fl">0.03</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">x</span><span class="op">[</span><span class="va">m</span><span class="op">]</span><span class="op">)</span>                       <span class="co"># measured on the original frame</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"tie_fraction"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"tie_fraction"</span><span class="op">)</span>          <span class="co"># 0: no pixel was chosen by tie-breaking</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"cut_relative"</span><span class="op">)</span>          <span class="co"># lowest kept score relative to the highest</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="reference/mssr_selftest.html">mssr_selftest</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"all_passed"</span><span class="op">)</span></span>
 <span></span>
@@ -268,7 +275,7 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 <span><span class="co"># run &lt;- mssr_batch(list(frame_a = x, frame_b = t(x)), "batch-output",</span></span>
 <span><span class="co">#                   settings = list(fwhm = 3, order = 1))</span></span></code></pre></div>
 <p>Result files preserve exact binary64 values with SHA-256 integrity checks and bounded, non-executable metadata parsing. Readback establishes consistency, not source authenticity or biological validity. Batch processing is sequential: complete frames, verified reuse, retained failed/cancelled rows and separate attempt files. Cancellation takes effect between frames. The returned table’s <code>run_record</code> attribute identifies the durable invocation summary.</p>
-<p>The allocation model was calibrated on a bounded Linux workload ladder (1,536–393,216 output pixels, amplification 1–3, orders 0–3). It includes a 192 MiB runtime allowance and conservative working buffers. Larger workloads, other runtimes and retained objects can change RSS; this is not an OS memory cap.</p>
+<p>The allocation model was calibrated on the peak RSS of fresh R processes on one Linux machine over 65,536–16,777,216 output pixels (amplification 1–4, orders 0–3, mesh and weighting on and off, both kernels), where it exceeded every measured peak by 30–220 %, least for order 3 with mesh and weighting. It includes a 128 MiB runtime allowance. Garbage collection, larger workloads, other platforms and retained objects can change RSS; this is not an OS memory cap.</p>
 <div class="section level3">
 <h3 id="recompute-a-saved-result">Recompute a saved result<a class="anchor" aria-label="anchor" href="#recompute-a-saved-result"></a>
 </h3>

@@ -1,13 +1,18 @@
 # Estimate whole-frame MSSR resources
 
 Reports a conservative allocation model before allocating an output
-frame. The estimate includes a 192 MiB runtime allowance, 64 double
-buffers per output pixel, five input buffers, and reflected-index/offset
-storage. It is a planning guard, not a hard process-memory limit: R,
-loaded packages, retained objects, garbage collection and the allocator
-can change peak RSS. Calibration evidence covers the workload ladder
-described in the package documentation; estimates outside that ladder
-are extrapolations.
+frame. The estimate includes a 128 MiB runtime allowance, 24 double
+buffers per output pixel, six per input pixel, and reflected-index and
+offset storage. It was calibrated on the peak resident memory of fresh R
+processes on one Linux machine over a workload ladder of 65,536 to
+16,777,216 output pixels (amplification 1 to 4, orders 0 to 3, mesh and
+intensity weighting on and off, disk and square kernels), where it
+exceeded every measured peak by 30 to 220 percent; the margin is
+smallest for order 3 with mesh and weighting, and garbage-collection
+timing changes peaks from run to run. It is a planning guard, not a hard
+process-memory limit: other platforms, loaded packages, retained
+objects, garbage collection and the allocator can change peak RSS, and
+estimates outside that ladder are extrapolations.
 
 ## Usage
 
@@ -61,10 +66,10 @@ mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2)
 #> [1] 2752512
 #> 
 #> $estimated_peak_bytes
-#> [1] 252678912
+#> [1] 154291456
 #> 
 #> $model
-#> [1] "whole_frame_buffers_v1"
+#> [1] "whole_frame_buffers_v2"
 #> 
 #> $hard_limit
 #> [1] FALSE

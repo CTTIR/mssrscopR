@@ -15,7 +15,7 @@ instances.
 ## Usage
 
 ``` r
-mssr_mask(result, fraction = 0.5, region = NULL, seed = 1L)
+mssr_mask(result, fraction, region = NULL, seed = 1L)
 ```
 
 ## Arguments
@@ -26,7 +26,9 @@ mssr_mask(result, fraction = 0.5, region = NULL, seed = 1L)
 
 - fraction:
 
-  Fraction of the region to keep, in (0, 1\].
+  Fraction of the region to keep, in (0, 1\]. Required: a suitable share
+  depends on how much of the map is positive, which differs from frame
+  to frame, so there is no default.
 
 - region:
 
@@ -56,7 +58,11 @@ score divided by the highest score in the region. Interpolation and
 rounding leave many tiny positive values (often below 1e-6 of the
 maximum) where MSSR found no structure; they rank above exact zeros
 without counting as ties, so a small `cut_relative` means the mask
-reaches beyond the structure. Both mask and coordinate consumers reject
+reaches beyond the structure. A warning of class
+`mssrscopR_warning_mask_ties` is given when tie-breaking chose more than
+half of the selected pixels or `cut_relative` is at most 1e-6; the mask
+is still returned. A `fraction` near the share of positive map values,
+or a `region`, avoids it. Both mask and coordinate consumers reject
 nonfinite values or inconsistent grid metadata. This checks the stored
 matrix/grid contract, not authenticity of the image, parameters or
 review status.
@@ -65,9 +71,14 @@ review status.
 
 ``` r
 x <- matrix(runif(400), 20, 20)
-m <- mssr_mask(mssr(x, fwhm = 3), fraction = 0.5)
+r <- mssr(x, fwhm = 3)
+mean(as.matrix(r) > 0)  # share of pixels with any structure
+#> [1] 0.51
+m <- mssr_mask(r, fraction = 0.1)
 attr(m, "tie_fraction")
 #> [1] 0
+attr(m, "cut_relative")
+#> [1] 0.3015393
 mean(x[m])
-#> [1] 0.7685152
+#> [1] 0.9283137
 ```

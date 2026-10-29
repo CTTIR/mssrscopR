@@ -20,7 +20,7 @@ installation.
   [`mssr_selftest()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_selftest.md)
   recomputes bundled synthetic fixtures.
 
-> **Status: 0.1.0.9003, development candidate.** At amplification 1 with
+> **Status: 0.1.0.9004, development candidate.** At amplification 1 with
 > intensity normalization off, comparisons with the authors’
 > single-frame R code (disk kernel, rotation undone) and Python code
 > (square kernel) agree on the tested non-degenerate examples. Engine
@@ -98,7 +98,7 @@ hyperspectral cubes or segmentation workflows has not been validated.
 |----|----|
 | `mssr(x, fwhm, amp = 1, order = 1, ...)` | `mssr_result`: `values`, `role`, `transform`, `parameters`, `engine`, `diagnostics` |
 | `mssr_coords(result)` | output pixel-center coordinates (`row`, `col`) in input-pixel units |
-| `mssr_mask(result, fraction = 0.5, region = NULL, seed = 1)` | logical mask on the input grid with `coverage`, `tie_fraction`, `n_region` |
+| `mssr_mask(result, fraction, region = NULL, seed = 1)` | logical mask on the input grid with `coverage`, `tie_fraction`, `n_region` |
 | `mssr_selftest(tolerance = 1e-10)` | fixture errors, with attribute `all_passed` |
 | `mssr_app(max_upload_mb = 50, ...)` | interactive Shiny explorer (needs shiny, bslib, jsonlite, callr and digest): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads |
 
@@ -115,13 +115,27 @@ accumulates local differences to reduce overflow, underflow and
 cancellation. It reports a numerical error if scaling loses a nonzero
 input or the final output overflows. Very small intensity-weighted
 outputs remain subject to subnormal rounding, including zero. This
-cannot recover precision already lost in the supplied frame. A constant
-background can change higher-order MSSR mathematically; subtracting it
-remains an explicit preprocessing decision. Coordinate and mask
-consumers check finite values and consistent grid metadata; they do not
-authenticate image provenance. Positive mask fractions select at least
-one pixel, but flat maps may yield entirely tie-selected masks. A quota
-mask is not a cell segmentation.
+cannot recover precision already lost in the supplied frame.
+
+A constant background changes the result, also for non-negative input:
+the order-0 structure map does not depend on it, but every refinement
+step (`order >= 1`) compares the map with the input divided by its
+maximum, and intensity weighting multiplies by the input. Subtracting a
+background is therefore a preprocessing choice that changes the map;
+record it with the result. The range normalizer adapts to the largest
+local difference, so even rounding-level ripple on an otherwise flat
+frame is stretched to full contrast.
+
+Coordinate and mask consumers check finite values and consistent grid
+metadata; they do not authenticate image provenance. Positive mask
+fractions select at least one pixel. `tie_fraction` is the share of the
+selected pixels that random tie-breaking among equal scores (usually
+exact zeros) decided, and `cut_relative` the lowest selected score
+divided by the highest. A large `tie_fraction` or a `cut_relative` near
+0 means the mask reaches beyond the structure that MSSR found, and
+[`mssr_mask()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_mask.md)
+warns; choose a smaller `fraction` or a `region`. A quota mask is not a
+cell segmentation.
 
 ## Installation
 
@@ -147,9 +161,14 @@ res <- mssr(x, fwhm = 3, amp = 2)
 res
 mssr_coords(res)$col[1:4]
 
-m <- mssr_mask(mssr(x, fwhm = 3), fraction = 0.25)
+# A structural mask on the input grid. Only a few percent of this map is
+# positive, so keep a smaller share than that.
+r1 <- mssr(x, fwhm = 3)
+mean(as.matrix(r1) > 0)          # share of pixels with any structure
+m <- mssr_mask(r1, fraction = 0.03)
 mean(x[m])                       # measured on the original frame
-attr(m, "tie_fraction")
+attr(m, "tie_fraction")          # 0: no pixel was chosen by tie-breaking
+attr(m, "cut_relative")          # lowest kept score relative to the highest
 
 attr(mssr_selftest(), "all_passed")
 
@@ -254,11 +273,13 @@ retained failed/cancelled rows and separate attempt files. Cancellation
 takes effect between frames. The returned table’s `run_record` attribute
 identifies the durable invocation summary.
 
-The allocation model was calibrated on a bounded Linux workload ladder
-(1,536–393,216 output pixels, amplification 1–3, orders 0–3). It
-includes a 192 MiB runtime allowance and conservative working buffers.
-Larger workloads, other runtimes and retained objects can change RSS;
-this is not an OS memory cap.
+The allocation model was calibrated on the peak RSS of fresh R processes
+on one Linux machine over 65,536–16,777,216 output pixels (amplification
+1–4, orders 0–3, mesh and weighting on and off, both kernels), where it
+exceeded every measured peak by 30–220 %, least for order 3 with mesh
+and weighting. It includes a 128 MiB runtime allowance. Garbage
+collection, larger workloads, other platforms and retained objects can
+change RSS; this is not an OS memory cap.
 
 ### Recompute a saved result
 
