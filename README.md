@@ -21,7 +21,7 @@ result, and a self-test can check any installation.
   frame sequence pixel by pixel (mean, variance, TPM, `Var / Mean`, SOFI).
 - **Verify:** `mssr_selftest()` recomputes bundled synthetic fixtures.
 
-> **Status: 0.1.0.9004, development candidate.** At amplification 1 with intensity
+> **Status: 0.1.0.9005, development candidate.** At amplification 1 with intensity
 > normalization off, comparisons with the authors' single-frame R code (disk
 > kernel, rotation undone) and Python code (square kernel) agree on the tested
 > non-degenerate examples. Engine `mssr_r_rev3` improves numerical stability;

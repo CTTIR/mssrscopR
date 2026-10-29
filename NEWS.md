@@ -1,3 +1,35 @@
+# mssrscopR 0.1.0.9005
+
+* New `mssr_temporal()` computes temporal statistics of per-frame MSSR maps
+  (temporal MSSR, article Fig. 7a and Supplementary Note 5.2) with the
+  definitions of Supplementary Table S2: mean, population variance, TPM (the
+  squared frame sum, `M^2 * mean^2`), the supplement's "CV" (`Var / Mean`, an
+  index of dispersion that takes the sign of the mean) and lagged, signed SOFI
+  cumulants of orders 2 to 4, optionally as absolute values. `mssr_stack()`
+  stores the per-frame maps so that several statistics need MSSR only once per
+  frame. Statistics are formed from centered deviations in a power-of-two scaled
+  range; the stored and recomputed computation paths give the same values.
+  There is no default statistic, and no resolution gain is implied: the help
+  and `vignette("temporal")` describe spurious splitting, the effect of sparse
+  dim data and of slow trends, and the sub-pixel grid of amplified data. The
+  "SOFI" of the authors' Python, MATLAB and Fiji tools uses zero-lag or absolute
+  deviations and is a different statistic; the method concordance lists the
+  differences. Fourier interpolation is not implemented.
+* Temporal results report `mesh_index`, the sub-pixel grid measured on
+  signal-free input pixels (below the median of the raw temporal mean, or a
+  supplied `background` mask), and `trend`, the raw intensity of the last tenth
+  of the frames relative to the first tenth. Both are diagnostics only.
+* Result schema 1.1.0 adds temporal records; `mssr_validate_result()`,
+  `mssr_write_result()`, `mssr_read_result()`, `mssr_settings()`, `summary()`
+  and `print()` handle them. Single-frame results keep schema 1.0.0, and files
+  written by earlier versions still read.
+* `mssr_estimate_resources()` gains `frames` and `statistic` and then also
+  estimates the stored and recomputed paths of a temporal call.
+* The `fwhm` documentation says that a larger value than the PSF's FWHM
+  enlarges the neighborhood and gives smoother maps with fewer fragments, and
+  that MSSR maps are visual aids, not a basis for segmentation or
+  quantification.
+
 # mssrscopR 0.1.0.9004
 
 * Breaking change: `mssr_mask()` has no default `fraction` any more. The former
