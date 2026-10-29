@@ -21,7 +21,7 @@
 # Existing regression fixtures remain unchanged; final rounding can differ.
 #
 # From version 0.1.0.9004 the two neighborhood passes run in compiled code
-# (src/neighbourhood.c). The engine definition is unchanged, so results keep
+# (src/neighborhood.c). The engine definition is unchanged, so results keep
 # the identity "mssr_r_rev3"; the package version identifies the
 # implementation. The R passes are kept as the reference
 # (`implementation = "r"`) and the test suite compares the two.
@@ -138,8 +138,8 @@ mssr_offsets <- function(hs, kernel) {
 }
 
 # Neighborhood passes in R: the reference for the compiled implementation
-# (src/neighbourhood.c), which forms the same sums in the same order.
-mssr_neighbourhood_r <- function(img, offs, hs) {
+# (src/neighborhood.c), which forms the same sums in the same order.
+mssr_neighborhood_r <- function(img, offs, hs) {
   shift <- mssr_shifter(nrow(img), ncol(img))
   # Pass 1: maximum absolute local difference (range normalizer).
   range_max <- NULL
@@ -162,10 +162,10 @@ mssr_neighbourhood_r <- function(img, offs, hs) {
   list(range_max = range_max, weight_sum = weight_sum, difference_sum = difference_sum)
 }
 
-mssr_neighbourhood <- function(img, offs, hs, implementation) {
-  if (identical(implementation, "r")) return(mssr_neighbourhood_r(img, offs, hs))
+mssr_neighborhood <- function(img, offs, hs, implementation) {
+  if (identical(implementation, "r")) return(mssr_neighborhood_r(img, offs, hs))
   storage.mode(img) <- "double"
-  .Call(mssr_neighbourhood_c, img, as.integer(offs$i), as.integer(offs$j), as.double(hs))
+  .Call(mssr_neighborhood_c, img, as.integer(offs$i), as.integer(offs$j), as.double(hs))
 }
 
 # The operator. Inputs are already validated by mssr(). `implementation`
@@ -217,7 +217,7 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
   if (max(amplified) <= 0) {
     return(result(zeros(), TRUE, "non-positive maximum"))
   }
-  passes <- mssr_neighbourhood(amplified_centered, offs, hs, implementation)
+  passes <- mssr_neighborhood(amplified_centered, offs, hs, implementation)
   finite(passes$range_max)
   finite(passes$difference_sum)
   finite(passes$weight_sum)

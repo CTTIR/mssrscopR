@@ -75,8 +75,8 @@ test_that("compiled passes return the reference sums exactly in shape and order"
   set.seed(3)
   x <- matrix(stats::runif(6 * 4), 6, 4)
   offs <- mssr_offsets(2, "disk")
-  a <- mssr_neighbourhood(x, offs, 2, "compiled")
-  b <- mssr_neighbourhood(x, offs, 2, "r")
+  a <- mssr_neighborhood(x, offs, 2, "compiled")
+  b <- mssr_neighborhood(x, offs, 2, "r")
   expect_named(a, c("range_max", "weight_sum", "difference_sum"))
   for (field in names(b)) {
     expect_identical(dim(a[[field]]), dim(b[[field]]))
@@ -84,8 +84,8 @@ test_that("compiled passes return the reference sums exactly in shape and order"
   }
   # Integer storage reaches the compiled code as double.
   xi <- matrix(c(1L, 5L, 2L, 8L, 3L, 4L), 3, 2)
-  expect_equal(mssr_neighbourhood(xi, offs, 2, "compiled"),
-               mssr_neighbourhood(xi * 1, offs, 2, "r"), tolerance = 1e-12)
+  expect_equal(mssr_neighborhood(xi, offs, 2, "compiled"),
+               mssr_neighborhood(xi * 1, offs, 2, "r"), tolerance = 1e-12)
 })
 
 # Processes started in the background of a non-interactive shell inherit an
@@ -120,7 +120,7 @@ test_that("compiled passes can be interrupted", {
     offs <- get("mssr_offsets", ns)(40, "disk")
     file.create(ready)
     tryCatch({
-      get("mssr_neighbourhood", ns)(x, offs, 40, "compiled")
+      get("mssr_neighborhood", ns)(x, offs, 40, "compiled")
       "finished"
     }, interrupt = function(e) "interrupted")
   }, args = list(root = root, development = development, ready = ready),

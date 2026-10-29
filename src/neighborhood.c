@@ -37,7 +37,7 @@ static int *reflect_table(int n, int h) {
   return table;
 }
 
-SEXP mssr_neighbourhood_c(SEXP x_, SEXP di_, SEXP dj_, SEXP hs_) {
+SEXP mssr_neighborhood_c(SEXP x_, SEXP di_, SEXP dj_, SEXP hs_) {
   SEXP dim = Rf_getAttrib(x_, R_DimSymbol);
   if (!Rf_isReal(x_) || Rf_length(dim) != 2) Rf_error("x must be a double matrix");
   if (!Rf_isInteger(di_) || !Rf_isInteger(dj_) || Rf_length(di_) != Rf_length(dj_)) {

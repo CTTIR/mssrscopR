@@ -3,10 +3,10 @@
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
 
-SEXP mssr_neighbourhood_c(SEXP x_, SEXP di_, SEXP dj_, SEXP hs_);
+SEXP mssr_neighborhood_c(SEXP x_, SEXP di_, SEXP dj_, SEXP hs_);
 
 static const R_CallMethodDef call_methods[] = {
-  {"mssr_neighbourhood_c", (DL_FUNC) &mssr_neighbourhood_c, 4},
+  {"mssr_neighborhood_c", (DL_FUNC) &mssr_neighborhood_c, 4},
   {NULL, NULL, 0}
 };
 
