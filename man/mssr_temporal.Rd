@@ -197,13 +197,15 @@ precision.
 first and then a second pass. The per-frame maps are stored for it when they
 fit (\code{diagnostics$path} \code{"stored"}), else every frame's MSSR is computed again
 (\code{"recompute"}), which doubles the time. Both paths give the same values. With
-\code{max_memory_bytes = NULL} the maps are stored when they take at most 2 GiB;
-with a budget, they are stored when the estimate fits it, and a call whose
+\code{max_memory_bytes = NULL} the maps are stored when they take at most 2 GiB,
+counted with the estimate's 100 percent margin for stored maps; with a
+budget, they are stored when the estimate fits it, and a call whose
 recompute path does not fit is refused. \code{\link[=mssr_estimate_resources]{mssr_estimate_resources()}} reports
 both estimates; they are checked before any frame is read. The input array
 is read one frame at a time and never copied as a whole. \code{mssr_stack()}
 stores every map: without \code{max_memory_bytes} it refuses (with
-\code{mssrscopR_error_resource}) maps that would take more than 2 GiB.
+\code{mssrscopR_error_resource}) maps that would take more than 2 GiB with that
+margin.
 
 Each frame must satisfy the checks of \code{\link[=mssr]{mssr()}}; errors name the frame.
 Warnings of the frames' \code{\link[=mssr]{mssr()}} calls (negative values, skipped refinement

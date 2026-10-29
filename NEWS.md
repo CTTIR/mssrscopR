@@ -44,10 +44,14 @@ This release collects every development version since 0.1.0 (0.1.0.9000 to
   index is formed only on the default `grid = "extent"`, uses absolute values
   for the SOFI statistics, and is labelled `"below_median_stack"` for a frame
   subset of an `mssr_stack`, whose stored raw mean covers all its frames.
+  `background` therefore requires `amp > 1` on the extent grid and is refused
+  with a classed error otherwise.
 * Raw frames are checked and averaged one at a time, so the input array is not
   copied, and the memory estimate is checked before any frame is read and
-  counts the raw mean and one raw frame. `mssr_stack()` refuses maps above
-  2 GiB unless `max_memory_bytes` allows them; for an `mssr_stack`,
+  counts the raw mean and one raw frame; stored maps are counted twice, a
+  margin for the garbage R lets grow with the live heap. Stored maps are
+  filled in place. `mssr_stack()` refuses maps above 2 GiB (with that margin)
+  unless `max_memory_bytes` allows them; for an `mssr_stack`,
   `max_memory_bytes` limits the reduction's buffers. A temporal statistic that
   would underflow to zero is refused like one that overflows.
 * Result schema 1.1.0 adds temporal records; `mssr_validate_result()`,

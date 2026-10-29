@@ -11,13 +11,16 @@ temporal_min_frames <- c(mean = 1L, var = 2L, tpm = 1L, cv = 2L,
 # Degree of each statistic under x -> s * x (used to undo internal scaling).
 temporal_degree <- c(mean = 1L, var = 2L, tpm = 2L, cv = 1L,
                      sofi2 = 2L, sofi3 = 3L, sofi4 = 4L)
-# Output-sized double buffers the reduction holds (model "temporal_buffers_v2").
+# Output-sized double buffers the reduction holds (model "temporal_buffers_v3").
 temporal_buffers <- c(mean = 4, var = 6, tpm = 4, cv = 6, sofi2 = 7, sofi3 = 8, sofi4 = 15)
 temporal_schema_version <- "1.1.0"
 temporal_definition <- "table_s2_lagged"
 temporal_paths <- c("stored", "recompute", "single_pass", "stack")
 # Without `max_memory_bytes`, per-frame maps are stored up to this size.
 temporal_default_stack_bytes <- 2 * 1024^3
+# Stored maps are planned twice: R lets garbage grow with the live heap before
+# it collects, so long stored stacks peaked near twice the bare map size.
+temporal_stack_margin <- 2
 temporal_frame_arguments <- c("fwhm", "amp", "order", "intensity_normalize", "mesh", "grid",
                               "kernel", "rounding", "max_output_pixels")
 
@@ -104,13 +107,15 @@ temporal_frame_arguments <- c("fwhm", "amp", "order", "intensity_normalize", "me
 #' first and then a second pass. The per-frame maps are stored for it when they
 #' fit (`diagnostics$path` `"stored"`), else every frame's MSSR is computed again
 #' (`"recompute"`), which doubles the time. Both paths give the same values. With
-#' `max_memory_bytes = NULL` the maps are stored when they take at most 2 GiB;
-#' with a budget, they are stored when the estimate fits it, and a call whose
+#' `max_memory_bytes = NULL` the maps are stored when they take at most 2 GiB,
+#' counted with the estimate's 100 percent margin for stored maps; with a
+#' budget, they are stored when the estimate fits it, and a call whose
 #' recompute path does not fit is refused. [mssr_estimate_resources()] reports
 #' both estimates; they are checked before any frame is read. The input array
 #' is read one frame at a time and never copied as a whole. `mssr_stack()`
 #' stores every map: without `max_memory_bytes` it refuses (with
-#' `mssrscopR_error_resource`) maps that would take more than 2 GiB.
+#' `mssrscopR_error_resource`) maps that would take more than 2 GiB with that
+#' margin.
 #'
 #' Each frame must satisfy the checks of [mssr()]; errors name the frame.
 #' Warnings of the frames' [mssr()] calls (negative values, skipped refinement
@@ -307,11 +312,12 @@ mssr_stack <- function(x, fwhm, amp = 1L, order = 1L, intensity_normalize = TRUE
                                       settings$rounding, settings$max_output_pixels,
                                       frames = length(index), statistic = "mean")
   if (is.null(max_memory_bytes)) {
-    if (estimate$stack_bytes > temporal_default_stack_bytes) {
+    if (temporal_stack_margin * estimate$stack_bytes > temporal_default_stack_bytes) {
       mssr_abort("resource", sprintf(paste(
-        "The stored maps would take %.2f GiB, above the default limit of 2 GiB;",
-        "set `max_memory_bytes` to allow more, or use mssr_temporal() on the raw frames."
-      ), estimate$stack_bytes / 1024^3), call)
+        "The stored maps would take %.2f GiB with their 100 %% margin, above the default",
+        "limit of 2 GiB; set `max_memory_bytes` to allow more, or use mssr_temporal() on",
+        "the raw frames."
+      ), temporal_stack_margin * estimate$stack_bytes / 1024^3), call)
     }
   } else {
     max_memory_bytes <- check_positive(max_memory_bytes, "max_memory_bytes", call)
@@ -442,7 +448,7 @@ temporal_choose_path <- function(statistic, estimate, budget, call) {
   }
   if (statistic %in% c("mean", "tpm")) return("single_pass")
   store <- if (is.null(budget)) {
-    estimate$stack_bytes <= temporal_default_stack_bytes
+    temporal_stack_margin * estimate$stack_bytes <= temporal_default_stack_bytes
   } else {
     estimate$stored_peak_bytes <= budget
   }
@@ -778,8 +784,14 @@ temporal_check_stack <- function(x, call) {
   }
   v <- x$values
   if (typeof(v) != "double" || length(dim(v)) != 3L ||
-        !identical(attributes(v), list(dim = dim(v))) || any(!is.finite(v))) {
+        !identical(attributes(v), list(dim = dim(v)))) {
     fail("The maps of an `mssr_stack` must be a finite plain double array.")
+  }
+  # Frame by frame, so the check holds only one map-sized temporary.
+  for (t in seq_len(dim(v)[3])) {
+    if (any(!is.finite(v[, , t]))) {
+      fail("The maps of an `mssr_stack` must be a finite plain double array.")
+    }
   }
   first <- v[, , 1]
   dim(first) <- dim(v)[1:2]

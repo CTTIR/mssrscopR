@@ -367,7 +367,8 @@ test_that("temporal resource estimates extend the single-frame model", {
   expect_identical(est$stack_bytes, 8 * base$output_pixels * 10)
   expect_gt(est$stored_peak_bytes, est$recompute_peak_bytes)
   expect_identical(est$recompute_work, 2 * est$stored_work)
-  expect_identical(est$temporal_model, "temporal_buffers_v2")
+  expect_identical(est$temporal_model, "temporal_buffers_v3")
+  expect_equal(est$stored_peak_bytes - est$recompute_peak_bytes, 2 * est$stack_bytes)
   mean_est <- mssr_estimate_resources(c(32, 40), fwhm = 3, amp = 2, frames = 10,
                                       statistic = "mean")
   expect_identical(mean_est$recompute_work, mean_est$stored_work)
@@ -548,6 +549,9 @@ test_that("the temporal estimate bounds measured peak memory on a small ladder",
     c(n = 192, frames = 60, amp = 1, store = 1),
     c(n = 128, frames = 30, amp = 2, store = 0)
   )
+  strict <- identical(Sys.getenv("MSSRSCOPR_STRICT_MEMORY_TEST"), "true")
+  # A long stored stack, where the bare map size underestimated the peak.
+  if (strict) ladder <- c(ladder, list(c(n = 128, frames = 400, amp = 2, store = 1)))
   for (step in ladder) {
     estimate <- mssr_estimate_resources(rep(step[["n"]], 2), fwhm = 3, amp = step[["amp"]],
                                         frames = step[["frames"]], statistic = "var")
@@ -573,8 +577,10 @@ test_that("the temporal estimate bounds measured peak memory on a small ladder",
     peak <- if (step[["store"]] == 1) estimate$stored_peak_bytes else estimate$recompute_peak_bytes
     planned <- peak + input
     label <- paste(step, collapse = "/")
-    slack <- if (identical(Sys.getenv("MSSRSCOPR_STRICT_MEMORY_TEST"), "true")) 1 else 1.25
-    if (development) slack <- slack * 1.5
+    # Strict mode asserts the bound itself; otherwise only gross regressions
+    # fail. Development children also load pkgload, a fixed extra baseline.
+    if (development) planned <- planned + 64 * 1024^2
+    slack <- if (strict) 1 else 1.25
     expect_lte(measured, planned * slack, label = label)
     expect_lte(planned, 4 * measured, label = label)
   }
@@ -616,4 +622,16 @@ test_that("the stored maps are filled in place, without a copy per frame", {
   }
   expect_identical(large_allocations(mssr_stack(x, fwhm = 3, amp = 2)), 1L)
   expect_identical(large_allocations(mssr_temporal(x, "var", fwhm = 3, amp = 2)), 1L)
+  # Checking a stack must not allocate a stack-sized logical array either.
+  stack <- mssr_stack(x, fwhm = 3, amp = 2)
+  log <- tempfile()
+  withr::defer(unlink(log))
+  utils::Rprofmem(log, threshold = stack_bytes / 4)
+  r <- mssr_temporal(stack, "var")
+  utils::Rprofmem(NULL)
+  sizes <- suppressWarnings(as.numeric(sub(" *:.*", "", readLines(log))))
+  expect_identical(sum(sizes >= stack_bytes / 2, na.rm = TRUE), 0L)
+  bad <- stack
+  bad$values[3, 3, 40] <- NaN
+  expect_error(mssr_temporal(bad, "var"), class = "mssrscopR_error_input")
 })

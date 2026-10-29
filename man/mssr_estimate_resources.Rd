@@ -44,13 +44,16 @@ change peak RSS, and estimates outside that ladder are extrapolations.
 }
 \details{
 With \code{frames} and \code{statistic}, the list also estimates a call of
-\code{\link[=mssr_temporal]{mssr_temporal()}} (model \code{temporal_buffers_v2}): \code{stack_bytes} for the stored
+\code{\link[=mssr_temporal]{mssr_temporal()}} (model \code{temporal_buffers_v3}): \code{stack_bytes} for the stored
 per-frame maps, \code{stored_peak_bytes} and \code{recompute_peak_bytes} for its two
 computation paths (the single-frame peak plus the output-sized buffers each
 path holds, the raw temporal mean and one raw frame), and the total
-neighborhood work of each path. The input array is read frame by frame and
-not copied, so it is not counted. The per-frame limits of \code{\link[=mssr]{mssr()}} apply to
-every frame.
+neighborhood work of each path. The stored path counts the maps twice (a
+100 percent margin): R lets garbage accumulate in proportion to the live
+heap before it collects, and on long stored stacks the measured peak came
+close to twice the bare map size. The input array is read frame by frame
+and not copied, so it is not counted. The per-frame limits of \code{\link[=mssr]{mssr()}}
+apply to every frame.
 }
 \examples{
 mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2)
