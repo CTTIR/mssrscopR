@@ -56,7 +56,11 @@ temporal_frame_arguments <- c("fwhm", "amp", "order", "intensity_normalize", "me
 #'   because every implementation by the authors computes it.
 #' - `"cv"` is the supplement's "CV", literally `Var / Mean`: an index of
 #'   dispersion, not the standard deviation divided by the mean. It takes the
-#'   sign of the mean, so it is negative where the mean is negative.
+#'   sign of the mean, so it is negative where the mean is negative (signed
+#'   input). It is 0 where the mean, formed in the scaled range described under
+#'   **Computation**, is exactly 0; where the mean is tiny compared with the
+#'   variance the ratio becomes very large, and a ratio beyond the numeric range
+#'   is refused.
 #' - `"sofi2"` to `"sofi4"` are lagged auto-cumulants of signed deviations.
 #'   Noise that is independent from frame to frame does not enter their
 #'   expectation. Orders 3 and 4 change sign with the emitters' duty cycle, so
@@ -91,7 +95,11 @@ temporal_frame_arguments <- c("fwhm", "amp", "order", "intensity_normalize", "me
 #'
 #' **Computation.** Every statistic is formed from centered deviations in
 #' frame order, in a power-of-two scaled range so that products of up to four
-#' deviations stay representable; the scaling is undone exactly at the end.
+#' deviations stay representable. The scaling is undone at the end; a value
+#' that would exceed the numeric range, or a nonzero value that would fall
+#' below the smallest representable magnitude, raises
+#' `mssrscopR_error_numerical`, and very small results keep only subnormal
+#' precision.
 #' `"mean"` and `"tpm"` need one pass over the frames. The others need the mean
 #' first and then a second pass. The per-frame maps are stored for it when they
 #' fit (`diagnostics$path` `"stored"`), else every frame's MSSR is computed again
@@ -99,7 +107,10 @@ temporal_frame_arguments <- c("fwhm", "amp", "order", "intensity_normalize", "me
 #' `max_memory_bytes = NULL` the maps are stored when they take at most 2 GiB;
 #' with a budget, they are stored when the estimate fits it, and a call whose
 #' recompute path does not fit is refused. [mssr_estimate_resources()] reports
-#' both estimates.
+#' both estimates; they are checked before any frame is read. The input array
+#' is read one frame at a time and never copied as a whole. `mssr_stack()`
+#' stores every map: without `max_memory_bytes` it refuses (with
+#' `mssrscopR_error_resource`) maps that would take more than 2 GiB.
 #'
 #' Each frame must satisfy the checks of [mssr()]; errors name the frame.
 #' Warnings of the frames' [mssr()] calls (negative values, skipped refinement
@@ -126,7 +137,8 @@ temporal_frame_arguments <- c("fwhm", "amp", "order", "intensity_normalize", "me
 #'   signal-free pixels for `diagnostics$mesh_index`. By default these are the
 #'   pixels whose raw temporal mean is below the median of that mean.
 #' @param max_memory_bytes Optional positive allocation-estimate budget (see
-#'   **Computation**). This is not a hard process-memory cap.
+#'   **Computation**). This is not a hard process-memory cap. For an
+#'   `mssr_stack`, whose maps already exist, it limits the reduction's buffers.
 #'
 #' @return `mssr_temporal()` returns an `mssr_result` (result schema 1.1.0)
 #'   with `role` `"temporal_<statistic>"`, `values` on the amplified grid and
@@ -147,12 +159,23 @@ temporal_frame_arguments <- c("fwhm", "amp", "order", "intensity_normalize", "me
 #'   pixels only, because where structure is present the index mixes structure
 #'   and grid. Each such input pixel contributes its whole `amp x amp` block of
 #'   output pixels; the index is the range of the mean over the `amp x amp`
-#'   sub-pixel phases, divided by the absolute mean of these blocks.
-#'   `mesh_region` is `"below_median"` when the pixels are those whose raw
-#'   temporal mean lies below its median (for an `mssr_stack`, the mean over all
-#'   its frames), `"background"` for a supplied `background` mask, and
-#'   `"not_computed"` for `amp = 1`. `mesh_index` is `NULL` for `amp = 1`, when
-#'   no pixel qualifies, or when the mean of the blocks is 0.
+#'   sub-pixel phases, divided by the absolute mean of these blocks. For the
+#'   SOFI statistics it is computed on the absolute values, because signed
+#'   cumulants average to about zero where there is no signal. It is formed
+#'   only on the default `grid = "extent"`, where every input pixel holds each
+#'   phase exactly once; on the endpoint grid the phases drift across the
+#'   field.
+#'
+#'   `mesh_region` names the pixels used: `"below_median"`, the pixels whose raw
+#'   temporal mean over the selected frames lies strictly below its median;
+#'   `"below_median_stack"`, the same rule for a frame subset of an
+#'   `mssr_stack`, whose stored raw mean covers all of its frames, so the index
+#'   can differ from that of the raw frames; `"background"`, a supplied mask; or
+#'   `"not_computed"` for `amp = 1` and the endpoint grid. `mesh_pixels` counts
+#'   the input pixels used. `mesh_index` is `NULL` when no index is computed,
+#'   when no pixel qualifies (for example when more than half of the pixels
+#'   share the lowest raw mean, so that none lies below the median; supply
+#'   `background` then), or when the mean of the blocks is 0.
 #'
 #'   `diagnostics$trend` is the mean of the raw frames over the whole field in
 #'   the last tenth of the selected frames divided by that in the first tenth
@@ -212,7 +235,16 @@ mssr_temporal <- function(x, statistic, fwhm, amp = 1L, order = 1L, intensity_no
     }
     stack <- temporal_check_stack(x, call)
     index <- temporal_check_frames(frames, dim(stack$values)[3], statistic, call)
-    region <- temporal_region(background, stack$input_mean, call)
+    background <- temporal_check_background(background, dim(stack$input_mean), call)
+    if (!is.null(max_memory_bytes)) {
+      buffers <- 8 * prod(dim(stack$values)[1:2]) * temporal_buffers[[statistic]]
+      if (buffers > max_memory_bytes) {
+        mssr_abort("resource", "Estimated reduction buffers exceed `max_memory_bytes`.", call)
+      }
+    }
+    subset <- length(index) < dim(stack$values)[3]
+    region <- temporal_region(background, stack$input_mean,
+                              if (subset) "below_median_stack" else "below_median")
     values <- stack$values
     # Stored maps are read, never recomputed.
     source <- function(t, pass) {
@@ -222,8 +254,8 @@ mssr_temporal <- function(x, statistic, fwhm, amp = 1L, order = 1L, intensity_no
     }
     counts <- temporal_counts(stack$diagnostics[index, , drop = FALSE])
     reduced <- temporal_reduce(source, length(index), statistic, call)
-    return(temporal_result(reduced, statistic, sign, length(index),
-                           stack$parameters$first_frame + index[1] - 1L, stack$transform,
+    first <- stack$parameters$first_frame + (index[1] - 1)
+    return(temporal_result(reduced, statistic, sign, length(index), first, stack$transform,
                            stack$parameters, stack$engine, counts, "stack", region,
                            temporal_trend(stack$diagnostics$input_mean[index])))
   }
@@ -235,11 +267,13 @@ mssr_temporal <- function(x, statistic, fwhm, amp = 1L, order = 1L, intensity_no
   settings <- temporal_check_settings(x, fwhm, amp, order, intensity_normalize, mesh, grid,
                                       kernel, rounding, max_output_pixels, call)
   index <- temporal_check_frames(frames, dim(x)[3], statistic, call)
-  region <- temporal_region(background, temporal_input_mean(x, index), call)
+  background <- temporal_check_background(background, dim(x)[1:2], call)
   estimate <- mssr_estimate_resources(dim(x)[1:2], settings$fwhm, settings$amp, settings$kernel,
                                       settings$rounding, settings$max_output_pixels,
                                       frames = length(index), statistic = statistic)
   path <- temporal_choose_path(statistic, estimate, max_memory_bytes, call)
+  scan <- temporal_scan_frames(x, index, call)
+  region <- temporal_region(background, scan$input_mean, "below_median")
   temporal_order_warning(settings$order)
   runner <- temporal_frame_runner(x, index, settings, store = path == "stored", call)
   reduced <- temporal_reduce(runner$frame, length(index), statistic, call)
@@ -247,7 +281,7 @@ mssr_temporal <- function(x, statistic, fwhm, amp = 1L, order = 1L, intensity_no
   temporal_frame_warnings(info$diagnostics)
   temporal_result(reduced, statistic, sign, length(index), index[1], info$transform,
                   info$parameters, info$engine, temporal_counts(info$diagnostics), path, region,
-                  temporal_trend(info$diagnostics$input_mean))
+                  temporal_trend(scan$frame_means))
 }
 
 #' @rdname mssr_temporal
@@ -268,12 +302,20 @@ mssr_stack <- function(x, fwhm, amp = 1L, order = 1L, intensity_normalize = TRUE
   estimate <- mssr_estimate_resources(dim(x)[1:2], settings$fwhm, settings$amp, settings$kernel,
                                       settings$rounding, settings$max_output_pixels,
                                       frames = length(index), statistic = "mean")
-  if (!is.null(max_memory_bytes)) {
+  if (is.null(max_memory_bytes)) {
+    if (estimate$stack_bytes > temporal_default_stack_bytes) {
+      mssr_abort("resource", sprintf(paste(
+        "The stored maps would take %.2f GiB, above the default limit of 2 GiB;",
+        "set `max_memory_bytes` to allow more, or use mssr_temporal() on the raw frames."
+      ), estimate$stack_bytes / 1024^3), call)
+    }
+  } else {
     max_memory_bytes <- check_positive(max_memory_bytes, "max_memory_bytes", call)
     if (estimate$stored_peak_bytes > max_memory_bytes) {
       mssr_abort("resource", "Estimated stack allocation exceeds `max_memory_bytes`.", call)
     }
   }
+  scan <- temporal_scan_frames(x, index, call)
   temporal_order_warning(settings$order)
   runner <- temporal_frame_runner(x, index, settings, store = TRUE, call)
   for (t in seq_along(index)) runner$frame(t, 1L)
@@ -285,7 +327,7 @@ mssr_stack <- function(x, fwhm, amp = 1L, order = 1L, intensity_normalize = TRUE
     parameters = c(info$parameters, list(frames = length(index), first_frame = index[1])),
     engine = info$engine,
     diagnostics = info$diagnostics,
-    input_mean = temporal_input_mean(x, index)
+    input_mean = scan$input_mean
   ), class = "mssr_stack")
 }
 
@@ -295,8 +337,9 @@ print.mssr_stack <- function(x, ...) {
   p <- x$parameters
   cat(sprintf("<mssr_stack> %d frames of %d x %d MSSR maps (amp %d, order %d, fwhm %g px)\n",
               d[3], d[1], d[2], p$amp, p$order, p$fwhm))
-  cat(sprintf("  frames %d to %d of the input; %d degenerate; engine %s\n", p$first_frame,
-              p$first_frame + d[3] - 1L, sum(x$diagnostics$degenerate), x$engine$id))
+  cat(sprintf("  frames %.0f to %.0f of the input; %d degenerate; engine %s\n",
+              as.double(p$first_frame), as.double(p$first_frame) + d[3] - 1,
+              sum(x$diagnostics$degenerate), x$engine$id))
   cat("  Use mssr_temporal() for a temporal statistic of the maps.\n")
   invisible(x)
 }
@@ -317,21 +360,31 @@ temporal_check_array <- function(x, call) {
     mssr_abort("input", paste0("`x` must be a plain integer or double array with dimensions ",
                                "rows x columns x frames.", extra), call)
   }
-  d <- dim(x)
-  if (any(d < 1L)) {
+  if (any(dim(x) < 1L)) {
     mssr_abort("input", "`x` needs at least one row, one column and one frame.", call)
   }
-  bad <- which(!is.finite(x))
-  if (length(bad)) {
-    frame <- (bad[1] - 1) %/% (as.double(d[1]) * d[2]) + 1
-    mssr_abort("nonfinite", sprintf(paste(
-      "Frame %d of `x` contains NA, NaN or infinite values; MSSR is undefined for them."
-    ), as.integer(frame)), call)
-  }
-  storage.mode(x) <- "double"
-  # Attributes can carry private acquisition metadata; keep only dimensions.
-  attributes(x) <- list(dim = d)
+  # Values are checked frame by frame (temporal_scan_frames()), so the input is
+  # never copied as a whole; frames drop all attributes when they are extracted.
   x
+}
+
+# One pass over the selected raw frames: finiteness, the raw temporal mean on
+# the input grid and the frames' field means. Holds one frame at a time.
+temporal_scan_frames <- function(x, index, call) {
+  d <- dim(x)
+  total <- matrix(0, d[1], d[2])
+  frame_means <- numeric(length(index))
+  for (t in seq_along(index)) {
+    f <- x[, , index[t]]
+    if (any(!is.finite(f))) {
+      mssr_abort("nonfinite", sprintf(paste(
+        "Frame %d of `x` contains NA, NaN or infinite values; MSSR is undefined for them."
+      ), index[t]), call)
+    }
+    total <- total + f
+    frame_means[t] <- mean(f)
+  }
+  list(input_mean = total / length(index), frame_means = frame_means)
 }
 
 temporal_check_settings <- function(x, fwhm, amp, order, intensity_normalize, mesh, grid,
@@ -535,10 +588,16 @@ temporal_reduce <- function(frame, n, statistic, call = NULL) {
     tpm = total * total,
     temporal_deviations(frame, n, statistic, center, e)
   )
-  values <- temporal_ldexp(values, degree * e)
+  scaled <- values
+  values <- temporal_ldexp(scaled, degree * e)
   if (any(!is.finite(values))) {
     mssr_abort("numerical", paste("The temporal statistic exceeded the finite numeric range.",
                                   "Use a documented input rescaling before retrying."), call)
+  }
+  if (any(scaled != 0 & values == 0)) {
+    mssr_abort("numerical", paste("Nonzero values of the temporal statistic fall below the",
+                                  "smallest representable magnitude. Use a documented input",
+                                  "rescaling before retrying."), call)
   }
   values
 }
@@ -589,28 +648,24 @@ temporal_deviations <- function(frame, n, statistic, center, e) {
   )
 }
 
-# Raw temporal mean of the selected frames on the input grid.
-temporal_input_mean <- function(x, index) {
-  d <- dim(x)
-  m <- x[, , index]
-  dim(m) <- c(d[1] * d[2], length(index))
-  matrix(rowMeans(m), d[1], d[2])
-}
-
-# Signal-free input pixels for the mesh index: a supplied background mask, or
-# the pixels whose raw temporal mean is below the median of that mean.
-temporal_region <- function(background, input_mean, call) {
-  if (is.null(background)) {
-    return(list(mask = input_mean < stats::median(input_mean), rule = "below_median"))
-  }
+temporal_check_background <- function(background, dims, call) {
+  if (is.null(background)) return(NULL)
   if (!is.logical(background) || is.object(background) || !is.matrix(background) ||
-        !identical(dim(background), dim(input_mean)) || anyNA(background) || !any(background)) {
+        !identical(dim(background), as.integer(dims)) || anyNA(background) ||
+        !any(background)) {
     mssr_abort("parameter", sprintf(paste(
       "`background` must be a logical matrix of %d x %d input pixels without NA",
       "that marks at least one signal-free pixel."
-    ), nrow(input_mean), ncol(input_mean)), call)
+    ), dims[1], dims[2]), call)
   }
-  list(mask = unname(background), rule = "background")
+  unname(background)
+}
+
+# Signal-free input pixels for the mesh index: a supplied background mask, or
+# the pixels whose raw temporal mean is strictly below the median of that mean.
+temporal_region <- function(background, input_mean, rule) {
+  if (!is.null(background)) return(list(mask = background, rule = "background"))
+  list(mask = input_mean < stats::median(input_mean), rule = rule)
 }
 
 # Range of the mean over the amp x amp sub-pixel phases of the selected input
@@ -646,6 +701,9 @@ temporal_trend <- function(frame_means) {
 temporal_result <- function(values, statistic, sign, n_frames, first_frame, transform,
                             frame_parameters, engine, counts, path, region, trend) {
   if (sign == "absolute") values <- abs(values)
+  if (first_frame + n_frames - 1 > .Machine$integer.max) {
+    mssr_abort("input", "The frame indices exceed the supported range.")
+  }
   dim(values) <- transform$output_dim
   storage.mode(values) <- "double"
   p <- frame_parameters[c("fwhm", "amp", "order", "intensity_normalize", "mesh", "kernel",
@@ -654,6 +712,16 @@ temporal_result <- function(values, statistic, sign, n_frames, first_frame, tran
     (2 * p$half_size + 1)^2 - 1
   } else {
     sum(2 * floor(sqrt(pmax(0, p$half_size^2 - (-p$half_size:p$half_size)^2))) + 1) - 1
+  }
+  # The phases of the extent grid repeat exactly within every input pixel; on
+  # the endpoint grid they drift across the field, so no index is formed there.
+  # Signed cumulants average to about zero off the structure, so SOFI uses |values|.
+  mesh <- if (p$amp > 1L && identical(transform$grid, "extent")) {
+    basis <- if (startsWith(statistic, "sofi")) abs(values) else values
+    list(index = temporal_mesh_index(basis, p$amp, region$mask), rule = region$rule,
+         pixels = as.integer(sum(region$mask)))
+  } else {
+    list(index = NULL, rule = "not_computed", pixels = 0L)
   }
   structure(list(
     values = values,
@@ -668,8 +736,8 @@ temporal_result <- function(values, statistic, sign, n_frames, first_frame, tran
       warning_frames = as.integer(counts$warning_frames),
       order_steps_skipped = as.integer(counts$order_steps_skipped),
       zero_fraction = mean(values == 0), negative_fraction = mean(values < 0),
-      mesh_index = temporal_mesh_index(values, p$amp, region$mask),
-      mesh_region = if (p$amp > 1L) region$rule else "not_computed", trend = trend, path = path,
+      mesh_index = mesh$index, mesh_region = mesh$rule, mesh_pixels = mesh$pixels,
+      trend = trend, path = path,
       n_offsets = as.integer(n_offsets), quantitative = FALSE,
       qualification_scope = "bounded_synthetic_domain", high_order_unqualified = p$order > 3L
     ),
@@ -710,7 +778,8 @@ temporal_check_stack <- function(x, call) {
   if (!is.data.frame(d) || !identical(names(d), columns) || nrow(d) != dim(v)[3] ||
         p$frames != dim(v)[3] || !is.logical(d$degenerate) || anyNA(d$degenerate) ||
         !is.logical(d$negative_input) || anyNA(d$negative_input) ||
-        !plain_real(d$order_steps_skipped) || anyNA(d$order_steps_skipped) ||
+        !plain_real(d$order_steps_skipped) || any(!is.finite(d$order_steps_skipped)) ||
+        any(d$order_steps_skipped < 0 | d$order_steps_skipped != round(d$order_steps_skipped)) ||
         !plain_real(d$input_mean) || any(!is.finite(d$input_mean))) {
     fail("Inconsistent `mssr_stack` diagnostics.")
   }
@@ -721,8 +790,12 @@ temporal_check_stack <- function(x, call) {
   }
   e <- x$engine
   if (!result_plain_list(e) || !setequal(names(e), c("id", "package_version", "method")) ||
-        !all(vapply(e, result_scalar_text, logical(1)))) {
+        !all(vapply(e, result_scalar_text, logical(1))) ||
+        !e$id %in% c("mssr_r_rev1", "mssr_r_rev2", "mssr_r_rev3")) {
     fail("Invalid `mssr_stack` engine identity.")
+  }
+  if (as.double(p$first_frame) + p$frames - 1 > .Machine$integer.max) {
+    fail("The frame indices of an `mssr_stack` exceed the supported range.")
   }
   x
 }

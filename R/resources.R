@@ -17,8 +17,10 @@
 #' [mssr_temporal()] (model `temporal_buffers_v1`): `stack_bytes` for the stored
 #' per-frame maps, `stored_peak_bytes` and `recompute_peak_bytes` for its two
 #' computation paths (the single-frame peak plus the output-sized buffers each
-#' path holds), and the total neighborhood work of each path. The per-frame
-#' limits of [mssr()] apply to every frame.
+#' path holds, the raw temporal mean and one raw frame), and the total
+#' neighborhood work of each path. The input array is read frame by frame and
+#' not copied, so it is not counted. The per-frame limits of [mssr()] apply to
+#' every frame.
 #'
 #' @param input_dim Two positive whole numbers: input rows and columns.
 #' @param fwhm,amp,kernel,rounding,max_output_pixels As in [mssr()].
@@ -77,7 +79,9 @@ mssr_estimate_resources <- function(input_dim, fwhm, amp = 1L,
   if (is.null(frames)) return(out)
   frames <- check_whole(frames, "frames", 1L, .Machine$integer.max, call)
   statistic <- temporal_check_statistic(statistic, call)
-  buffers <- 8 * n_out * temporal_buffers[[statistic]]
+  # Output-sized reduction buffers, plus the raw temporal mean and one raw frame
+  # on the input grid; the input array itself is never copied.
+  buffers <- 8 * n_out * temporal_buffers[[statistic]] + 16 * prod(input_dim)
   passes <- if (statistic %in% c("mean", "tpm")) 1 else 2
   c(out, list(frames = frames, statistic = statistic,
               stack_bytes = 8 * n_out * frames,

@@ -272,10 +272,17 @@ print.mssr_result <- function(x, ...) {
                 if (p$amp > 1L) paste0(", mesh ", p$mesh) else ""))
     cat(sprintf("  %d degenerate frame(s), %d frame(s) with warnings; path %s\n",
                 d$degenerate_frames, d$warning_frames, d$path))
-    cat(sprintf("  trend (last / first tenth of frames) %s%s\n",
-                if (is.null(d$trend)) "undefined" else format(d$trend, digits = 3),
-                if (is.null(d$mesh_index)) "" else sprintf("; mesh index %.3g (%s)",
-                                                           d$mesh_index, d$mesh_region)))
+    mesh <- if (!is.null(d$mesh_index)) {
+      sprintf("mesh index %.3g (%s, %d pixels)", d$mesh_index, d$mesh_region, d$mesh_pixels)
+    } else if (identical(d$mesh_region, "not_computed")) {
+      "no mesh index (amp 1 or endpoint grid)"
+    } else if (identical(d$mesh_pixels, 0L)) {
+      sprintf("no mesh index: no signal-free pixel (%s); supply `background`", d$mesh_region)
+    } else {
+      "no mesh index: the signal-free blocks average to 0"
+    }
+    cat(sprintf("  trend (last / first tenth of frames) %s; %s\n",
+                if (is.null(d$trend)) "undefined" else format(d$trend, digits = 3), mesh))
     cat("  Temporal statistic of nonlinear structure maps, not a quantitative intensity.\n")
     return(invisible(x))
   }

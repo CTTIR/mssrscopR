@@ -207,15 +207,15 @@ validate_temporal_result <- function(result, call) {
     fail("Inconsistent temporal sign setting.")
   }
   if (!identical(p$definition, temporal_definition)) fail("Unsupported temporal definition.")
-  if (p$sign == "absolute" && any(result$values < 0)) {
-    fail("Absolute temporal values must not be negative.")
+  if ((p$sign == "absolute" || statistic %in% c("var", "tpm")) && any(result$values < 0)) {
+    fail("This temporal statistic must not be negative.")
   }
   validate_result_engine(result$engine, fail)
   d <- result$diagnostics
   if (!setequal(names(d), c(
     "degenerate_frames", "warning_frames", "order_steps_skipped", "zero_fraction",
-    "negative_fraction", "mesh_index", "mesh_region", "trend", "path", "n_offsets",
-    "quantitative", "qualification_scope", "high_order_unqualified"
+    "negative_fraction", "mesh_index", "mesh_region", "mesh_pixels", "trend", "path",
+    "n_offsets", "quantitative", "qualification_scope", "high_order_unqualified"
   ))) {
     fail("Unexpected or missing diagnostic fields.")
   }
@@ -237,9 +237,14 @@ validate_temporal_result <- function(result, call) {
   optional_number <- function(x, lower) {
     is.null(x) || (plain_real(x) && length(x) == 1L && is.finite(x) && x >= lower)
   }
-  regions <- if (resolved$amp > 1L) c("below_median", "background") else "not_computed"
+  computed <- resolved$amp > 1L && identical(result$transform$grid, "extent")
+  regions <- if (computed) c("below_median", "below_median_stack", "background") else "not_computed"
+  pixels <- d$mesh_pixels
   if (!result_scalar_text(d$mesh_region) || !d$mesh_region %in% regions ||
-        !optional_number(d$mesh_index, 0) || (resolved$amp == 1L && !is.null(d$mesh_index))) {
+        !optional_number(d$mesh_index, 0) || (!computed && !is.null(d$mesh_index)) ||
+        !plain_real(pixels) || length(pixels) != 1L || !is.finite(pixels) || pixels < 0 ||
+        pixels != round(pixels) || pixels > prod(result$transform$input_dim) ||
+        (!computed && pixels != 0) || (!is.null(d$mesh_index) && pixels == 0)) {
     fail("Inconsistent mesh_index diagnostic.")
   }
   if (!optional_number(d$trend, -Inf)) fail("Invalid trend diagnostic.")
@@ -315,10 +320,10 @@ print.summary.mssr_result <- function(x, ...) {
                       "%d undefined order step(s) skipped; path %s\n"),
                 as.integer(d$degenerate_frames), as.integer(d$warning_frames),
                 as.integer(d$order_steps_skipped), d$path))
-    cat(sprintf("               trend %s; mesh index %s (%s); %d offsets\n",
+    cat(sprintf("               trend %s; mesh index %s (%s, %d pixels); %d offsets\n",
                 if (is.null(d$trend)) "undefined" else format(d$trend, digits = 3),
-                if (is.null(d$mesh_index)) "not computed" else format(d$mesh_index, digits = 3),
-                d$mesh_region, as.integer(d$n_offsets)))
+                if (is.null(d$mesh_index)) "not available" else format(d$mesh_index, digits = 3),
+                d$mesh_region, as.integer(d$mesh_pixels), as.integer(d$n_offsets)))
   } else {
     status <- if (d$degenerate) paste0("degenerate (", d$degenerate_reason, ")") else "defined"
     cat(sprintf("  Diagnostics: %s; %d undefined order step(s) skipped; %d offsets\n",

@@ -63,7 +63,8 @@ signal-free pixels for \code{diagnostics$mesh_index}. By default these are the
 pixels whose raw temporal mean is below the median of that mean.}
 
 \item{max_memory_bytes}{Optional positive allocation-estimate budget (see
-\strong{Computation}). This is not a hard process-memory cap.}
+\strong{Computation}). This is not a hard process-memory cap. For an
+\code{mssr_stack}, whose maps already exist, it limits the reduction's buffers.}
 }
 \value{
 \code{mssr_temporal()} returns an \code{mssr_result} (result schema 1.1.0)
@@ -85,12 +86,23 @@ data frame with one row per frame, including the raw frame's mean
 pixels only, because where structure is present the index mixes structure
 and grid. Each such input pixel contributes its whole \verb{amp x amp} block of
 output pixels; the index is the range of the mean over the \verb{amp x amp}
-sub-pixel phases, divided by the absolute mean of these blocks.
-\code{mesh_region} is \code{"below_median"} when the pixels are those whose raw
-temporal mean lies below its median (for an \code{mssr_stack}, the mean over all
-its frames), \code{"background"} for a supplied \code{background} mask, and
-\code{"not_computed"} for \code{amp = 1}. \code{mesh_index} is \code{NULL} for \code{amp = 1}, when
-no pixel qualifies, or when the mean of the blocks is 0.
+sub-pixel phases, divided by the absolute mean of these blocks. For the
+SOFI statistics it is computed on the absolute values, because signed
+cumulants average to about zero where there is no signal. It is formed
+only on the default \code{grid = "extent"}, where every input pixel holds each
+phase exactly once; on the endpoint grid the phases drift across the
+field.
+
+\code{mesh_region} names the pixels used: \code{"below_median"}, the pixels whose raw
+temporal mean over the selected frames lies strictly below its median;
+\code{"below_median_stack"}, the same rule for a frame subset of an
+\code{mssr_stack}, whose stored raw mean covers all of its frames, so the index
+can differ from that of the raw frames; \code{"background"}, a supplied mask; or
+\code{"not_computed"} for \code{amp = 1} and the endpoint grid. \code{mesh_pixels} counts
+the input pixels used. \code{mesh_index} is \code{NULL} when no index is computed,
+when no pixel qualifies (for example when more than half of the pixels
+share the lowest raw mean, so that none lies below the median; supply
+\code{background} then), or when the mean of the blocks is 0.
 
 \code{diagnostics$trend} is the mean of the raw frames over the whole field in
 the last tenth of the selected frames divided by that in the first tenth
@@ -132,7 +144,11 @@ function of the mean and shows nothing that \code{"mean"} does not; it is offere
 because every implementation by the authors computes it.
 \item \code{"cv"} is the supplement's "CV", literally \code{Var / Mean}: an index of
 dispersion, not the standard deviation divided by the mean. It takes the
-sign of the mean, so it is negative where the mean is negative.
+sign of the mean, so it is negative where the mean is negative (signed
+input). It is 0 where the mean, formed in the scaled range described under
+\strong{Computation}, is exactly 0; where the mean is tiny compared with the
+variance the ratio becomes very large, and a ratio beyond the numeric range
+is refused.
 \item \code{"sofi2"} to \code{"sofi4"} are lagged auto-cumulants of signed deviations.
 Noise that is independent from frame to frame does not enter their
 expectation. Orders 3 and 4 change sign with the emitters' duty cycle, so
@@ -170,7 +186,11 @@ raw intensity at the end and at the start of the selected frames.
 
 \strong{Computation.} Every statistic is formed from centered deviations in
 frame order, in a power-of-two scaled range so that products of up to four
-deviations stay representable; the scaling is undone exactly at the end.
+deviations stay representable. The scaling is undone at the end; a value
+that would exceed the numeric range, or a nonzero value that would fall
+below the smallest representable magnitude, raises
+\code{mssrscopR_error_numerical}, and very small results keep only subnormal
+precision.
 \code{"mean"} and \code{"tpm"} need one pass over the frames. The others need the mean
 first and then a second pass. The per-frame maps are stored for it when they
 fit (\code{diagnostics$path} \code{"stored"}), else every frame's MSSR is computed again
@@ -178,7 +198,10 @@ fit (\code{diagnostics$path} \code{"stored"}), else every frame's MSSR is comput
 \code{max_memory_bytes = NULL} the maps are stored when they take at most 2 GiB;
 with a budget, they are stored when the estimate fits it, and a call whose
 recompute path does not fit is refused. \code{\link[=mssr_estimate_resources]{mssr_estimate_resources()}} reports
-both estimates.
+both estimates; they are checked before any frame is read. The input array
+is read one frame at a time and never copied as a whole. \code{mssr_stack()}
+stores every map: without \code{max_memory_bytes} it refuses (with
+\code{mssrscopR_error_resource}) maps that would take more than 2 GiB.
 
 Each frame must satisfy the checks of \code{\link[=mssr]{mssr()}}; errors name the frame.
 Warnings of the frames' \code{\link[=mssr]{mssr()}} calls (negative values, skipped refinement

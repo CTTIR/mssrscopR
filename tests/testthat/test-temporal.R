@@ -408,3 +408,166 @@ test_that("remaining argument and stack checks are classed", {
   engine$engine$id <- NA_character_
   expect_error(mssr_temporal(engine, "var"), class = "mssrscopR_error_input")
 })
+
+test_that("signed series give signed CV, zero-mean CV 0, and refuse underflow", {
+  neg <- series_stack(c(-3, -1, -2, -4))
+  expect_equal(reduce_stack(neg, "mean")[1, ], rep(-2.5, 2))
+  expect_equal(reduce_stack(neg, "var")[1, ], rep(1.25, 2))
+  expect_equal(reduce_stack(neg, "cv")[1, ], rep(-0.5, 2))
+  expect_identical(reduce_stack(series_stack(c(-1, 1, -1, 1)), "cv"), matrix(0, 1, 2))
+  expect_error(reduce_stack(series_stack(c(1, 3, 2, 5) * 2^-300), "sofi4"),
+               class = "mssrscopR_error_numerical")
+  expect_error(reduce_stack(series_stack(c(1, 3, 2) * 2^-600), "var"),
+               class = "mssrscopR_error_numerical")
+})
+
+test_that("every statistic agrees across the stored, recomputed and stack paths", {
+  x <- blinking_frames(10L, size = 10L)
+  stack <- mssr_stack(x, fwhm = 3, amp = 2)
+  for (s in temporal_statistics) {
+    est <- mssr_estimate_resources(c(10, 10), fwhm = 3, amp = 2, frames = 10, statistic = s)
+    stored <- mssr_temporal(x, s, fwhm = 3, amp = 2)
+    recomputed <- mssr_temporal(x, s, fwhm = 3, amp = 2,
+                                max_memory_bytes = est$recompute_peak_bytes)
+    from_stack <- mssr_temporal(stack, s)
+    for (r in list(recomputed, from_stack)) {
+      expect_identical(r$values, stored$values, label = s)
+      expect_identical(r$diagnostics[c("mesh_index", "mesh_region", "mesh_pixels", "trend")],
+                       stored$diagnostics[c("mesh_index", "mesh_region", "mesh_pixels", "trend")],
+                       label = s)
+    }
+  }
+})
+
+test_that("a stack's frame subset records its own mesh region", {
+  x <- blinking_frames(12L, size = 10L)
+  raw <- mssr_temporal(x, "var", fwhm = 3, amp = 2, frames = 3:10)
+  whole <- mssr_temporal(mssr_stack(x, fwhm = 3, amp = 2), "var", frames = 3:10)
+  part <- mssr_temporal(mssr_stack(x, fwhm = 3, amp = 2, frames = 3:10), "var")
+  expect_identical(whole$values, raw$values)
+  expect_identical(raw$diagnostics$mesh_region, "below_median")
+  expect_identical(whole$diagnostics$mesh_region, "below_median_stack")
+  expect_identical(part$diagnostics$mesh_region, "below_median")
+  expect_identical(part$diagnostics$mesh_index, raw$diagnostics$mesh_index)
+  expect_identical(part$parameters$first_frame, 3L)
+  expect_identical(whole$parameters$first_frame, 3L)
+})
+
+test_that("the endpoint grid and SOFI statistics get the documented mesh treatment", {
+  x <- blinking_frames(6L, size = 10L)
+  ends <- mssr_temporal(x, "mean", fwhm = 3, amp = 2, grid = "endpoint")
+  expect_null(ends$diagnostics$mesh_index)
+  expect_identical(ends$diagnostics$mesh_region, "not_computed")
+  expect_identical(ends$diagnostics$mesh_pixels, 0L)
+  frames <- lapply(1:6, function(t) mssr(x[, , t], fwhm = 3, amp = 2, grid = "endpoint")$values)
+  expect_equal(ends$values, Reduce(`+`, frames) / 6, tolerance = 1e-14)
+  expect_identical(mssr_validate_result(ends), ends)
+  forged <- ends
+  forged$diagnostics$mesh_region <- "below_median"
+  expect_error(mssr_validate_result(forged), class = "mssrscopR_error_result")
+  everywhere <- matrix(TRUE, 10, 10)
+  k <- mssr_temporal(x, "sofi2", fwhm = 3, amp = 2, background = everywhere)
+  a <- abs(k$values)
+  phases <- vapply(1:4, function(i) {
+    mean(a[seq(1 + (i - 1) %/% 2, 20, by = 2), seq(1 + (i - 1) %% 2, 20, by = 2)])
+  }, numeric(1))
+  expect_equal(k$diagnostics$mesh_index, (max(phases) - min(phases)) / mean(a), tolerance = 1e-12)
+  expect_identical(k$diagnostics$mesh_pixels, 100L)
+  expect_output(print(ends), "amp 1 or endpoint grid")
+  flat <- mssr_temporal(array(2, c(10, 10, 3)), "mean", fwhm = 2, amp = 2)
+  expect_output(print(flat), "supply `background`")
+})
+
+test_that("stacks are capped by default and checked for counts and engines", {
+  big <- array(0, c(16, 16, 300))
+  expect_error(mssr_stack(big, fwhm = 1, amp = 64), "2 GiB", class = "mssrscopR_error_resource")
+  x <- blinking_frames(5L, size = 8L)
+  stack <- mssr_stack(x, fwhm = 3)
+  expect_error(mssr_temporal(stack, "var", max_memory_bytes = 64),
+               class = "mssrscopR_error_resource")
+  expect_identical(mssr_temporal(stack, "var", max_memory_bytes = 1024^3)$values,
+                   mssr_temporal(stack, "var")$values)
+  bad <- stack
+  bad$diagnostics$order_steps_skipped[2] <- -1
+  expect_error(mssr_temporal(bad, "var"), class = "mssrscopR_error_input")
+  bad <- stack
+  bad$engine$id <- "other_engine"
+  expect_error(mssr_temporal(bad, "var"), class = "mssrscopR_error_input")
+  bad <- stack
+  bad$parameters$first_frame <- .Machine$integer.max
+  expect_error(mssr_temporal(bad, "var"), class = "mssrscopR_error_input")
+  expect_output(print(bad), "2147483647 to 2147483651")
+})
+
+test_that("variance and TPM records must not be negative", {
+  x <- blinking_frames(5L, size = 8L)
+  for (s in c("var", "tpm")) {
+    r <- mssr_temporal(x, s, fwhm = 3)
+    r$values[1, 1] <- -1
+    r$diagnostics$negative_fraction <- mean(r$values < 0)
+    r$diagnostics$zero_fraction <- mean(r$values == 0)
+    expect_error(mssr_validate_result(r), class = "mssrscopR_error_result")
+  }
+})
+
+test_that("raw frames are read without copying the input array", {
+  skip_if_not(capabilities("profmem"), "tracemem needs memory profiling")
+  x <- blinking_frames(6L, size = 10L)
+  storage.mode(x) <- "integer"
+  tracemem(x)
+  copies <- utils::capture.output({
+    r <- mssr_temporal(x, "var", fwhm = 3, frames = 2:6)
+    s <- mssr_stack(x, fwhm = 3)
+  })
+  untracemem(x)
+  expect_length(copies, 0L)
+  expect_identical(r$values, mssr_temporal(x + 0, "var", fwhm = 3, frames = 2:6)$values)
+  bad <- x
+  bad[1, 1, 1] <- NA
+  expect_identical(mssr_temporal(bad, "var", fwhm = 3, frames = 2:6)$values, r$values)
+})
+
+test_that("the temporal estimate bounds measured peak memory on a small ladder", {
+  skip_on_cran()
+  skip_on_covr()
+  skip_if_not_installed("callr")
+  skip_if_not(file.exists("/proc/self/status"), "peak RSS is read from /proc")
+  ns <- asNamespace("mssrscopR")
+  root <- getNamespaceInfo(ns, "path")
+  development <- exists(".__DEVTOOLS__", ns, inherits = FALSE)
+  if (development) skip_if_not_installed("pkgload")
+  ladder <- list(
+    c(n = 192, frames = 60, amp = 1, store = 1),
+    c(n = 128, frames = 30, amp = 2, store = 0)
+  )
+  for (step in ladder) {
+    estimate <- mssr_estimate_resources(rep(step[["n"]], 2), fwhm = 3, amp = step[["amp"]],
+                                        frames = step[["frames"]], statistic = "var")
+    budget <- if (step[["store"]] == 1) NULL else estimate$recompute_peak_bytes
+    measured <- callr::r(function(root, development, step, budget) {
+      if (development) {
+        pkgload::load_all(root, quiet = TRUE)
+      } else {
+        loadNamespace("mssrscopR", lib.loc = dirname(root))
+      }
+      ns <- asNamespace("mssrscopR")
+      set.seed(1)
+      x <- array(stats::rpois(step[["n"]]^2 * step[["frames"]], 20) + 0,
+                 c(step[["n"]], step[["n"]], step[["frames"]]))
+      get("mssr_temporal", ns)(x, "var", fwhm = 3, amp = step[["amp"]],
+                               max_memory_bytes = budget)
+      status <- readLines("/proc/self/status")
+      as.numeric(sub("^VmHWM:\\s+([0-9]+) kB$", "\\1", grep("^VmHWM", status, value = TRUE))) * 1024
+    }, args = list(root = root, development = development, step = step, budget = budget),
+    libpath = .libPaths())
+    # The child also holds its input array, which the estimate does not count.
+    input <- 8 * step[["n"]]^2 * step[["frames"]]
+    peak <- if (step[["store"]] == 1) estimate$stored_peak_bytes else estimate$recompute_peak_bytes
+    planned <- peak + input
+    label <- paste(step, collapse = "/")
+    slack <- if (identical(Sys.getenv("MSSRSCOPR_STRICT_MEMORY_TEST"), "true")) 1 else 1.25
+    if (development) slack <- slack * 1.5
+    expect_lte(measured, planned * slack, label = label)
+    expect_lte(planned, 4 * measured, label = label)
+  }
+})

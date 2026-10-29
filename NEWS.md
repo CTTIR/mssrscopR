@@ -16,9 +16,19 @@
   deviations and is a different statistic; the method concordance lists the
   differences. Fourier interpolation is not implemented.
 * Temporal results report `mesh_index`, the sub-pixel grid measured on
-  signal-free input pixels (below the median of the raw temporal mean, or a
-  supplied `background` mask), and `trend`, the raw intensity of the last tenth
-  of the frames relative to the first tenth. Both are diagnostics only.
+  signal-free input pixels (strictly below the median of the raw temporal
+  mean, or a supplied `background` mask), with `mesh_region` and `mesh_pixels`
+  naming the pixels used, and `trend`, the raw intensity of the last tenth of
+  the frames relative to the first tenth. Both are diagnostics only. The mesh
+  index is formed only on the default `grid = "extent"`, uses absolute values
+  for the SOFI statistics, and is labelled `"below_median_stack"` for a frame
+  subset of an `mssr_stack`, whose stored raw mean covers all its frames.
+* Raw frames are checked and averaged one at a time, so the input array is not
+  copied, and the memory estimate is checked before any frame is read and
+  counts the raw mean and one raw frame. `mssr_stack()` refuses maps above
+  2 GiB unless `max_memory_bytes` allows them; for an `mssr_stack`,
+  `max_memory_bytes` limits the reduction's buffers. A temporal statistic that
+  would underflow to zero is refused like one that overflows.
 * Result schema 1.1.0 adds temporal records; `mssr_validate_result()`,
   `mssr_write_result()`, `mssr_read_result()`, `mssr_settings()`, `summary()`
   and `print()` handle them. Single-frame results keep schema 1.0.0, and files

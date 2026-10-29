@@ -47,8 +47,10 @@ With \code{frames} and \code{statistic}, the list also estimates a call of
 \code{\link[=mssr_temporal]{mssr_temporal()}} (model \code{temporal_buffers_v1}): \code{stack_bytes} for the stored
 per-frame maps, \code{stored_peak_bytes} and \code{recompute_peak_bytes} for its two
 computation paths (the single-frame peak plus the output-sized buffers each
-path holds), and the total neighborhood work of each path. The per-frame
-limits of \code{\link[=mssr]{mssr()}} apply to every frame.
+path holds, the raw temporal mean and one raw frame), and the total
+neighborhood work of each path. The input array is read frame by frame and
+not copied, so it is not counted. The per-frame limits of \code{\link[=mssr]{mssr()}} apply to
+every frame.
 }
 \examples{
 mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2)

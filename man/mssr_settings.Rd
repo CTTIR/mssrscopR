@@ -15,7 +15,8 @@ A named list containing \code{fwhm}, \code{amp}, \code{order},
 \code{intensity_normalize}, \code{mesh}, \code{grid}, \code{kernel} and \code{rounding}. For a
 temporal result it also starts with \code{statistic} and \code{frames} (the frame
 indices of the original input), plus \code{sign} for the SOFI statistics, so
-that it can be passed to \code{\link[=mssr_temporal]{mssr_temporal()}}.
+that it can be passed to \code{\link[=mssr_temporal]{mssr_temporal()}} together with the original raw
+frames (not with an \code{mssr_stack}, which refuses per-frame settings).
 }
 \description{
 Validates a result and returns arguments that can be passed to \code{\link[=mssr]{mssr()}}

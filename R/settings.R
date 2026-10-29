@@ -10,7 +10,8 @@
 #'   `intensity_normalize`, `mesh`, `grid`, `kernel` and `rounding`. For a
 #'   temporal result it also starts with `statistic` and `frames` (the frame
 #'   indices of the original input), plus `sign` for the SOFI statistics, so
-#'   that it can be passed to [mssr_temporal()].
+#'   that it can be passed to [mssr_temporal()] together with the original raw
+#'   frames (not with an `mssr_stack`, which refuses per-frame settings).
 #' @details These are resolved settings, not the original call. For example,
 #'   `mesh` is `FALSE` when amplification is 1 because it had no effect.
 #'   Records from a different numerical engine are refused: this helper does
