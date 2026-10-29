@@ -391,7 +391,7 @@ test_that("summaries keep their fields and print a readable report", {
   expect_identical(printed, s)
 })
 
-test_that("a result written by version 0.1.0.9003 reads, validates and replays exactly", {
+test_that("a result written by version 0.1.0.9003 reads, validates and replays", {
   skip_if_not_installed("digest")
   skip_if_not_installed("jsonlite")
   dir <- test_path("fixtures", "results")
@@ -402,7 +402,8 @@ test_that("a result written by version 0.1.0.9003 reads, validates and replays e
   x <- unname(as.matrix(utils::read.csv(file.path(dir, "input-0.1.0.9003.csv"),
                                         header = FALSE)))
   replay <- do.call(mssr, c(list(x = x), mssr_settings(stored)))
-  # The compiled passes form the R reference's sums in the same order.
+  # The compiled passes agree with the R passes that wrote it to within 1e-12;
+  # bitwise identity depends on the platform and the R version.
   expect_lte(max(abs(replay$values - stored$values)) / max(abs(stored$values)), 1e-12)
   expect_identical(replay$transform, stored$transform)
   expect_identical(replay$parameters, stored$parameters)

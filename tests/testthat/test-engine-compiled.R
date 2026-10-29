@@ -1,6 +1,6 @@
-# The compiled neighborhood passes must reproduce the R reference passes.
-# Both form the same sums in the same order; the bound allows for compilers
-# that fuse a multiply and add.
+# The compiled neighborhood passes must reproduce the R reference passes. Both
+# form the same sums in the same order; the bound allows for R's own exp(),
+# which can differ from the system's in the last bit.
 engine_pair <- function(x, s) {
   run <- function(implementation) {
     mssr_engine(x, s$amp, s$fwhm, s$order, s$int_norm, s$mesh, s$grid, s$kernel,

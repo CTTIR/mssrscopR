@@ -61,18 +61,27 @@ Mutation detection uses baseline-passing cases, so a pre-existing error cannot
 count as detection of a new mutation. All generated synthetic arrays are
 numerical tests, not experimentally observed microscopy images.
 
-## Compiled neighborhood passes (28 October 2026)
+## Compiled neighborhood passes (29 October 2026)
 
 From version 0.1.0.9004 the range normalizer and weighted mean shift run in
 compiled C code (`src/neighborhood.c`); the R passes are kept as the
 reference (`mssr_engine(..., implementation = "r")`). The comparison script
 therefore also writes `implementation_agreement.csv`, comparing the two
 implementations on every oracle input, and adds a ninth mutant that changes
-the spatial bandwidth passed to the compiled code.
+the spatial bandwidth passed to the compiled code. The compiled sums round
+every product before adding it, so that fused multiply-add instructions cannot
+change them; the test suite checks this on each platform.
+
+The two implementations are required to agree to within 1e-12 of the map
+maximum. Whether they are bitwise identical depends on the platform and the R
+version: R's own `exp()` can differ from the system's in the last bit, and
+refinement steps can enlarge such differences at high orders.
 
 Re-run of the full kit on the compiled engine (`R/engine.R` SHA-256
-`1a4a8ea7d216…`, `src/neighborhood.c` `7c16fb114f70…`), with a freshly
-generated oracle whose file hashes equal the previous run's:
+`74729f2d9bbf…`, `src/neighborhood.c` `0339db12048c…`), with a freshly
+generated oracle whose file hashes equal the previous run's. Machine: R 4.6.1
+on x86_64 Ubuntu 26.04, Intel Xeon w9-3475X, GCC 15.2.0 with R's default
+flags (`-O2`, no FMA); a build with `-mfma` gave the same agreement.
 
 | Check | Result |
 |---|---|
@@ -81,5 +90,5 @@ generated oracle whose file hashes equal the previous run's:
 | Full sampled domain | 96/98 (the same two order-10 cases, unchanged errors) |
 | Metamorphic properties | 104/104 |
 | Mutations detected | 9/9 |
-| Compiled vs R reference | identical values in 98/98 cases |
+| Compiled vs R reference | within 1e-12 in 98/98 cases (bitwise identical in 98/98 on this machine) |
 | Mask comparisons with differences | 0 of 192 |
