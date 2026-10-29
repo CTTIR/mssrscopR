@@ -3,10 +3,13 @@
 \name{inspect_mssr_result}
 \alias{inspect_mssr_result}
 \alias{summary.mssr_result}
+\alias{print.summary.mssr_result}
 \alias{plot.mssr_result}
 \title{Inspect a structure-map result}
 \usage{
 \method{summary}{mssr_result}(object, ...)
+
+\method{print}{summary.mssr_result}(x, ...)
 
 \method{plot}{mssr_result}(x, ...)
 }
@@ -16,8 +19,9 @@
 \item{...}{Further arguments. For plotting, passed to \code{\link[graphics:image]{graphics::image()}}.}
 }
 \value{
-\code{summary()} returns a named list with role, dimensions, range,
-diagnostics, parameters and version identities. \code{plot()} draws the stored
+\code{summary()} returns a named list of class \code{summary.mssr_result} with
+role, dimensions, grid, range, diagnostics, parameters and version
+identities; it prints as a short report. \code{plot()} draws the stored
 map in input-pixel coordinates and invisibly returns the result. It does
 not transform the stored values or infer physical sampling.
 }

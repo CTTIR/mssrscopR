@@ -3,6 +3,7 @@
 S3method(as.matrix,mssr_result)
 S3method(plot,mssr_result)
 S3method(print,mssr_result)
+S3method(print,summary.mssr_result)
 S3method(summary,mssr_result)
 export(mssr)
 export(mssr_app)

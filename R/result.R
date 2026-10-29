@@ -153,8 +153,9 @@ mssr_validate_result <- function(result) {
 #'
 #' @param object,x An `mssr_result`.
 #' @param ... Further arguments. For plotting, passed to [graphics::image()].
-#' @return `summary()` returns a named list with role, dimensions, range,
-#'   diagnostics, parameters and version identities. `plot()` draws the stored
+#' @return `summary()` returns a named list of class `summary.mssr_result` with
+#'   role, dimensions, grid, range, diagnostics, parameters and version
+#'   identities; it prints as a short report. `plot()` draws the stored
 #'   map in input-pixel coordinates and invisibly returns the result. It does
 #'   not transform the stored values or infer physical sampling.
 #' @examples
@@ -168,7 +169,7 @@ NULL
 #' @export
 summary.mssr_result <- function(object, ...) {
   mssr_validate_result(object)
-  list(
+  structure(list(
     role = object$role, input_dim = object$transform$input_dim,
     output_dim = dim(object$values), value_range = range(object$values),
     parameters = object$parameters, diagnostics = object$diagnostics,
@@ -182,8 +183,36 @@ summary.mssr_result <- function(object, ...) {
       list(status = "unspecified_legacy")
     } else {
       object$evidence
-    }
-  )
+    },
+    grid = object$transform$grid
+  ), class = "summary.mssr_result")
+}
+
+#' @rdname inspect_mssr_result
+#' @export
+print.summary.mssr_result <- function(x, ...) {
+  p <- x$parameters
+  d <- x$diagnostics
+  cat("MSSR result summary: ", x$role, "\n", sep = "")
+  cat(sprintf("  Grid:        input %d x %d -> output %d x %d (amp %d, %s grid)\n",
+              x$input_dim[1], x$input_dim[2], x$output_dim[1], x$output_dim[2], p$amp, x$grid))
+  cat(sprintf("  Parameters:  fwhm %g px, order %d, kernel %s (half-size %d), rounding %s\n",
+              p$fwhm, p$order, p$kernel, as.integer(p$half_size), p$rounding))
+  cat(sprintf("               intensity weighting %s, mesh %s\n",
+              p$intensity_normalize, p$mesh))
+  cat(sprintf("  Values:      range %s to %s; zero fraction %.3f; negative fraction %.3f\n",
+              format(x$value_range[1], digits = 4), format(x$value_range[2], digits = 4),
+              d$zero_fraction, d$negative_fraction))
+  status <- if (d$degenerate) paste0("degenerate (", d$degenerate_reason, ")") else "defined"
+  cat(sprintf("  Diagnostics: %s; %d undefined order step(s) skipped; %d offsets\n",
+              status, as.integer(d$order_steps_skipped), as.integer(d$n_offsets)))
+  if (isTRUE(d$high_order_unqualified)) {
+    cat("               order above 3: outside the qualified numerical domain\n")
+  }
+  cat(sprintf("  Engine:      %s, mssrscopR %s; result schema %s; evidence %s\n",
+              x$engine$id, x$engine$package_version, x$schema_version, x$evidence$status))
+  cat("  Not a quantitative intensity: measure on the original data.\n")
+  invisible(x)
 }
 
 #' @rdname inspect_mssr_result

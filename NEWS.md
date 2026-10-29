@@ -25,6 +25,8 @@
   exceeds measured peak memory by 20 to 40 percent on the calibration ladder.
   The default budget of `mssr_batch()` is now 2 GiB, so ordinary 1024 x 1024
   frames at amplification 2 are no longer refused.
+* `summary()` of a result prints a short report; the returned list keeps its
+  fields and gains the output grid.
 
 # mssrscopR 0.1.0.9003
 

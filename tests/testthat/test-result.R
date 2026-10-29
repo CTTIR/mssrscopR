@@ -288,3 +288,25 @@ test_that("scalar attributes do not become implicit parameter metadata", {
   expect_error(mssr(x, fwhm = 2, mesh = structure(TRUE, class = "custom_flag")),
                class = "mssrscopR_error_parameter")
 })
+
+test_that("summaries keep their fields and print a readable report", {
+  r <- result_example()
+  s <- summary(r)
+  expect_s3_class(s, "summary.mssr_result")
+  expect_identical(s$role, r$role)
+  expect_identical(s$output_dim, dim(r$values))
+  expect_identical(s$grid, "extent")
+  expect_identical(s$engine, r$engine)
+  out <- utils::capture.output(print(s))
+  expect_match(out[1], "MSSR result summary: intensity_weighted_structure", fixed = TRUE)
+  expect_true(any(grepl("input 4 x 5 -> output 8 x 10 (amp 2, extent grid)", out, fixed = TRUE)))
+  expect_true(any(grepl("Not a quantitative intensity", out, fixed = TRUE)))
+  flat <- summary(mssr(matrix(1, 3, 3), fwhm = 2))
+  expect_true(any(grepl("degenerate (flat input)", utils::capture.output(print(flat)),
+                        fixed = TRUE)))
+  high <- suppressWarnings(mssr(matrix(1:20, 4, 5), fwhm = 2, order = 4))
+  expect_true(any(grepl("order above 3", utils::capture.output(print(summary(high))),
+                        fixed = TRUE)))
+  utils::capture.output(printed <- print(s))
+  expect_identical(printed, s)
+})
