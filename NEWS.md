@@ -1,13 +1,23 @@
 # mssrscopR 0.2.0
 
-This release collects the development versions 0.1.0.9003 to 0.1.0.9005.
+This release collects every development version since 0.1.0 (0.1.0.9000 to
+0.1.0.9005); 0.1.0 itself was never tagged.
 
-## Breaking change
+## Breaking changes
 
-* `mssr_mask()` has no default `fraction` any more. The former
+* The engine definition is `mssr_r_rev3`, which replaces `mssr_r_rev2` of 0.1.0
+  and the earlier `mssr_r_rev1`. The bundled fixture values are unchanged, but
+  final rounding can differ. `mssr_settings()` refuses to replay records of the
+  older engines, since no engine migration is inferred; `mssr_validate_result()`
+  and `mssr_read_result()` keep their engine identity.
+* `mssr_mask()` requires `fraction`; it has no default any more. The former
   default of 0.5 selected exact zeros on typical maps and so mostly gave masks
   decided by tie-breaking; callers now choose the share, ideally below the
   share of positive map values.
+* Temporal records use result schema 1.1.0; single-frame results keep schema
+  1.0.0, and files written by earlier versions still read. Temporal records
+  written by the unreleased 0.1.0.9005 development builds, whose diagnostics
+  differed, are refused.
 
 ## Temporal statistics
 
@@ -47,8 +57,13 @@ This release collects the development versions 0.1.0.9003 to 0.1.0.9005.
 * `mssr_estimate_resources()` gains `frames` and `statistic` and then also
   estimates the stored and recomputed paths of a temporal call.
 
-## Engine and resources
+## Engine, numerics and resources
 
+* Engine `mssr_r_rev3` uses internal power-of-two scaling, centered interpolation
+  and weighted local differences to reduce overflow, underflow and cancellation.
+  Existing expected fixture values are unchanged. Background subtraction is
+  still a distinct preprocessing choice; higher-order MSSR is not invariant to
+  additive background.
 * The two neighborhood passes of engine `mssr_r_rev3` (range normalizer and
   weighted mean shift) now run in compiled C code. They form the same sums in
   the same order as before and round every product before adding it, so
@@ -65,18 +80,27 @@ This release collects the development versions 0.1.0.9003 to 0.1.0.9005.
 * A refinement step that leaves no positive value (possible only with signed
   input) now returns a degenerate result with reason `"zero refinement map"`
   instead of an unflagged all-zero map.
+* Expanded independent numerical qualification. Orders above 3 now warn that
+  they are outside the bounded qualified core; two order-10 cases fail the
+  unchanged tolerance. The engine equations and frozen fixtures are unchanged.
+* Added a calibrated allocation estimate, opt-in memory guard and sequential
+  complete-frame batches with verified reuse, retained failures and recovery.
 * `mssr_estimate_resources()` uses a model recalibrated on the compiled engine
   (`whole_frame_buffers_v2`): it was two to eight times too high and now
   exceeded every measured peak on the calibration ladder by 30 to 220 percent.
   The default budget of `mssr_batch()` is now 2 GiB, so ordinary 1024 x 1024
   frames at amplification 2 are no longer refused.
 
-## Results, masks and the app
+## Results, masks, files and the app
 
+* Added versioned result inspection, strict validation and bounded binary result
+  exchange with SHA-256 checks, exact numeric readback and no implicit overwrite.
 * Added validated callable settings for reproducible result replay, including
   the output grid and explicit refusal of historical engine definitions.
 * Run records now identify uploaded bytes and decoded matrix content with
   SHA-256 hashes while excluding source filenames and paths.
+* Arbitrary source matrix attributes are removed so identifying metadata do not
+  silently propagate into computed values.
 * `summary()` of a result prints a short report; the returned list keeps its
   fields and gains the output grid.
 * `mssr_mask()` warns (class `mssrscopR_warning_mask_ties`) when tie-breaking
@@ -93,6 +117,20 @@ This release collects the development versions 0.1.0.9003 to 0.1.0.9005.
   Download actions are unavailable until their result or mask is ready.
 * Notification dismissal restores keyboard focus, and Browse has a visible
   focus indicator in both themes.
+* Replaced app sliders with native numeric controls and improved document
+  semantics, keyboard focus, summary reflow and status/hover contrast.
+* Image uploads preserve single-row and single-column channel dimensions,
+  report decoder failures with classed errors, and check decoded dimensions
+  before reading PNG pixels or a selected TIFF page. TIFF page selection needs
+  tiff >= 0.1-8. Run records include the mask's relative cutoff diagnostic.
+  Multichannel planar-separate TIFFs are refused because the underlying reader
+  can silently corrupt them; explicit volumetric TIFFs are outside the 2D scope.
+* TIFF metadata traversal is bounded. Packed 12-bit, non-top-left orientation
+  and other unqualified layouts are refused before pixel decoding. Application
+  state, exports, keyboard access and textual diagnostics are more explicit.
+* Expanded synthetic TIFF coverage for LZW, Deflate and PackBits across supported
+  sample types and storage layouts. Invalid strip/tile extents are now refused
+  before decoding.
 * Added tests for corrupted result metadata, the batch record of a frame that
   fails after it started, and package files changing before an app job loads
   them, and a result file written by 0.1.0.9003 that must still read, validate
@@ -100,6 +138,17 @@ This release collects the development versions 0.1.0.9003 to 0.1.0.9005.
 
 ## Documentation
 
+* Reviewed the official supplementary methods and documented equation-to-code
+  concordance, including the published cubic kernel, symmetric mesh scheme and
+  unresolved temporal definitions. Numerical engine equations, regression
+  values and scientific claims are unchanged.
+* Re-checked the method concordance against the article, the supplement and the
+  authors' R and Python scripts. The concordance now names their interpolation
+  backends, the Fourier interpolation option that mssrscopR does not implement,
+  and the zero-lag products of the Python SOFI functions. `?mssr` and the README
+  now say that amplified maps are not expected to agree pixel-wise with the
+  authors' code, even with `grid = "endpoint"`, which reproduces their sample
+  positions.
 * Corrected the vignette and app: MSSR can separate sources that the pixels show
   merged (at amp 2, two peaks for sources 2.6 px apart with FWHM 3 px, where the
   input pixels show one maximum), with the peaks closer together than the
@@ -123,56 +172,8 @@ This release collects the development versions 0.1.0.9003 to 0.1.0.9005.
   background even for non-negative input, so background subtraction must be
   recorded, and that rounding-level ripple on an otherwise flat frame is
   stretched to full contrast.
-* Re-checked the method concordance against the article, the supplement and the
-  authors' R and Python scripts. The concordance now names their interpolation
-  backends, the Fourier interpolation option that mssrscopR does not implement,
-  and the zero-lag products of the Python SOFI functions. `?mssr` and the README
-  now say that amplified maps are not expected to agree pixel-wise with the
-  authors' code, even with `grid = "endpoint"`, which reproduces their sample
-  positions.
 * Standardize the named v5 package logo across README, documentation pages
   and available application headers, with matching light and dark artwork.
-
-# mssrscopR 0.1.0.9002
-
-* Reviewed the official supplementary methods and documented equation-to-code
-  concordance, including the published cubic kernel, symmetric mesh scheme and
-  unresolved temporal definitions. Numerical engine equations, regression
-  values and scientific claims are unchanged.
-* Expanded synthetic TIFF coverage for LZW, Deflate and PackBits across supported
-  sample types and storage layouts. Invalid strip/tile extents are now refused
-  before decoding.
-* Replaced app sliders with native numeric controls and improved document
-  semantics, keyboard focus, summary reflow and status/hover contrast.
-
-# mssrscopR 0.1.0.9001
-
-* Added versioned result inspection, strict validation and bounded binary result
-  exchange with SHA-256 checks, exact numeric readback and no implicit overwrite.
-* Added a calibrated allocation estimate, opt-in memory guard and sequential
-  complete-frame batches with verified reuse, retained failures and recovery.
-* Expanded independent numerical qualification. Orders above 3 now warn that
-  they are outside the bounded qualified core; two order-10 cases fail the
-  unchanged tolerance. The engine equations and frozen fixtures are unchanged.
-* TIFF metadata traversal is bounded. Packed 12-bit, non-top-left orientation
-  and other unqualified layouts are refused before pixel decoding. Application
-  state, exports, keyboard access and textual diagnostics are more explicit.
-* Arbitrary source matrix attributes are removed so identifying metadata do not
-  silently propagate into computed values.
-
-# mssrscopR 0.1.0.9000
-
-* Engine `mssr_r_rev3` uses internal power-of-two scaling, centered interpolation
-  and weighted local differences to reduce overflow, underflow and cancellation.
-  Existing expected fixture values are unchanged. Background subtraction is
-  still a distinct preprocessing choice; higher-order MSSR is not invariant to
-  additive background.
-* Image uploads preserve single-row and single-column channel dimensions,
-  report decoder failures with classed errors, and check decoded dimensions
-  before reading PNG pixels or a selected TIFF page. TIFF page selection needs
-  tiff >= 0.1-8. Run records include the mask's relative cutoff diagnostic.
-  Multichannel planar-separate TIFFs are refused because the underlying reader
-  can silently corrupt them; explicit volumetric TIFFs are outside the 2D scope.
 
 # mssrscopR 0.1.0
 
