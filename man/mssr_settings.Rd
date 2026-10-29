@@ -7,11 +7,15 @@
 mssr_settings(result)
 }
 \arguments{
-\item{result}{A result returned by \code{\link[=mssr]{mssr()}} or \code{\link[=mssr_read_result]{mssr_read_result()}}.}
+\item{result}{A result returned by \code{\link[=mssr]{mssr()}}, \code{\link[=mssr_temporal]{mssr_temporal()}} or
+\code{\link[=mssr_read_result]{mssr_read_result()}}.}
 }
 \value{
 A named list containing \code{fwhm}, \code{amp}, \code{order},
-\code{intensity_normalize}, \code{mesh}, \code{grid}, \code{kernel} and \code{rounding}.
+\code{intensity_normalize}, \code{mesh}, \code{grid}, \code{kernel} and \code{rounding}. For a
+temporal result it also starts with \code{statistic} and \code{frames} (the frame
+indices of the original input), plus \code{sign} for the SOFI statistics, so
+that it can be passed to \code{\link[=mssr_temporal]{mssr_temporal()}}.
 }
 \description{
 Validates a result and returns arguments that can be passed to \code{\link[=mssr]{mssr()}}

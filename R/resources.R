@@ -13,18 +13,32 @@
 #' loaded packages, retained objects, garbage collection and the allocator can
 #' change peak RSS, and estimates outside that ladder are extrapolations.
 #'
+#' With `frames` and `statistic`, the list also estimates a call of
+#' [mssr_temporal()] (model `temporal_buffers_v1`): `stack_bytes` for the stored
+#' per-frame maps, `stored_peak_bytes` and `recompute_peak_bytes` for its two
+#' computation paths (the single-frame peak plus the output-sized buffers each
+#' path holds), and the total neighborhood work of each path. The per-frame
+#' limits of [mssr()] apply to every frame.
+#'
 #' @param input_dim Two positive whole numbers: input rows and columns.
 #' @param fwhm,amp,kernel,rounding,max_output_pixels As in [mssr()].
+#' @param frames,statistic Optional: the number of frames and the statistic of a
+#'   temporal call (see [mssr_temporal()]). Give both or neither.
 #' @return A list with input/output dimensions, pixels, offsets, estimated work,
-#'   estimated peak bytes, model ID, and limitations.
+#'   estimated peak bytes, model ID, and limitations; with `frames` and
+#'   `statistic`, also the temporal estimates described above.
 #' @export
 #' @examples
 #' mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2)
+#' mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2, frames = 100, statistic = "var")
 mssr_estimate_resources <- function(input_dim, fwhm, amp = 1L,
                                     kernel = c("disk", "square"),
                                     rounding = c("half_even", "half_up"),
-                                    max_output_pixels = 5e7) {
+                                    max_output_pixels = 5e7, frames = NULL, statistic = NULL) {
   call <- sys.call()
+  if (is.null(frames) != is.null(statistic)) {
+    mssr_abort("parameter", "Give both `frames` and `statistic`, or neither.", call)
+  }
   if (!plain_real(input_dim) || !is.null(dim(input_dim)) || length(input_dim) != 2L ||
         any(!is.finite(input_dim)) || any(input_dim < 1 | input_dim != round(input_dim)) ||
         any(input_dim > .Machine$integer.max)) {
@@ -54,9 +68,21 @@ mssr_estimate_resources <- function(input_dim, fwhm, amp = 1L,
   # Calibrated on peak RSS of the compiled engine (see the help page).
   peak <- 128 * 1024^2 + 8 * (24 * n_out + 6 * prod(input_dim)) +
     4 * (2 * hs + 1) * sum(output_dim) + 64 * n_offsets
-  list(input_dim = as.integer(input_dim), output_dim = output_dim,
-       output_pixels = n_out, half_size = hs, n_offsets = n_offsets,
-       estimated_work = work, estimated_peak_bytes = peak,
-       model = "whole_frame_buffers_v2", hard_limit = FALSE,
-       limitation = "Allocation estimate; retained objects and runtime can increase process RSS.")
+  out <- list(input_dim = as.integer(input_dim), output_dim = output_dim,
+              output_pixels = n_out, half_size = hs, n_offsets = n_offsets,
+              estimated_work = work, estimated_peak_bytes = peak,
+              model = "whole_frame_buffers_v2", hard_limit = FALSE,
+              limitation = paste("Allocation estimate; retained objects and runtime can",
+                                 "increase process RSS."))
+  if (is.null(frames)) return(out)
+  frames <- check_whole(frames, "frames", 1L, .Machine$integer.max, call)
+  statistic <- temporal_check_statistic(statistic, call)
+  buffers <- 8 * n_out * temporal_buffers[[statistic]]
+  passes <- if (statistic %in% c("mean", "tpm")) 1 else 2
+  c(out, list(frames = frames, statistic = statistic,
+              stack_bytes = 8 * n_out * frames,
+              stored_peak_bytes = peak + 8 * n_out * frames + buffers,
+              recompute_peak_bytes = peak + buffers,
+              stored_work = work * frames, recompute_work = work * frames * passes,
+              temporal_model = "temporal_buffers_v1"))
 }

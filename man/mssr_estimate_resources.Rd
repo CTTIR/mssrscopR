@@ -10,17 +10,23 @@ mssr_estimate_resources(
   amp = 1L,
   kernel = c("disk", "square"),
   rounding = c("half_even", "half_up"),
-  max_output_pixels = 5e+07
+  max_output_pixels = 5e+07,
+  frames = NULL,
+  statistic = NULL
 )
 }
 \arguments{
 \item{input_dim}{Two positive whole numbers: input rows and columns.}
 
 \item{fwhm, amp, kernel, rounding, max_output_pixels}{As in \code{\link[=mssr]{mssr()}}.}
+
+\item{frames, statistic}{Optional: the number of frames and the statistic of a
+temporal call (see \code{\link[=mssr_temporal]{mssr_temporal()}}). Give both or neither.}
 }
 \value{
 A list with input/output dimensions, pixels, offsets, estimated work,
-estimated peak bytes, model ID, and limitations.
+estimated peak bytes, model ID, and limitations; with \code{frames} and
+\code{statistic}, also the temporal estimates described above.
 }
 \description{
 Reports a conservative allocation model before allocating an output frame.
@@ -36,6 +42,15 @@ It is a planning guard, not a hard process-memory limit: other platforms,
 loaded packages, retained objects, garbage collection and the allocator can
 change peak RSS, and estimates outside that ladder are extrapolations.
 }
+\details{
+With \code{frames} and \code{statistic}, the list also estimates a call of
+\code{\link[=mssr_temporal]{mssr_temporal()}} (model \code{temporal_buffers_v1}): \code{stack_bytes} for the stored
+per-frame maps, \code{stored_peak_bytes} and \code{recompute_peak_bytes} for its two
+computation paths (the single-frame peak plus the output-sized buffers each
+path holds), and the total neighborhood work of each path. The per-frame
+limits of \code{\link[=mssr]{mssr()}} apply to every frame.
+}
 \examples{
 mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2)
+mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2, frames = 100, statistic = "var")
 }

@@ -7,7 +7,7 @@
 mssr_validate_result(result)
 }
 \arguments{
-\item{result}{A result returned by \code{\link[=mssr]{mssr()}}.}
+\item{result}{A result returned by \code{\link[=mssr]{mssr()}} or \code{\link[=mssr_temporal]{mssr_temporal()}}.}
 }
 \value{
 The validated result invisibly, unchanged.
@@ -22,7 +22,10 @@ Coordinate and mask functions retain their narrower matrix/grid validation.
 Results without a schema field are treated as legacy records; they
 must still have the original six documented fields. Their engine identity is
 retained. Schema 1.0.0 adds explicit unknown input calibration and a separate
-evidence status. Unknown schema versions and unexpected fields are refused.
+evidence status. Schema 1.1.0 adds temporal records (\code{\link[=mssr_temporal]{mssr_temporal()}}),
+whose role, statistic, sign, frame counts and diagnostics are checked as
+well; single-frame results keep schema 1.0.0. Unknown schema versions and
+unexpected fields are refused.
 }
 \examples{
 r <- mssr(matrix(1:20, 4, 5), fwhm = 2)

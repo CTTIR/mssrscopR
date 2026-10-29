@@ -34,12 +34,15 @@ result_plain_list <- function(x) {
 #' recomputation, scientific validation or a calibrated confidence estimate.
 #' Coordinate and mask functions retain their narrower matrix/grid validation.
 #'
-#' @param result A result returned by [mssr()].
+#' @param result A result returned by [mssr()] or [mssr_temporal()].
 #' @return The validated result invisibly, unchanged.
 #' @details Results without a schema field are treated as legacy records; they
 #' must still have the original six documented fields. Their engine identity is
 #' retained. Schema 1.0.0 adds explicit unknown input calibration and a separate
-#' evidence status. Unknown schema versions and unexpected fields are refused.
+#' evidence status. Schema 1.1.0 adds temporal records ([mssr_temporal()]),
+#' whose role, statistic, sign, frame counts and diagnostics are checked as
+#' well; single-frame results keep schema 1.0.0. Unknown schema versions and
+#' unexpected fields are refused.
 #' @examples
 #' r <- mssr(matrix(1:20, 4, 5), fwhm = 2)
 #' mssr_validate_result(r)
@@ -67,36 +70,21 @@ mssr_validate_result <- function(result) {
   for (name in c("parameters", "engine", "diagnostics")) {
     if (!result_plain_list(result[[name]])) fail(paste("Invalid result", name, "record."))
   }
+  if (is.character(result$role) && length(result$role) == 1L && !is.na(result$role) &&
+        startsWith(result$role, "temporal_")) {
+    if (legacy) fail("A temporal result needs a result schema version.")
+    validate_temporal_result(result, call)
+    return(invisible(result))
+  }
   p <- result$parameters
-  if (!setequal(names(p), c(
-    "fwhm", "amp", "order", "intensity_normalize", "mesh",
-    "kernel", "rounding", "half_size"
-  ))) {
+  if (!setequal(names(p), result_frame_fields())) {
     fail("Unexpected or missing parameter fields.")
   }
-  fwhm <- check_positive(p$fwhm, "fwhm", call)
-  amp <- check_whole(p$amp, "amp", 1L, 64L, call)
-  order <- check_whole(p$order, "order", 0L, 10L, call)
-  weighted <- check_flag(p$intensity_normalize, "intensity_normalize", call)
-  mesh <- check_flag(p$mesh, "mesh", call)
-  kernel <- check_choice(p$kernel, c("disk", "square"), "kernel", call)
-  rounding <- check_choice(p$rounding, c("half_even", "half_up"), "rounding", call)
-  hs <- check_whole(p$half_size, "half_size", 1L, 1000L, call)
-  if (length(p$kernel) != 1L || length(p$rounding) != 1L ||
-        amp != result$transform$amp || (amp == 1L && mesh) ||
-        hs != mssr_half_size(fwhm, amp, rounding)) {
-    fail("Inconsistent resolved parameters.")
-  }
-  role <- if (weighted) "intensity_weighted_structure" else "structure"
+  resolved <- validate_frame_parameters(p, result$transform, call)
+  order <- resolved$order
+  role <- if (resolved$weighted) "intensity_weighted_structure" else "structure"
   if (!identical(result$role, role)) fail("Result role disagrees with its weighting setting.")
-  e <- result$engine
-  if (!setequal(names(e), c("id", "package_version", "method")) ||
-        !all(vapply(e, result_scalar_text, logical(1)))) {
-    fail("Invalid engine identity.")
-  }
-  if (!e$id %in% c("mssr_r_rev1", "mssr_r_rev2", "mssr_r_rev3")) {
-    fail("Unsupported engine identity; no engine migration is inferred.")
-  }
+  validate_result_engine(result$engine, fail)
   d <- result$diagnostics
   base_diagnostics <- c(
     "degenerate", "degenerate_reason", "order_steps_skipped",
@@ -123,6 +111,49 @@ mssr_validate_result <- function(result) {
   } else if (!identical(d$degenerate_reason, NA_character_)) {
     fail("Non-degenerate result must have an unknown degenerate reason.")
   }
+  validate_result_fractions(result, fail)
+  validate_result_offsets(d$n_offsets, resolved, fail, call)
+  if (!legacy) {
+    if (!identical(result$schema_version, "1.0.0")) fail("Unsupported result schema version.")
+    validate_result_contract(result, fail)
+  }
+  invisible(result)
+}
+
+result_frame_fields <- function() {
+  c("fwhm", "amp", "order", "intensity_normalize", "mesh", "kernel", "rounding", "half_size")
+}
+
+# Checks the per-frame MSSR settings shared by single-frame and temporal records.
+validate_frame_parameters <- function(p, transform, call) {
+  fwhm <- check_positive(p$fwhm, "fwhm", call)
+  amp <- check_whole(p$amp, "amp", 1L, 64L, call)
+  order <- check_whole(p$order, "order", 0L, 10L, call)
+  weighted <- check_flag(p$intensity_normalize, "intensity_normalize", call)
+  mesh <- check_flag(p$mesh, "mesh", call)
+  kernel <- check_choice(p$kernel, c("disk", "square"), "kernel", call)
+  rounding <- check_choice(p$rounding, c("half_even", "half_up"), "rounding", call)
+  hs <- check_whole(p$half_size, "half_size", 1L, 1000L, call)
+  if (length(p$kernel) != 1L || length(p$rounding) != 1L ||
+        amp != transform$amp || (amp == 1L && mesh) ||
+        hs != mssr_half_size(fwhm, amp, rounding)) {
+    mssr_abort("result", "Inconsistent resolved parameters.", call)
+  }
+  list(amp = amp, order = order, weighted = weighted, kernel = kernel, half_size = hs)
+}
+
+validate_result_engine <- function(e, fail) {
+  if (!setequal(names(e), c("id", "package_version", "method")) ||
+        !all(vapply(e, result_scalar_text, logical(1)))) {
+    fail("Invalid engine identity.")
+  }
+  if (!e$id %in% c("mssr_r_rev1", "mssr_r_rev2", "mssr_r_rev3")) {
+    fail("Unsupported engine identity; no engine migration is inferred.")
+  }
+}
+
+validate_result_fractions <- function(result, fail) {
+  d <- result$diagnostics
   for (name in c("zero_fraction", "negative_fraction")) {
     value <- d[[name]]
     expected <- if (name == "zero_fraction") mean(result$values == 0) else mean(result$values < 0)
@@ -130,8 +161,12 @@ mssr_validate_result <- function(result) {
       fail(paste("Inconsistent", name, "diagnostic."))
     }
   }
-  offsets <- check_whole(d$n_offsets, "n_offsets", 0L, .Machine$integer.max, call)
-  expected_offsets <- if (kernel == "square") {
+}
+
+validate_result_offsets <- function(n_offsets, resolved, fail, call) {
+  offsets <- check_whole(n_offsets, "n_offsets", 0L, .Machine$integer.max, call)
+  hs <- resolved$half_size
+  expected_offsets <- if (resolved$kernel == "square") {
     (2 * hs + 1)^2 - 1
   } else {
     sum(2 * floor(sqrt(pmax(0, hs^2 - (-hs:hs)^2))) + 1) - 1
@@ -139,14 +174,80 @@ mssr_validate_result <- function(result) {
   if (offsets != expected_offsets) {
     fail("Neighborhood count disagrees with resolved parameters.")
   }
-  if (!legacy) {
-    if (!identical(result$schema_version, "1.0.0")) fail("Unsupported result schema version.")
-    if (!identical(result$input, mssr_result_contract()$input) ||
-          !identical(result$evidence, mssr_result_contract()$evidence)) {
-      fail("Unsupported input metadata or evidence contract.")
-    }
+}
+
+validate_result_contract <- function(result, fail) {
+  if (!identical(result$input, mssr_result_contract()$input) ||
+        !identical(result$evidence, mssr_result_contract()$evidence)) {
+    fail("Unsupported input metadata or evidence contract.")
   }
-  invisible(result)
+}
+
+# Schema 1.1.0: temporal statistics of per-frame maps (see mssr_temporal()).
+validate_temporal_result <- function(result, call) {
+  fail <- function(message) mssr_abort("result", message, call)
+  p <- result$parameters
+  temporal_fields <- c("statistic", "frames", "first_frame", "sign", "definition")
+  if (!setequal(names(p), c(result_frame_fields(), temporal_fields))) {
+    fail("Unexpected or missing parameter fields.")
+  }
+  resolved <- validate_frame_parameters(p, result$transform, call)
+  statistic <- p$statistic
+  if (!result_scalar_text(statistic) || !statistic %in% temporal_statistics) {
+    fail("Unsupported temporal statistic.")
+  }
+  if (!identical(result$role, paste0("temporal_", statistic))) {
+    fail("Result role disagrees with its temporal statistic.")
+  }
+  frames <- check_whole(p$frames, "frames", temporal_min_frames[[statistic]],
+                        .Machine$integer.max, call)
+  check_whole(p$first_frame, "first_frame", 1L, .Machine$integer.max, call)
+  signs <- if (startsWith(statistic, "sofi")) c("signed", "absolute") else "not_applicable"
+  if (!result_scalar_text(p$sign) || !p$sign %in% signs) {
+    fail("Inconsistent temporal sign setting.")
+  }
+  if (!identical(p$definition, temporal_definition)) fail("Unsupported temporal definition.")
+  if (p$sign == "absolute" && any(result$values < 0)) {
+    fail("Absolute temporal values must not be negative.")
+  }
+  validate_result_engine(result$engine, fail)
+  d <- result$diagnostics
+  if (!setequal(names(d), c(
+    "degenerate_frames", "warning_frames", "order_steps_skipped", "zero_fraction",
+    "negative_fraction", "mesh_index", "mesh_region", "trend", "path", "n_offsets",
+    "quantitative", "qualification_scope", "high_order_unqualified"
+  ))) {
+    fail("Unexpected or missing diagnostic fields.")
+  }
+  if (!identical(d$qualification_scope, "bounded_synthetic_domain") ||
+        !identical(d$high_order_unqualified, resolved$order > 3L)) {
+    fail("Inconsistent numerical qualification diagnostic.")
+  }
+  if (check_flag(d$quantitative, "quantitative", call)) {
+    fail("Inconsistent degenerate or quantitative diagnostic.")
+  }
+  check_whole(d$degenerate_frames, "degenerate_frames", 0L, frames, call)
+  check_whole(d$warning_frames, "warning_frames", 0L, frames, call)
+  check_whole(d$order_steps_skipped, "order_steps_skipped", 0L,
+              as.double(frames) * resolved$order, call)
+  if (!result_scalar_text(d$path) || !d$path %in% temporal_paths) {
+    fail("Unsupported temporal computation path.")
+  }
+  validate_result_fractions(result, fail)
+  optional_number <- function(x, lower) {
+    is.null(x) || (plain_real(x) && length(x) == 1L && is.finite(x) && x >= lower)
+  }
+  regions <- if (resolved$amp > 1L) c("below_median", "background") else "not_computed"
+  if (!result_scalar_text(d$mesh_region) || !d$mesh_region %in% regions ||
+        !optional_number(d$mesh_index, 0) || (resolved$amp == 1L && !is.null(d$mesh_index))) {
+    fail("Inconsistent mesh_index diagnostic.")
+  }
+  if (!optional_number(d$trend, -Inf)) fail("Invalid trend diagnostic.")
+  validate_result_offsets(d$n_offsets, resolved, fail, call)
+  if (!identical(result$schema_version, temporal_schema_version)) {
+    fail("Unsupported result schema version.")
+  }
+  validate_result_contract(result, fail)
 }
 
 #' Inspect a structure-map result
@@ -193,9 +294,15 @@ summary.mssr_result <- function(object, ...) {
 print.summary.mssr_result <- function(x, ...) {
   p <- x$parameters
   d <- x$diagnostics
+  temporal <- result_is_temporal(x)
   cat("MSSR result summary: ", x$role, "\n", sep = "")
   cat(sprintf("  Grid:        input %d x %d -> output %d x %d (amp %d, %s grid)\n",
               x$input_dim[1], x$input_dim[2], x$output_dim[1], x$output_dim[2], p$amp, x$grid))
+  if (temporal) {
+    cat(sprintf("  Statistic:   %s of %d frame(s), frames %d to %d; sign %s; definition %s\n",
+                p$statistic, p$frames, p$first_frame, p$first_frame + p$frames - 1L, p$sign,
+                p$definition))
+  }
   cat(sprintf("  Parameters:  fwhm %g px, order %d, kernel %s (half-size %d), rounding %s\n",
               p$fwhm, p$order, p$kernel, as.integer(p$half_size), p$rounding))
   cat(sprintf("               intensity weighting %s, mesh %s\n",
@@ -203,9 +310,20 @@ print.summary.mssr_result <- function(x, ...) {
   cat(sprintf("  Values:      range %s to %s; zero fraction %.3f; negative fraction %.3f\n",
               format(x$value_range[1], digits = 4), format(x$value_range[2], digits = 4),
               d$zero_fraction, d$negative_fraction))
-  status <- if (d$degenerate) paste0("degenerate (", d$degenerate_reason, ")") else "defined"
-  cat(sprintf("  Diagnostics: %s; %d undefined order step(s) skipped; %d offsets\n",
-              status, as.integer(d$order_steps_skipped), as.integer(d$n_offsets)))
+  if (temporal) {
+    cat(sprintf(paste("  Diagnostics: %d degenerate frame(s); %d frame(s) with warnings;",
+                      "%d undefined order step(s) skipped; path %s\n"),
+                as.integer(d$degenerate_frames), as.integer(d$warning_frames),
+                as.integer(d$order_steps_skipped), d$path))
+    cat(sprintf("               trend %s; mesh index %s (%s); %d offsets\n",
+                if (is.null(d$trend)) "undefined" else format(d$trend, digits = 3),
+                if (is.null(d$mesh_index)) "not computed" else format(d$mesh_index, digits = 3),
+                d$mesh_region, as.integer(d$n_offsets)))
+  } else {
+    status <- if (d$degenerate) paste0("degenerate (", d$degenerate_reason, ")") else "defined"
+    cat(sprintf("  Diagnostics: %s; %d undefined order step(s) skipped; %d offsets\n",
+                status, as.integer(d$order_steps_skipped), as.integer(d$n_offsets)))
+  }
   if (isTRUE(d$high_order_unqualified)) {
     cat("               order above 3: outside the qualified numerical domain\n")
   }

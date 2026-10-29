@@ -4,9 +4,13 @@
 #' with the retained original input. The grid is included explicitly; derived
 #' kernel sizes and resource limits are not computation settings returned here.
 #'
-#' @param result A result returned by [mssr()] or [mssr_read_result()].
+#' @param result A result returned by [mssr()], [mssr_temporal()] or
+#'   [mssr_read_result()].
 #' @return A named list containing `fwhm`, `amp`, `order`,
-#'   `intensity_normalize`, `mesh`, `grid`, `kernel` and `rounding`.
+#'   `intensity_normalize`, `mesh`, `grid`, `kernel` and `rounding`. For a
+#'   temporal result it also starts with `statistic` and `frames` (the frame
+#'   indices of the original input), plus `sign` for the SOFI statistics, so
+#'   that it can be passed to [mssr_temporal()].
 #' @details These are resolved settings, not the original call. For example,
 #'   `mesh` is `FALSE` when amplification is 1 because it had no effect.
 #'   Records from a different numerical engine are refused: this helper does
@@ -37,9 +41,14 @@ mssr_settings <- function(result) {
     ), sys.call())
   }
   p <- result$parameters
-  list(
+  settings <- list(
     fwhm = p$fwhm, amp = p$amp, order = p$order,
     intensity_normalize = p$intensity_normalize, mesh = p$mesh,
     grid = result$transform$grid, kernel = p$kernel, rounding = p$rounding
   )
+  if (!result_is_temporal(result)) return(settings)
+  frames <- seq.int(p$first_frame, length.out = p$frames)
+  temporal <- list(statistic = p$statistic, frames = frames)
+  if (p$sign != "not_applicable") temporal$sign <- p$sign
+  c(temporal, settings)
 }

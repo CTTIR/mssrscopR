@@ -255,6 +255,25 @@ print.mssr_result <- function(x, ...) {
   p <- x$parameters
   d <- x$diagnostics
   cat("<mssr_result> ", x$role, "\n", sep = "")
+  if (result_is_temporal(x)) {
+    cat(sprintf("  input %d x %d -> output %d x %d (amp %d, %s grid)\n", x$transform$input_dim[1],
+                x$transform$input_dim[2], x$transform$output_dim[1], x$transform$output_dim[2],
+                p$amp, x$transform$grid))
+    cat(sprintf("  %s of %d frame(s) (frames %d to %d)%s\n", p$statistic, p$frames,
+                p$first_frame, p$first_frame + p$frames - 1L,
+                if (p$sign == "absolute") ", absolute value" else ""))
+    cat(sprintf("  per frame: fwhm %g px, order %d, kernel %s (half-size %d)%s\n", p$fwhm,
+                p$order, p$kernel, as.integer(p$half_size),
+                if (p$amp > 1L) paste0(", mesh ", p$mesh) else ""))
+    cat(sprintf("  %d degenerate frame(s), %d frame(s) with warnings; path %s\n",
+                d$degenerate_frames, d$warning_frames, d$path))
+    cat(sprintf("  trend (last / first tenth of frames) %s%s\n",
+                if (is.null(d$trend)) "undefined" else format(d$trend, digits = 3),
+                if (is.null(d$mesh_index)) "" else sprintf("; mesh index %.3g (%s)",
+                                                           d$mesh_index, d$mesh_region)))
+    cat("  Temporal statistic of nonlinear structure maps, not a quantitative intensity.\n")
+    return(invisible(x))
+  }
   cat(sprintf("  input %d x %d -> output %d x %d (amp %d, %s grid)\n", x$transform$input_dim[1],
               x$transform$input_dim[2], x$transform$output_dim[1], x$transform$output_dim[2], p$amp,
               x$transform$grid))
@@ -271,3 +290,8 @@ print.mssr_result <- function(x, ...) {
 
 #' @export
 as.matrix.mssr_result <- function(x, ...) x$values
+
+result_is_temporal <- function(x) {
+  is.character(x$role) && length(x$role) == 1L && !is.na(x$role) &&
+    startsWith(x$role, "temporal_")
+}
