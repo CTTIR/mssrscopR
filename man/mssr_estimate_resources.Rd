@@ -44,7 +44,7 @@ change peak RSS, and estimates outside that ladder are extrapolations.
 }
 \details{
 With \code{frames} and \code{statistic}, the list also estimates a call of
-\code{\link[=mssr_temporal]{mssr_temporal()}} (model \code{temporal_buffers_v1}): \code{stack_bytes} for the stored
+\code{\link[=mssr_temporal]{mssr_temporal()}} (model \code{temporal_buffers_v2}): \code{stack_bytes} for the stored
 per-frame maps, \code{stored_peak_bytes} and \code{recompute_peak_bytes} for its two
 computation paths (the single-frame peak plus the output-sized buffers each
 path holds, the raw temporal mean and one raw frame), and the total

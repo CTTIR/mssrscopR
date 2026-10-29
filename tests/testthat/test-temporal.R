@@ -314,9 +314,16 @@ test_that("inputs and arguments are refused with documented classes", {
   broken <- stack
   broken$input_mean <- broken$input_mean[-1, ]
   expect_error(mssr_temporal(broken, "var"), class = "mssrscopR_error_input")
-  expect_error(mssr_temporal(x, "var", fwhm = 3, background = matrix(TRUE, 2, 2)),
+  expect_error(mssr_temporal(x, "var", fwhm = 3, amp = 2, background = matrix(TRUE, 2, 2)),
                class = "mssrscopR_error_parameter")
-  expect_error(mssr_temporal(x, "var", fwhm = 3, background = matrix(FALSE, 14, 14)),
+  expect_error(mssr_temporal(x, "var", fwhm = 3, amp = 2, background = matrix(FALSE, 14, 14)),
+               class = "mssrscopR_error_parameter")
+  everywhere <- matrix(TRUE, 14, 14)
+  expect_error(mssr_temporal(x, "var", fwhm = 3, background = everywhere), "amp > 1",
+               class = "mssrscopR_error_parameter")
+  expect_error(mssr_temporal(x, "var", fwhm = 3, amp = 2, grid = "endpoint",
+                             background = everywhere), class = "mssrscopR_error_parameter")
+  expect_error(mssr_temporal(stack, "var", background = everywhere),
                class = "mssrscopR_error_parameter")
   expect_error(mssr_temporal(unclass(stack), "var"), class = "mssrscopR_error_input")
   frame_error <- x
@@ -360,6 +367,7 @@ test_that("temporal resource estimates extend the single-frame model", {
   expect_identical(est$stack_bytes, 8 * base$output_pixels * 10)
   expect_gt(est$stored_peak_bytes, est$recompute_peak_bytes)
   expect_identical(est$recompute_work, 2 * est$stored_work)
+  expect_identical(est$temporal_model, "temporal_buffers_v2")
   mean_est <- mssr_estimate_resources(c(32, 40), fwhm = 3, amp = 2, frames = 10,
                                       statistic = "mean")
   expect_identical(mean_est$recompute_work, mean_est$stored_work)
@@ -570,4 +578,42 @@ test_that("the temporal estimate bounds measured peak memory on a small ladder",
     expect_lte(measured, planned * slack, label = label)
     expect_lte(planned, 4 * measured, label = label)
   }
+})
+
+test_that("input names and attributes never reach stacks or results", {
+  x <- blinking_frames(6L, size = 10L)
+  named <- x
+  dimnames(named) <- list(paste0("r", 1:10), paste0("c", 1:10), paste0("t", 1:6))
+  attr(named, "acquisition") <- "private/path/scan-07"
+  raw <- mssr_temporal(named, "var", fwhm = 3, amp = 2)
+  expect_identical(attributes(raw$values), list(dim = c(20L, 20L)))
+  expect_identical(raw$values, mssr_temporal(x, "var", fwhm = 3, amp = 2)$values)
+  stack <- mssr_stack(named, fwhm = 3, amp = 2, frames = 2:6)
+  expect_identical(attributes(stack$input_mean), list(dim = c(10L, 10L)))
+  expect_identical(attributes(stack$values), list(dim = c(20L, 20L, 5L)))
+  expect_false(any(grepl("private", unlist(lapply(unclass(stack), format)))))
+  from_stack <- mssr_temporal(stack, "var")
+  expect_identical(from_stack$values,
+                   mssr_temporal(x, "var", fwhm = 3, amp = 2, frames = 2:6)$values)
+  expect_identical(mssr_validate_result(from_stack), from_stack)
+  thin <- array(blinking_frames(4L, size = 6L)[1, , ], c(1, 6, 4))
+  dimnames(thin) <- list("only", NULL, NULL)
+  expect_identical(attributes(mssr_stack(thin, fwhm = 2)$input_mean), list(dim = c(1L, 6L)))
+})
+
+test_that("the stored maps are filled in place, without a copy per frame", {
+  skip_if_not(capabilities("profmem"), "Rprofmem needs memory profiling")
+  x <- blinking_frames(40L, size = 24L)
+  stack_bytes <- 8 * (48 * 48) * 40
+  large_allocations <- function(expr) {
+    log <- tempfile()
+    withr::defer(unlink(log))
+    utils::Rprofmem(log, threshold = stack_bytes / 2)
+    force(expr)
+    utils::Rprofmem(NULL)
+    sizes <- suppressWarnings(as.numeric(sub(" *:.*", "", readLines(log))))
+    sum(sizes >= stack_bytes, na.rm = TRUE)
+  }
+  expect_identical(large_allocations(mssr_stack(x, fwhm = 3, amp = 2)), 1L)
+  expect_identical(large_allocations(mssr_temporal(x, "var", fwhm = 3, amp = 2)), 1L)
 })

@@ -60,7 +60,9 @@ accept only \code{"signed"}.}
 
 \item{background}{Optional logical matrix on the input grid that marks
 signal-free pixels for \code{diagnostics$mesh_index}. By default these are the
-pixels whose raw temporal mean is below the median of that mean.}
+pixels whose raw temporal mean is below the median of that mean. Because
+the mesh index is formed only with \code{amp > 1} on the extent grid, giving
+\code{background} otherwise is an error.}
 
 \item{max_memory_bytes}{Optional positive allocation-estimate budget (see
 \strong{Computation}). This is not a hard process-memory cap. For an

@@ -14,7 +14,7 @@
 #' change peak RSS, and estimates outside that ladder are extrapolations.
 #'
 #' With `frames` and `statistic`, the list also estimates a call of
-#' [mssr_temporal()] (model `temporal_buffers_v1`): `stack_bytes` for the stored
+#' [mssr_temporal()] (model `temporal_buffers_v2`): `stack_bytes` for the stored
 #' per-frame maps, `stored_peak_bytes` and `recompute_peak_bytes` for its two
 #' computation paths (the single-frame peak plus the output-sized buffers each
 #' path holds, the raw temporal mean and one raw frame), and the total
@@ -88,5 +88,5 @@ mssr_estimate_resources <- function(input_dim, fwhm, amp = 1L,
               stored_peak_bytes = peak + 8 * n_out * frames + buffers,
               recompute_peak_bytes = peak + buffers,
               stored_work = work * frames, recompute_work = work * frames * passes,
-              temporal_model = "temporal_buffers_v1"))
+              temporal_model = "temporal_buffers_v2"))
 }

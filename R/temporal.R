@@ -11,7 +11,7 @@ temporal_min_frames <- c(mean = 1L, var = 2L, tpm = 1L, cv = 2L,
 # Degree of each statistic under x -> s * x (used to undo internal scaling).
 temporal_degree <- c(mean = 1L, var = 2L, tpm = 2L, cv = 1L,
                      sofi2 = 2L, sofi3 = 3L, sofi4 = 4L)
-# Output-sized double buffers the reduction holds (model "temporal_buffers_v1").
+# Output-sized double buffers the reduction holds (model "temporal_buffers_v2").
 temporal_buffers <- c(mean = 4, var = 6, tpm = 4, cv = 6, sofi2 = 7, sofi3 = 8, sofi4 = 15)
 temporal_schema_version <- "1.1.0"
 temporal_definition <- "table_s2_lagged"
@@ -135,7 +135,9 @@ temporal_frame_arguments <- c("fwhm", "amp", "order", "intensity_normalize", "me
 #'   accept only `"signed"`.
 #' @param background Optional logical matrix on the input grid that marks
 #'   signal-free pixels for `diagnostics$mesh_index`. By default these are the
-#'   pixels whose raw temporal mean is below the median of that mean.
+#'   pixels whose raw temporal mean is below the median of that mean. Because
+#'   the mesh index is formed only with `amp > 1` on the extent grid, giving
+#'   `background` otherwise is an error.
 #' @param max_memory_bytes Optional positive allocation-estimate budget (see
 #'   **Computation**). This is not a hard process-memory cap. For an
 #'   `mssr_stack`, whose maps already exist, it limits the reduction's buffers.
@@ -235,7 +237,8 @@ mssr_temporal <- function(x, statistic, fwhm, amp = 1L, order = 1L, intensity_no
     }
     stack <- temporal_check_stack(x, call)
     index <- temporal_check_frames(frames, dim(stack$values)[3], statistic, call)
-    background <- temporal_check_background(background, dim(stack$input_mean), call)
+    background <- temporal_check_background(background, dim(stack$input_mean),
+                                            stack$transform$amp, stack$transform$grid, call)
     if (!is.null(max_memory_bytes)) {
       buffers <- 8 * prod(dim(stack$values)[1:2]) * temporal_buffers[[statistic]]
       if (buffers > max_memory_bytes) {
@@ -257,7 +260,7 @@ mssr_temporal <- function(x, statistic, fwhm, amp = 1L, order = 1L, intensity_no
     first <- stack$parameters$first_frame + (index[1] - 1)
     return(temporal_result(reduced, statistic, sign, length(index), first, stack$transform,
                            stack$parameters, stack$engine, counts, "stack", region,
-                           temporal_trend(stack$diagnostics$input_mean[index])))
+                           temporal_trend(stack$diagnostics$input_mean[index]), call))
   }
   x <- temporal_check_array(x, call)
   if (missing(fwhm)) {
@@ -267,7 +270,8 @@ mssr_temporal <- function(x, statistic, fwhm, amp = 1L, order = 1L, intensity_no
   settings <- temporal_check_settings(x, fwhm, amp, order, intensity_normalize, mesh, grid,
                                       kernel, rounding, max_output_pixels, call)
   index <- temporal_check_frames(frames, dim(x)[3], statistic, call)
-  background <- temporal_check_background(background, dim(x)[1:2], call)
+  background <- temporal_check_background(background, dim(x)[1:2], settings$amp,
+                                          settings$grid, call)
   estimate <- mssr_estimate_resources(dim(x)[1:2], settings$fwhm, settings$amp, settings$kernel,
                                       settings$rounding, settings$max_output_pixels,
                                       frames = length(index), statistic = statistic)
@@ -281,7 +285,7 @@ mssr_temporal <- function(x, statistic, fwhm, amp = 1L, order = 1L, intensity_no
   temporal_frame_warnings(info$diagnostics)
   temporal_result(reduced, statistic, sign, length(index), index[1], info$transform,
                   info$parameters, info$engine, temporal_counts(info$diagnostics), path, region,
-                  temporal_trend(scan$frame_means))
+                  temporal_trend(scan$frame_means), call)
 }
 
 #' @rdname mssr_temporal
@@ -376,6 +380,9 @@ temporal_scan_frames <- function(x, index, call) {
   frame_means <- numeric(length(index))
   for (t in seq_along(index)) {
     f <- x[, , index[t]]
+    # Resetting the dimensions drops dimnames, so no input names reach the
+    # results; extraction already drops every other attribute.
+    dim(f) <- d[1:2]
     if (any(!is.finite(f))) {
       mssr_abort("nonfinite", sprintf(paste(
         "Frame %d of `x` contains NA, NaN or infinite values; MSSR is undefined for them."
@@ -494,7 +501,16 @@ temporal_frame_runner <- function(x, index, settings, store, call) {
         state$first <- res
         if (store) state$values <- array(0, c(dim(res$values), n))
       }
-      if (store) state$values[, , t] <- res$values
+      if (store) {
+        # Take the array out of the environment so that it has a single
+        # reference; R then fills the frame in place instead of copying the
+        # whole stack for every frame.
+        values <- state$values
+        state$values <- NULL
+        values[, , t] <- res$values
+        state$values <- values
+        rm(values)
+      }
       d <- res$diagnostics
       state$rows[[t]] <- data.frame(
         frame = index[t], degenerate = d$degenerate, degenerate_reason = d$degenerate_reason,
@@ -648,8 +664,14 @@ temporal_deviations <- function(frame, n, statistic, center, e) {
   )
 }
 
-temporal_check_background <- function(background, dims, call) {
+temporal_check_background <- function(background, dims, amp, grid, call) {
   if (is.null(background)) return(NULL)
+  if (amp < 2L || grid != "extent") {
+    mssr_abort("parameter", paste(
+      "`background` selects pixels for the mesh index, which is formed only with",
+      "`amp > 1` on the default extent grid."
+    ), call)
+  }
   if (!is.logical(background) || is.object(background) || !is.matrix(background) ||
         !identical(dim(background), as.integer(dims)) || anyNA(background) ||
         !any(background)) {
@@ -699,10 +721,10 @@ temporal_trend <- function(frame_means) {
 }
 
 temporal_result <- function(values, statistic, sign, n_frames, first_frame, transform,
-                            frame_parameters, engine, counts, path, region, trend) {
+                            frame_parameters, engine, counts, path, region, trend, call) {
   if (sign == "absolute") values <- abs(values)
   if (first_frame + n_frames - 1 > .Machine$integer.max) {
-    mssr_abort("input", "The frame indices exceed the supported range.")
+    mssr_abort("input", "The frame indices exceed the supported range.", call)
   }
   dim(values) <- transform$output_dim
   storage.mode(values) <- "double"
