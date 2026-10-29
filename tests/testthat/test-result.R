@@ -289,6 +289,86 @@ test_that("scalar attributes do not become implicit parameter metadata", {
                class = "mssrscopR_error_parameter")
 })
 
+test_that("typed metadata decoding rejects malformed nodes and keeps empty vectors", {
+  node <- function(type, data = list(), names = NULL) list(type = type, names = names, data = data)
+  bad <- list(
+    node("null", list(1)),
+    node("character", list(1)),
+    node("logical", list(NA)),
+    node("double", list("1.5")),
+    node("double", list("0x1p+2000")),
+    node("integer", list("1.5")),
+    node("integer", list("99999999999")),
+    node("character", list("x"), names = list("a", "b")),
+    node("character", list("x", "y"), names = list("a", "a")),
+    node("character", list("x"), names = list(1))
+  )
+  for (z in bad) expect_error(result_decode_node(z), class = "mssrscopR_error_result")
+  deep <- node("character", list("x"))
+  for (i in 1:13) deep <- node("list", list(deep))
+  expect_error(result_decode_node(deep), class = "mssrscopR_error_result")
+  expect_identical(result_decode_node(node("character")), character())
+  expect_identical(result_decode_node(node("logical")), logical())
+  expect_identical(result_decode_node(node("missing_character", NULL)), NA_character_)
+})
+
+rewrite_result_decoded <- function(path, change) {
+  rewrite_result_bytes(path, function(bytes) {
+    n_meta <- readBin(bytes[9:12], "integer", n = 1L, size = 4L, endian = "little")
+    metadata <- rawToChar(bytes[seq.int(13L, 12L + n_meta)])
+    decoded <- change(result_decode_node(jsonlite::fromJSON(metadata, simplifyVector = FALSE)))
+    text <- if (is.character(decoded)) decoded else
+      as.character(jsonlite::toJSON(result_encode_node(decoded), auto_unbox = TRUE,
+                                    null = "null", digits = NA))
+    raw <- charToRaw(text)
+    c(charToRaw("MSSRRES1"), writeBin(length(raw), raw(), size = 4L, endian = "little"),
+      raw, bytes[seq.int(13L + n_meta, length(bytes))])
+  })
+}
+
+test_that("checksummed records with inconsistent structure are refused", {
+  skip_if_not_installed("digest")
+  skip_if_not_installed("jsonlite")
+  path <- result_file()
+  r <- result_example()
+  changes <- list(
+    not_json = function(z) "{not json",
+    no_field_order = function(z) list(record = z$record),
+    duplicated_order = function(z) {
+      z$field_order <- c(z$field_order, z$field_order[1])
+      z
+    },
+    values_in_record = function(z) {
+      z$record$values <- 1
+      z
+    },
+    transform_not_list = function(z) {
+      z$record$transform <- "grid"
+      z
+    },
+    zero_dimension = function(z) {
+      z$record$transform$output_dim <- c(0, 10)
+      z
+    },
+    fractional_dimension = function(z) {
+      z$record$transform$output_dim <- c(8.5, 10)
+      z
+    },
+    order_disagrees = function(z) {
+      z$field_order <- setdiff(z$field_order, "evidence")
+      z
+    }
+  )
+  for (name in names(changes)) {
+    mssr_write_result(r, path, overwrite = file.exists(path))
+    rewrite_result_decoded(path, changes[[name]])
+    expect_error(mssr_read_result(path), class = "mssrscopR_error_result", label = name)
+  }
+  mssr_write_result(r, path, overwrite = TRUE)
+  expect_error(mssr_read_result(path, max_output_pixels = 10), class = "mssrscopR_error_resource")
+  expect_identical(mssr_read_result(path), r)
+})
+
 test_that("summaries keep their fields and print a readable report", {
   r <- result_example()
   s <- summary(r)

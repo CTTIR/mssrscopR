@@ -119,3 +119,36 @@ test_that("an unfinished attempt is retained and retried under a distinct filena
   expect_false(identical(retry$output, first$output))
   expect_true(file.exists(first$output))
 })
+
+test_that("a frame failing after its record is written is recorded and retried", {
+  skip_if_not_installed("digest")
+  skip_if_not_installed("jsonlite")
+  root <- withr::local_tempdir()
+  frames <- list(good = matrix(1:12, 3, 4), flaky = matrix(c(2:12, 1), 3, 4))
+  settings <- list(fwhm = 3)
+  # Keep mssr()'s arguments, which the batch validates its settings against.
+  planted <- mssr
+  body(planted) <- bquote({
+    if (identical(x, .(frames$flaky * 1))) mssr_abort("numerical", "Planted engine failure.")
+    .(body(mssr))
+  })
+  local({
+    local_mocked_bindings(mssr = planted)
+    first <- mssr_batch(frames, root, settings)
+    expect_identical(first$status, c("complete", "failed"))
+    expect_match(first$message[2], "Planted engine failure")
+  })
+  record_path <- list.files(root, pattern = "^flaky-.*[.]json$", full.names = TRUE)
+  expect_length(record_path, 1L)
+  record <- jsonlite::fromJSON(record_path, simplifyVector = FALSE)
+  expect_identical(record$status, "failed")
+  expect_identical(record$attempt, 1L)
+  expect_match(record$message, "Planted engine failure")
+  expect_false(file.exists(file.path(root, record$output)))
+  second <- mssr_batch(frames, root, settings)
+  expect_identical(second$status, rep("complete", 2))
+  expect_identical(second$reused, c(TRUE, FALSE))
+  expect_match(basename(second$output[2]), "-2[.]mssr$")
+  expect_identical(mssr_read_result(second$output[2])$values,
+                   mssr(frames$flaky, fwhm = 3)$values)
+})

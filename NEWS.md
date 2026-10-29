@@ -31,6 +31,9 @@
   background even for non-negative input, so background subtraction must be
   recorded, and that rounding-level ripple on an otherwise flat frame is
   stretched to full contrast.
+* Added tests for corrupted result metadata, the batch record of a frame that
+  fails after it started, and package files changing before an app job loads
+  them.
 
 # mssrscopR 0.1.0.9003
 

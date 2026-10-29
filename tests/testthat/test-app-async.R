@@ -198,6 +198,21 @@ test_that("loaded definition drift is refused by the real background process", {
   expect_error(job$process$get_result(), "differ from the app session")
 })
 
+test_that("package files changed before the child loads them are refused", {
+  identity <- mssr_app_code_identity()
+  local_mocked_bindings(mssr_app_code_identity = function() {
+    identity$file_md5[1] <- strrep("0", 32)
+    identity
+  })
+  job <- mssr_app_start_job(async_frame(), mssr_app_args(list()),
+                            list(fraction = 0.1, seed = 1), "file-drift")
+  withr::defer(mssr_app_stop_job(job))
+  job$process$wait(timeout = 20000)
+  err <- tryCatch(job$process$get_result(), error = function(e) e)
+  expect_match(conditionMessage(err$parent), "changed before the background job loaded them")
+  expect_s3_class(err$parent, "mssrscopR_error_integrity")
+})
+
 test_that("loaded policy constants cannot silently differ from the child", {
   local_mocked_bindings(mssr_app_work_limit = 0)
   expect_error(mssr_app_compute(async_frame()$x, mssr_app_args(list())),
