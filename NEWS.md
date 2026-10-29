@@ -1,4 +1,15 @@
-# mssrscopR 0.1.0.9005
+# mssrscopR 0.2.0
+
+This release collects the development versions 0.1.0.9003 to 0.1.0.9005.
+
+## Breaking change
+
+* `mssr_mask()` has no default `fraction` any more. The former
+  default of 0.5 selected exact zeros on typical maps and so mostly gave masks
+  decided by tie-breaking; callers now choose the share, ideally below the
+  share of positive map values.
+
+## Temporal statistics
 
 * New `mssr_temporal()` computes temporal statistics of per-frame MSSR maps
   (temporal MSSR, article Fig. 7a and Supplementary Note 5.2) with the
@@ -35,17 +46,9 @@
   written by earlier versions still read.
 * `mssr_estimate_resources()` gains `frames` and `statistic` and then also
   estimates the stored and recomputed paths of a temporal call.
-* The `fwhm` documentation says that a larger value than the PSF's FWHM
-  enlarges the neighborhood and gives smoother maps with fewer fragments, and
-  that MSSR maps are visual aids, not a basis for segmentation or
-  quantification.
 
-# mssrscopR 0.1.0.9004
+## Engine and resources
 
-* Breaking change: `mssr_mask()` has no default `fraction` any more. The former
-  default of 0.5 selected exact zeros on typical maps and so mostly gave masks
-  decided by tie-breaking; callers now choose the share, ideally below the
-  share of positive map values.
 * The two neighborhood passes of engine `mssr_r_rev3` (range normalizer and
   weighted mean shift) now run in compiled C code. They form the same sums in
   the same order as before and round every product before adding it, so
@@ -62,45 +65,41 @@
 * A refinement step that leaves no positive value (possible only with signed
   input) now returns a degenerate result with reason `"zero refinement map"`
   instead of an unflagged all-zero map.
-* The app's background jobs are checked against the code the R session loaded:
-  package files (in development checkouts including the C sources), function
-  definitions and the loaded native library. A file edited after the package
-  was loaded is refused, also before the first job.
+* `mssr_estimate_resources()` uses a model recalibrated on the compiled engine
+  (`whole_frame_buffers_v2`): it was two to eight times too high and now
+  exceeded every measured peak on the calibration ladder by 30 to 220 percent.
+  The default budget of `mssr_batch()` is now 2 GiB, so ordinary 1024 x 1024
+  frames at amplification 2 are no longer refused.
+
+## Results, masks and the app
+
+* Added validated callable settings for reproducible result replay, including
+  the output grid and explicit refusal of historical engine definitions.
+* Run records now identify uploaded bytes and decoded matrix content with
+  SHA-256 hashes while excluding source filenames and paths.
+* `summary()` of a result prints a short report; the returned list keeps its
+  fields and gains the output grid.
 * `mssr_mask()` warns (class `mssrscopR_warning_mask_ties`) when tie-breaking
   chose more than half of the selected pixels or the lowest selected score is
   at most 1e-6 of the highest, that is, when the mask reaches beyond the
   structure the map shows. The README, vignette and help examples now use a
   share below the positive part of the map and explain `tie_fraction` and
   `cut_relative`. The app keeps its own inline message for this case.
-* `mssr_estimate_resources()` uses a model recalibrated on the compiled engine
-  (`whole_frame_buffers_v2`): it was two to eight times too high and now
-  exceeded every measured peak on the calibration ladder by 30 to 220 percent.
-  The default budget of `mssr_batch()` is now 2 GiB, so ordinary 1024 x 1024
-  frames at amplification 2 are no longer refused.
-* `summary()` of a result prints a short report; the returned list keeps its
-  fields and gains the output grid.
-* Documented plainly that maps of order 1 and higher change with a constant
-  background even for non-negative input, so background subtraction must be
-  recorded, and that rounding-level ripple on an otherwise flat frame is
-  stretched to full contrast.
+* The app's background jobs are checked against the code the R session loaded:
+  package files (in development checkouts including the C sources), function
+  definitions and the loaded native library. A file edited after the package
+  was loaded is refused, also before the first job.
+* Figure downloads retain interpretation, computed settings and run identity.
+  Download actions are unavailable until their result or mask is ready.
+* Notification dismissal restores keyboard focus, and Browse has a visible
+  focus indicator in both themes.
 * Added tests for corrupted result metadata, the batch record of a frame that
   fails after it started, and package files changing before an app job loads
   them, and a result file written by 0.1.0.9003 that must still read, validate
   and replay.
 
-# mssrscopR 0.1.0.9003
+## Documentation
 
-* Standardize the named v5 package logo across README, documentation pages
-  and available application headers, with matching light and dark artwork.
-
-* Added validated callable settings for reproducible result replay, including
-  the output grid and explicit refusal of historical engine definitions.
-* Run records now identify uploaded bytes and decoded matrix content with
-  SHA-256 hashes while excluding source filenames and paths.
-* Figure downloads retain interpretation, computed settings and run identity.
-  Download actions are unavailable until their result or mask is ready.
-* Notification dismissal restores keyboard focus, and Browse has a visible
-  focus indicator in both themes.
 * Corrected the vignette and app: MSSR can separate sources that the pixels show
   merged (at amp 2, two peaks for sources 2.6 px apart with FWHM 3 px, where the
   input pixels show one maximum), with the peaks closer together than the
@@ -116,6 +115,14 @@
   describes an ideal system; under noise a too-small `fwhm` adds false peaks and
   a larger one weakens the separation of close sources, so when unsure choose
   the larger plausible value. Only the kernel half-size enters the computation.
+* The `fwhm` documentation says that a larger value than the PSF's FWHM
+  enlarges the neighborhood and gives smoother maps with fewer fragments, and
+  that MSSR maps are visual aids, not a basis for segmentation or
+  quantification.
+* Documented plainly that maps of order 1 and higher change with a constant
+  background even for non-negative input, so background subtraction must be
+  recorded, and that rounding-level ripple on an otherwise flat frame is
+  stretched to full contrast.
 * Re-checked the method concordance against the article, the supplement and the
   authors' R and Python scripts. The concordance now names their interpolation
   backends, the Fourier interpolation option that mssrscopR does not implement,
@@ -123,6 +130,8 @@
   now say that amplified maps are not expected to agree pixel-wise with the
   authors' code, even with `grid = "endpoint"`, which reproduces their sample
   positions.
+* Standardize the named v5 package logo across README, documentation pages
+  and available application headers, with matching light and dark artwork.
 
 # mssrscopR 0.1.0.9002
 

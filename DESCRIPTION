@@ -1,6 +1,6 @@
 Package: mssrscopR
 Title: Single-Frame Mean-Shift Super-Resolution Structure Maps
-Version: 0.1.0.9005
+Version: 0.2.0
 Authors@R:
     person("R.", "Heller",
            email = "raban.heller@uni-ulm.de",

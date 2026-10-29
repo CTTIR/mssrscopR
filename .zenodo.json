@@ -1,7 +1,7 @@
 {
   "upload_type": "software",
   "title": "mssrscopR: Single-Frame Mean-Shift Super-Resolution Structure Maps",
-  "version": "0.1.0.9005",
+  "version": "0.2.0",
   "creators": [
     {
       "name": "Heller, R.",
