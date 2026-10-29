@@ -138,3 +138,20 @@ test_that("compiled passes can be interrupted", {
   expect_false(p$is_alive())
   expect_identical(p$get_result(), "interrupted")
 })
+
+test_that("compiled sums round each product before adding it", {
+  # (1 + 2^-27) * (1 - 2^-27) = 1 - 2^-54 rounds to 1, so adding -1 gives 0;
+  # a fused multiply-add would keep the exact product and give -2^-54.
+  x <- 1 + 2^-27
+  y <- 1 - 2^-27
+  expect_identical(x * y - 1, 0)
+  expect_identical(.Call(mssr_add_product_c, -1, x, y), 0)
+  expect_identical(.Call(mssr_add_product_c, 2, 3, 4), 14)
+})
+
+test_that("the compiled passes refuse invalid half-sizes", {
+  x <- matrix(1, 3, 3)
+  for (hs in list(0, -1, Inf, NaN, NA_real_)) {
+    expect_error(.Call(mssr_neighborhood_c, x, 1L, 0L, hs), "positive and finite")
+  }
+})
