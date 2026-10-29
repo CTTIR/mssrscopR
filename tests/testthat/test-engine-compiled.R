@@ -88,10 +88,20 @@ test_that("compiled passes return the reference sums exactly in shape and order"
                mssr_neighbourhood(xi * 1, offs, 2, "r"), tolerance = 1e-12)
 })
 
+# Processes started in the background of a non-interactive shell inherit an
+# ignored SIGINT, and then no child can be interrupted.
+sigint_ignored <- function() {
+  if (!file.exists("/proc/self/status")) return(FALSE)
+  line <- grep("^SigIgn:", readLines("/proc/self/status"), value = TRUE)
+  mask <- trimws(sub("^SigIgn:", "", line))
+  bitwAnd(strtoi(substring(mask, nchar(mask) - 1L), 16L), 2L) != 0L
+}
+
 test_that("compiled passes can be interrupted", {
   skip_on_cran()
   skip_on_os("windows")
   skip_if_not_installed("callr")
+  skip_if(sigint_ignored(), "SIGINT is ignored in this process")
   ns <- asNamespace("mssrscopR")
   root <- getNamespaceInfo(ns, "path")
   development <- exists(".__DEVTOOLS__", ns, inherits = FALSE)
