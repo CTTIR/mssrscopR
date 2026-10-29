@@ -89,9 +89,9 @@ test_that("compiled passes return the reference sums exactly in shape and order"
 })
 
 # Processes started in the background of a non-interactive shell inherit an
-# ignored SIGINT, and then no child can be interrupted.
+# ignored SIGINT, and then no child can be interrupted. Only Linux exposes the
+# ignored-signal mask (in /proc), so the test runs only where it can be read.
 sigint_ignored <- function() {
-  if (!file.exists("/proc/self/status")) return(FALSE)
   line <- grep("^SigIgn:", readLines("/proc/self/status"), value = TRUE)
   mask <- trimws(sub("^SigIgn:", "", line))
   bitwAnd(strtoi(substring(mask, nchar(mask) - 1L), 16L), 2L) != 0L
@@ -99,8 +99,8 @@ sigint_ignored <- function() {
 
 test_that("compiled passes can be interrupted", {
   skip_on_cran()
-  skip_on_os("windows")
   skip_if_not_installed("callr")
+  skip_if_not(file.exists("/proc/self/status"), "the ignored-signal mask cannot be read")
   skip_if(sigint_ignored(), "SIGINT is ignored in this process")
   ns <- asNamespace("mssrscopR")
   root <- getNamespaceInfo(ns, "path")
@@ -118,8 +118,9 @@ test_that("compiled passes can be interrupted", {
     ns <- asNamespace("mssrscopR")
     x <- matrix(stats::runif(1500 * 1500), 1500, 1500)
     offs <- get("mssr_offsets", ns)(40, "disk")
-    file.create(ready)
+    # Signal readiness inside the handler, so an early interrupt is caught too.
     tryCatch({
+      file.create(ready)
       get("mssr_neighborhood", ns)(x, offs, 40, "compiled")
       "finished"
     }, interrupt = function(e) "interrupted")
