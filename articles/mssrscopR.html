@@ -33,9 +33,10 @@
 
     <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
+    <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="../index.html"><img src="../logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="../reference/figures/logo-dark.svg">mssrscopR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,6 +50,13 @@
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="../articles/temporal.html">Temporal statistics of MSSR maps</a></li>
+    <li><a class="dropdown-item" href="../articles/method-concordance.html">Method concordance</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/CTTIR/mssrscopR/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
 <li class="nav-item dropdown">
@@ -80,6 +88,25 @@
 
     
     
+<!-- cttir-vignette-logo: start -->
+<style>
+.cttir-vignette-logo { float: right; width: 120px; max-width: 30%; margin: 0 0 1rem 1.5rem; }
+.cttir-vignette-logo img { width: 100%; height: auto; border: 0; background: transparent; box-shadow: none; }
+.cttir-vignette-logo .cttir-vignette-logo-light { display: block; }
+.cttir-vignette-logo .cttir-vignette-logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  .cttir-vignette-logo .cttir-vignette-logo-light { display: none; }
+  .cttir-vignette-logo .cttir-vignette-logo-dark { display: block; }
+}
+[data-bs-theme="light"] .cttir-vignette-logo .cttir-vignette-logo-light { display: block; }
+[data-bs-theme="light"] .cttir-vignette-logo .cttir-vignette-logo-dark { display: none; }
+[data-bs-theme="dark"] .cttir-vignette-logo .cttir-vignette-logo-light { display: none; }
+[data-bs-theme="dark"] .cttir-vignette-logo .cttir-vignette-logo-dark { display: block; }
+</style>
+<div class="cttir-vignette-logo">
+<p><img class="cttir-vignette-logo-light" src="figures/logo.svg" alt="mssrscopR logo" width="120" height="139"><img class="cttir-vignette-logo-dark" src="figures/logo-dark.svg" alt="mssrscopR logo" width="120" height="139"></p>
+</div>
+<!-- cttir-vignette-logo: end -->
 <p>All images here are synthetic and generated in this document, so the
 true scene is known.</p>
 <div class="section level2">
@@ -100,7 +127,7 @@ default.</p>
 <span><span class="co">#&gt; &lt;mssr_result&gt; intensity_weighted_structure</span></span>
 <span><span class="co">#&gt;   input 31 x 41 -&gt; output 62 x 82 (amp 2, extent grid)</span></span>
 <span><span class="co">#&gt;   fwhm 3 px, order 1, kernel disk (half-size 3), mesh TRUE</span></span>
-<span><span class="co">#&gt;   engine mssr_r_rev2; zero fraction 0.488</span></span>
+<span><span class="co">#&gt;   engine mssr_r_rev3; zero fraction 0.633</span></span>
 <span><span class="co">#&gt;   Not a quantitative intensity: measure on the original data.</span></span>
 <span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">2</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">show</span><span class="op">(</span><span class="va">x</span>, <span class="st">"input"</span><span class="op">)</span>; <span class="fu">show</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span>, <span class="st">"mssr(amp = 2)"</span><span class="op">)</span></span></code></pre></div>
@@ -130,37 +157,113 @@ and in the MSSR map (values below 1 mean a dip between the sources):</p>
 <span>  <span class="va">at_mssr</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">cc</span><span class="op">)</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/approxfun.html" class="external-link">approx</a></span><span class="op">(</span><span class="va">co</span><span class="op">$</span><span class="va">col</span>, <span class="va">v</span><span class="op">[</span><span class="va">row</span>, <span class="op">]</span>, <span class="va">cc</span><span class="op">)</span><span class="op">$</span><span class="va">y</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>input <span class="op">=</span> <span class="fu">at_input</span><span class="op">(</span><span class="fl">18</span> <span class="op">+</span> <span class="va">sep</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span> <span class="op">/</span> <span class="fu">at_input</span><span class="op">(</span><span class="fl">18</span><span class="op">)</span>, mssr <span class="op">=</span> <span class="fu">at_mssr</span><span class="op">(</span><span class="fl">18</span> <span class="op">+</span> <span class="va">sep</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span> <span class="op">/</span> <span class="fu">at_mssr</span><span class="op">(</span><span class="fl">18</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>`2.4 px` <span class="op">=</span> <span class="fu">mid_ratio</span><span class="op">(</span><span class="fl">2.4</span><span class="op">)</span>, `3 px` <span class="op">=</span> <span class="fu">mid_ratio</span><span class="op">(</span><span class="fl">3</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>`2.4 px` <span class="op">=</span> <span class="fu">mid_ratio</span><span class="op">(</span><span class="fl">2.4</span><span class="op">)</span>, `2.6 px` <span class="op">=</span> <span class="fu">mid_ratio</span><span class="op">(</span><span class="fl">2.6</span><span class="op">)</span>, `3 px` <span class="op">=</span> <span class="fu">mid_ratio</span><span class="op">(</span><span class="fl">3</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        input  mssr</span></span>
 <span><span class="co">#&gt; 2.4 px 1.086 1.235</span></span>
+<span><span class="co">#&gt; 2.6 px 1.054 0.815</span></span>
 <span><span class="co">#&gt; 3 px   0.968 0.255</span></span></code></pre></div>
 <p>At 3 px the input shows only a shallow dip, which MSSR deepens
-strongly. At 2.4 px the blurred sources form a single hump, and MSSR
-returns a single, sharper hump: it enhances existing structure but does
-not split sources that the blur has already merged.</p>
+strongly. At 2.6 px the input pixels have a single maximum, between the
+sources, yet MSSR returns two peaks with a clear dip (ratio below 1): it
+can separate sources that the pixels show merged. Its peaks move toward
+each other, so a ratio taken at the source centers can stay above 1
+although two peaks exist. The peak positions along row 16 show this
+directly (true sources at 18 and 18 + separation):</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">peaks</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">sep</span>, <span class="va">amp</span> <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="fu">pair</span><span class="op">(</span><span class="va">sep</span><span class="op">)</span>, fwhm <span class="op">=</span> <span class="fl">3</span>, amp <span class="op">=</span> <span class="va">amp</span><span class="op">)</span></span>
+<span>  <span class="va">co</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr_coords.html">mssr_coords</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span></span>
+<span>  <span class="va">v</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">co</span><span class="op">$</span><span class="va">row</span> <span class="op">-</span> <span class="fl">16</span><span class="op">)</span><span class="op">)</span>, <span class="op">]</span></span>
+<span>  <span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sign.html" class="external-link">sign</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">==</span> <span class="op">-</span><span class="fl">2</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1</span></span>
+<span>  <span class="va">co</span><span class="op">$</span><span class="va">col</span><span class="op">[</span><span class="va">i</span><span class="op">[</span><span class="va">v</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">&gt;</span> <span class="fl">0.05</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>`2.4 px` <span class="op">=</span> <span class="fu">peaks</span><span class="op">(</span><span class="fl">2.4</span><span class="op">)</span>, `2.4 px, amp 4` <span class="op">=</span> <span class="fu">peaks</span><span class="op">(</span><span class="fl">2.4</span>, amp <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>, `2.6 px` <span class="op">=</span> <span class="fu">peaks</span><span class="op">(</span><span class="fl">2.6</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $`2.4 px`</span></span>
+<span><span class="co">#&gt; [1] 19.75</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $`2.4 px, amp 4`</span></span>
+<span><span class="co">#&gt; [1] 18.625 19.625</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $`2.6 px`</span></span>
+<span><span class="co">#&gt; [1] 18.25 20.25</span></span></code></pre></div>
+<p>At 2.4 px MSSR returns a single, sharper peak at
+<code>amp = 2</code>; at <code>amp = 4</code> it shows two peaks with a
+barely visible dip, 1 px apart for sources 2.4 px apart. The spacing of
+MSSR peaks therefore underestimates the true separation near this
+limit.</p>
 </div>
 <div class="section level2">
 <h2 id="known-failure-modes">Known failure modes<a class="anchor" aria-label="anchor" href="#known-failure-modes"></a>
 </h2>
 <p>MSSR is nonlinear. A dim structure next to a bright one is strongly
 suppressed, and broad filled objects can be hollowed or fragmented:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu">spot</span><span class="op">(</span><span class="fl">16</span>, <span class="fl">14</span><span class="op">)</span> <span class="op">+</span> <span class="fu">spot</span><span class="op">(</span><span class="fl">16</span>, <span class="fl">21.5</span>, <span class="fl">0.1</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.02</span>, <span class="fl">31</span>, <span class="fl">41</span><span class="op">)</span>   <span class="co"># 10:1 brightness</span></span>
 <span><span class="va">disk</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/outer.html" class="external-link">outer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">31</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">41</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span>, <span class="va">c</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="op">(</span><span class="va">r</span> <span class="op">-</span> <span class="fl">16</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="op">(</span><span class="va">c</span> <span class="op">-</span> <span class="fl">21</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">&lt;=</span> <span class="fl">81</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">disk</span> <span class="op">&lt;-</span> <span class="va">disk</span> <span class="op">+</span> <span class="fl">0.02</span></span>
 <span><span class="va">ry</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">y</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">rd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">disk</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>input_ratio <span class="op">=</span> <span class="va">y</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">22</span><span class="op">]</span> <span class="op">/</span> <span class="va">y</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">14</span><span class="op">]</span>, mssr_ratio <span class="op">=</span> <span class="va">ry</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">22</span><span class="op">]</span> <span class="op">/</span> <span class="va">ry</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">14</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; input_ratio  mssr_ratio </span></span>
-<span><span class="co">#&gt; 0.110379995 0.008616307</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>input_ratio <span class="op">=</span> <span class="va">y</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">22</span><span class="op">]</span> <span class="op">/</span> <span class="va">y</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">14</span><span class="op">]</span>, mssr_ratio <span class="op">=</span> <span class="va">ry</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">22</span><span class="op">]</span> <span class="op">/</span> <span class="va">ry</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">14</span><span class="op">]</span>,</span>
+<span>  disk_center <span class="op">=</span> <span class="va">rd</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">21</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; input_ratio  mssr_ratio disk_center </span></span>
+<span><span class="co">#&gt; 0.110379995 0.008616307 0.000000000</span></span>
 <span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">2</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">show</span><span class="op">(</span><span class="va">ry</span>, <span class="st">"dim beside bright"</span><span class="op">)</span>; <span class="fu">show</span><span class="op">(</span><span class="va">disk</span>, <span class="st">"filled disk"</span><span class="op">)</span>; <span class="fu">show</span><span class="op">(</span><span class="va">rd</span>, <span class="st">"mssr(disk)"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="mssrscopR_files/figure-html/failures-1.png" class="r-plt" alt="" width="672"></p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></code></pre></div>
-<p>The outputs are therefore <strong>not quantitative</strong>;
-<code>res$diagnostics$quantitative</code> is always
-<code>FALSE</code>.</p>
+<p>Extended objects are emphasized at their edges: the filled disk
+becomes a ring with a zero center, so segment filled objects such as
+nuclei on the original data. A rod three FWHM long becomes two peaks
+near its ends, with a lower interior:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rod</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">16.5</span>, <span class="fl">25.5</span>, length.out <span class="op">=</span> <span class="fl">41</span><span class="op">)</span>,</span>
+<span>                                 <span class="kw">function</span><span class="op">(</span><span class="va">cc</span><span class="op">)</span> <span class="fu">spot</span><span class="op">(</span><span class="fl">16</span>, <span class="va">cc</span>, <span class="fl">1</span> <span class="op">/</span> <span class="fl">41</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.002</span>, <span class="fl">31</span>, <span class="fl">41</span><span class="op">)</span></span>
+<span><span class="va">rr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">rod</span>, fwhm <span class="op">=</span> <span class="fl">3</span>, amp <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">co</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr_coords.html">mssr_coords</a></span><span class="op">(</span><span class="va">rr</span><span class="op">)</span></span>
+<span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">4</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">co</span><span class="op">$</span><span class="va">col</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">rr</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">co</span><span class="op">$</span><span class="va">row</span> <span class="op">-</span> <span class="fl">16</span><span class="op">)</span><span class="op">)</span>, <span class="op">]</span>, type <span class="op">=</span> <span class="st">"l"</span>,</span>
+<span>     xlab <span class="op">=</span> <span class="st">"column (input px)"</span>, ylab <span class="op">=</span> <span class="st">"mssr along row 16"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">41</span>, <span class="va">rod</span><span class="op">[</span><span class="fl">16</span>, <span class="op">]</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">rod</span><span class="op">[</span><span class="fl">16</span>, <span class="op">]</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">rr</span><span class="op">$</span><span class="va">values</span><span class="op">)</span>, lty <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"topright"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mssr"</span>, <span class="st">"input (scaled)"</span><span class="op">)</span>, lty <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="mssrscopR_files/figure-html/rod-1.png" class="r-plt" alt="" width="672"></p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></code></pre></div>
+<p>With noise, the mean shift also responds to noise maxima: single
+sources and short rods can break into several peaks, one source can look
+like a pair, and dim sources are lost first. An <code>fwhm</code>
+smaller than the true PSF makes false pairs more likely, and higher
+<code>order</code> values add further, mostly weak, maxima. Compare
+results with the input, and test settings on a synthetic noisy scene of
+known content that resembles your data.</p>
+<p>These failure modes are why the outputs are <strong>not
+quantitative</strong>; <code>res$diagnostics$quantitative</code> is
+always <code>FALSE</code>.</p>
+</div>
+<div class="section level2">
+<h2 id="several-channels-or-bands">Several channels or bands<a class="anchor" aria-label="anchor" href="#several-channels-or-bands"></a>
+</h2>
+<p><code><a href="../reference/mssr.html">mssr()</a></code> takes one 2D frame, so multichannel and spectral
+data are processed one channel at a time, and each channel gets its own
+structure map. Here channel <code>b</code> holds the same two sources as
+channel <code>a</code>, but its second source is half as bright;
+<code>0.5 * a</code> is a scaled copy of <code>a</code>:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu">spot</span><span class="op">(</span><span class="fl">16</span>, <span class="fl">14</span><span class="op">)</span> <span class="op">+</span> <span class="fu">spot</span><span class="op">(</span><span class="fl">16</span>, <span class="fl">26</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.05</span>, <span class="fl">31</span>, <span class="fl">41</span><span class="op">)</span></span>
+<span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu">spot</span><span class="op">(</span><span class="fl">16</span>, <span class="fl">14</span><span class="op">)</span> <span class="op">+</span> <span class="fu">spot</span><span class="op">(</span><span class="fl">16</span>, <span class="fl">26</span>, <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.05</span>, <span class="fl">31</span>, <span class="fl">41</span><span class="op">)</span></span>
+<span><span class="va">ra</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">a</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">rb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">b</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">rc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="fl">0.5</span> <span class="op">*</span> <span class="va">a</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>input <span class="op">=</span> <span class="va">b</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">26</span><span class="op">]</span> <span class="op">/</span> <span class="va">a</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">26</span><span class="op">]</span>, mssr <span class="op">=</span> <span class="va">rb</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">26</span><span class="op">]</span> <span class="op">/</span> <span class="va">ra</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">26</span><span class="op">]</span>,</span>
+<span>        scaled_copy <span class="op">=</span> <span class="va">rc</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">26</span><span class="op">]</span> <span class="op">/</span> <span class="va">ra</span><span class="op">[</span><span class="fl">16</span>, <span class="fl">26</span><span class="op">]</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       input        mssr scaled_copy </span></span>
+<span><span class="co">#&gt;       0.524       0.243       0.500</span></span></code></pre></div>
+<p>The ratio of <code>b</code> to <code>a</code> at the second source
+falls to about half its input value, while the scaled copy keeps its
+ratio. A different background or another object elsewhere in one channel
+also changes the ratios. Ratios between channels, indices and spectra
+therefore belong to the original data, for example measured under a mask
+as below.</p>
 </div>
 <div class="section level2">
 <h2 id="masks-with-measurements-on-the-original-data">Masks with measurements on the original data<a class="anchor" aria-label="anchor" href="#masks-with-measurements-on-the-original-data"></a>
@@ -168,16 +271,31 @@ suppressed, and broad filled objects can be hollowed or fragmented:</p>
 <p>A structure map can select pixels, but measurements belong to the
 original image. <code><a href="../reference/mssr_mask.html">mssr_mask()</a></code> keeps an exact number of pixels
 of a region. <code>tie_fraction</code> reports the share of the selected
-pixels that random tie-breaking decided. That share can be large,
-because the mean shift is clipped at zero and many pixels tie there.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr_mask.html">mssr_mask</a></span><span class="op">(</span><span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">x</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>, fraction <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"coverage"</span><span class="op">)</span>, tie_fraction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"tie_fraction"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;     coverage tie_fraction </span></span>
-<span><span class="co">#&gt;    0.2006294    0.8784314</span></span>
+pixels that random tie-breaking decided, and <code>cut_relative</code>
+the lowest selected score relative to the highest. The mean shift is
+clipped at zero, so most of this map is exactly zero; keep a share below
+the positive one.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">x</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span>             <span class="co"># share of pixels with any structure</span></span>
+<span><span class="co">#&gt; [1] 0.0220299</span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr_mask.html">mssr_mask</a></span><span class="op">(</span><span class="va">r</span>, fraction <span class="op">=</span> <span class="fl">0.02</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"coverage"</span><span class="op">)</span>, tie_fraction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"tie_fraction"</span><span class="op">)</span>,</span>
+<span>  cut_relative <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"cut_relative"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     coverage tie_fraction cut_relative </span></span>
+<span><span class="co">#&gt;  0.020456334  0.000000000  0.002531077</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mean_all <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>, mean_masked <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">x</span><span class="op">[</span><span class="va">m</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    mean_all mean_masked </span></span>
-<span><span class="co">#&gt;  0.06604718  0.11992835</span></span></code></pre></div>
+<span><span class="co">#&gt;  0.06604718  0.58442567</span></span></code></pre></div>
+<p>A larger share reaches into the zeros. Tie-breaking then decides most
+of the mask, which <code><a href="../reference/mssr_mask.html">mssr_mask()</a></code> reports with a warning:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">wide</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr_mask.html">mssr_mask</a></span><span class="op">(</span><span class="va">r</span>, fraction <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: The mask reaches pixels where the MSSR map shows no structure: 89% of the</span></span>
+<span><span class="co">#&gt; selected pixels were chosen by tie-breaking and the lowest selected score is 0</span></span>
+<span><span class="co">#&gt; of the highest. Choose a smaller `fraction` or a `region`.</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">wide</span>, <span class="st">"tie_fraction"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.8901961</span></span></code></pre></div>
 <p>Selecting pixels this way changes the measured population. It is not
 known to improve any downstream analysis, so evaluate it for your own
 task.</p>
@@ -187,7 +305,7 @@ task.</p>
 </h2>
 <p>Flat frames return zeros flagged as degenerate. Requests the package
 cannot honor fail with classed errors:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">5</span>, <span class="fl">5</span><span class="op">)</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="va">diagnostics</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"degenerate"</span>, <span class="st">"degenerate_reason"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $degenerate</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
@@ -206,12 +324,20 @@ cannot honor fail with classed errors:</p>
 <h2 id="interactive-exploration">Interactive exploration<a class="anchor" aria-label="anchor" href="#interactive-exploration"></a>
 </h2>
 <p><code><a href="../reference/mssr_app.html">mssr_app()</a></code> opens the same computations in a Shiny app
-(it needs the shiny, bslib and jsonlite packages). It shows the input
-and the structure map on the same input-pixel axes, line profiles, masks
-measured on the input and the self-test, and offers the results for
-download. The examples above are available there, and frames can be
-uploaded as text tables, PNG or TIFF.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+(it needs the shiny, bslib, jsonlite, callr and digest packages). It
+shows the input and the structure map on the same input-pixel axes, line
+profiles, masks measured on the input and the self-test, and offers the
+results for download. The examples above are available there, and frames
+can be uploaded as text tables, PNG or TIFF.</p>
+<p>Computation runs in one background job per app session. Cancel stops
+the owned job, and incomplete results cannot be exported. A previous
+completed input, settings and mask can be explicitly restored. The run
+record distinguishes restored results and settings captured at
+computation from current controls. A session closing or a five-minute
+limit stops its unfinished job. Development source launches need
+pkgload; installed-package launches use the exact installed namespace
+and verify their loaded definitions.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/mssr_app.html">mssr_app</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -221,24 +347,168 @@ uploaded as text tables, PNG or TIFF.</p>
 fixtures. They were produced by the package’s engine definition, so this
 is a regression check of the installation, not an independent
 validation:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">st</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr_selftest.html">mssr_selftest</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">st</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fixture_id"</span>, <span class="st">"max_abs_error"</span>, <span class="st">"passed"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;                           fixture_id max_abs_error passed</span></span>
-<span><span class="co">#&gt; 1                       fx01_amp1_o1  0.000000e+00   TRUE</span></span>
+<span><span class="co">#&gt; 1                       fx01_amp1_o1  5.551115e-16   TRUE</span></span>
 <span><span class="co">#&gt; 2                fx02_amp1_o1_nonorm  0.000000e+00   TRUE</span></span>
 <span><span class="co">#&gt; 3                  fx02_amp1_o1_norm  0.000000e+00   TRUE</span></span>
 <span><span class="co">#&gt; 4                   fx03_constant_o2  0.000000e+00   TRUE</span></span>
 <span><span class="co">#&gt; 5                       fx04_zero_o1  0.000000e+00   TRUE</span></span>
 <span><span class="co">#&gt; 6                       fx05_amp1_o0  0.000000e+00   TRUE</span></span>
 <span><span class="co">#&gt; 7                       fx05_amp1_o1  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 8                fx06_amp2_extent_o1  9.436896e-15   TRUE</span></span>
-<span><span class="co">#&gt; 9              fx06_amp2_endpoint_o1  6.883383e-15   TRUE</span></span>
-<span><span class="co">#&gt; 10               fx07_amp1_o3_nonorm  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 11 fx08_amp2_extent_o1_halfup_nomesh  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 12      fx09_amp3_endpoint_o2_nonorm  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 13               fx10_amp2_square_o1  0.000000e+00   TRUE</span></span>
-<span><span class="co">#&gt; 14        fx11_amp1_square_o2_nonorm  0.000000e+00   TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt; 8                fx06_amp2_extent_o1  1.276756e-14   TRUE</span></span>
+<span><span class="co">#&gt; 9              fx06_amp2_endpoint_o1  1.032507e-14   TRUE</span></span>
+<span><span class="co">#&gt; 10               fx07_amp1_o3_nonorm  1.418136e-16   TRUE</span></span>
+<span><span class="co">#&gt; 11 fx08_amp2_extent_o1_halfup_nomesh  1.065814e-13   TRUE</span></span>
+<span><span class="co">#&gt; 12      fx09_amp3_endpoint_o2_nonorm  6.661338e-15   TRUE</span></span>
+<span><span class="co">#&gt; 13               fx10_amp2_square_o1  2.042810e-14   TRUE</span></span>
+<span><span class="co">#&gt; 14        fx11_amp1_square_o2_nonorm  8.560616e-17   TRUE</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="reproducible-expert-workflow">Reproducible expert workflow<a class="anchor" aria-label="anchor" href="#reproducible-expert-workflow"></a>
+</h2>
+<p>Choose FWHM from the acquisition PSF in input-pixel units. Record its
+source and uncertainty; an image’s dimensions do not establish physical
+calibration. A measured PSF is preferable to a theoretical one, which
+describes an ideal system; the recorded PSF can be wider. Under noise a
+too-small FWHM adds false peaks and a larger one weakens the separation
+of close sources, so choose the larger plausible value when unsure. Only
+the kernel half-size in <code>parameters$half_size</code> enters the
+computation, so compare settings that change it. Fix preprocessing,
+channel selection, frame boundaries and parameter-selection rules before
+evaluating outcomes. Cropping changes the neighborhood context and
+global normalizers, so a cropped reconstruction need not equal a crop of
+the full-frame result. Background subtraction is a distinct
+preprocessing decision.</p>
+<p>Start with a low order and compare plausible acquisition-informed
+settings. Orders above 3 are accepted for compatibility but produce a
+qualification warning: the expanded independent reference suite found
+sensitive high-order failures. The bounded passing domain is evidence
+about the tested scenes, not a guarantee for an arbitrary noisy
+acquisition. Review broad-object hollowing/splitting, missing dim
+structures and blank/noise-only fields alongside favorable examples.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">frame</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/outer.html" class="external-link">outer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">13</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">17</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span>, <span class="va">c</span><span class="op">)</span> <span class="fl">0.05</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="op">(</span><span class="op">(</span><span class="va">r</span><span class="op">-</span><span class="fl">7</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">+</span><span class="op">(</span><span class="va">c</span><span class="op">-</span><span class="fl">9</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">/</span><span class="fl">8</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">frame</span>, fwhm <span class="op">=</span> <span class="fl">3</span>, order <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
+<span><span class="co">#&gt; MSSR result summary: intensity_weighted_structure</span></span>
+<span><span class="co">#&gt;   Grid:        input 13 x 17 -&gt; output 13 x 17 (amp 1, extent grid)</span></span>
+<span><span class="co">#&gt;   Parameters:  fwhm 3 px, order 1, kernel disk (half-size 2), rounding half_even</span></span>
+<span><span class="co">#&gt;                intensity weighting TRUE, mesh FALSE</span></span>
+<span><span class="co">#&gt;   Values:      range 0 to 1.05; zero fraction 0.805; negative fraction 0.000</span></span>
+<span><span class="co">#&gt;   Diagnostics: defined; 0 undefined order step(s) skipped; 12 offsets</span></span>
+<span><span class="co">#&gt;   Engine:      mssr_r_rev3, mssrscopR 0.2.0; result schema 1.0.0; evidence numerical_tool_only</span></span>
+<span><span class="co">#&gt;   Not a quantitative intensity: measure on the original data.</span></span>
+<span><span class="fu"><a href="../reference/mssr_estimate_resources.html">mssr_estimate_resources</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">frame</span><span class="op">)</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $input_dim</span></span>
+<span><span class="co">#&gt; [1] 13 17</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $output_dim</span></span>
+<span><span class="co">#&gt; [1] 13 17</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $output_pixels</span></span>
+<span><span class="co">#&gt; [1] 221</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $half_size</span></span>
+<span><span class="co">#&gt; [1] 2</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_offsets</span></span>
+<span><span class="co">#&gt; [1] 12</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $estimated_work</span></span>
+<span><span class="co">#&gt; [1] 2652</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $estimated_peak_bytes</span></span>
+<span><span class="co">#&gt; [1] 134272136</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $model</span></span>
+<span><span class="co">#&gt; [1] "whole_frame_buffers_v2"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $hard_limit</span></span>
+<span><span class="co">#&gt; [1] FALSE</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $limitation</span></span>
+<span><span class="co">#&gt; [1] "Allocation estimate; retained objects and runtime can increase process RSS."</span></span></code></pre></div>
+<p><code><a href="../reference/mssr_validate_result.html">mssr_validate_result()</a></code> checks a result’s internal
+contract. <code><a href="../reference/mssr_result_io.html">mssr_write_result()</a></code> and
+<code><a href="../reference/mssr_result_io.html">mssr_read_result()</a></code> use explicit paths, integrity hashes and
+exact binary values; optional <code>digest</code> and
+<code>jsonlite</code> are needed for these operations. They do not
+establish acquisition provenance. Never use reconstructed intensities as
+calibrated measurements. Original-data measurements under a mask still
+reflect selection bias: report retained coverage, compare with sensible
+controls and inspect how small score changes alter the selected
+population.</p>
+<p><code><a href="../reference/mssr_batch.html">mssr_batch()</a></code> processes a named list of independent whole
+frames with one worker. It records failures and cancellations, checks
+completed results before reuse and retains separate attempts. It checks
+cancellation between frames. Its memory budget is a conservative
+estimate; use a separate process-level limit when a hard memory cap is
+required. It does not implement tiling or infer time, depth, wavelength,
+specimen identity or physical units from an array.</p>
+</div>
+<div class="section level2">
+<h2 id="save-and-replay-an-analysis">Save and replay an analysis<a class="anchor" aria-label="anchor" href="#save-and-replay-an-analysis"></a>
+</h2>
+<p><code><a href="../reference/mssr_settings.html">mssr_settings()</a></code> validates the result and returns only
+callable computation settings, including the grid. Passing
+<code>result$parameters</code> directly is not a replay recipe: it
+includes a derived kernel half-size and omits the grid. Settings are
+resolved values, so mesh compensation is recorded as off when
+amplification is 1. Resource budgets are not retained settings; choose
+them explicitly when recomputing.</p>
+<p>The example below retains the original synthetic frame and mask
+context in memory, then reads the exact result from a file. For a
+durable analysis, keep the original frame in trusted storage and retain
+its identity, preprocessing, channel/frame selection, acquisition
+information and mask context alongside it. The <code>.mssr</code> file
+does not contain those inputs. Here no acquisition calibration is
+available, and FWHM is a chosen synthetic setting.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">original</span> <span class="op">&lt;-</span> <span class="va">frame</span></span>
+<span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  preprocessing <span class="op">=</span> <span class="st">"none; authored synthetic frame"</span>,</span>
+<span>  region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/outer.html" class="external-link">outer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">original</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">original</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                 <span class="kw">function</span><span class="op">(</span><span class="va">r</span>, <span class="va">c</span><span class="op">)</span> <span class="va">r</span> <span class="op">&lt;=</span> <span class="fl">10</span> <span class="op">&amp;</span> <span class="va">c</span> <span class="op">&gt;=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  fraction <span class="op">=</span> <span class="fl">0.2</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">23L</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">original</span>, fwhm <span class="op">=</span> <span class="fl">3</span>, amp <span class="op">=</span> <span class="fl">2</span>, order <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>               max_output_pixels <span class="op">=</span> <span class="fl">5e7</span>, max_memory_bytes <span class="op">=</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">mask</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr_mask.html">mssr_mask</a></span><span class="op">(</span><span class="va">result</span>, fraction <span class="op">=</span> <span class="va">context</span><span class="op">$</span><span class="va">fraction</span>,</span>
+<span>                  region <span class="op">=</span> <span class="va">context</span><span class="op">$</span><span class="va">region</span>, seed <span class="op">=</span> <span class="va">context</span><span class="op">$</span><span class="va">seed</span><span class="op">)</span></span>
+<span><span class="va">measurement</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">original</span><span class="op">[</span><span class="va">mask</span><span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"digest"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"jsonlite"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".mssr"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/mssr_result_io.html">mssr_write_result</a></span><span class="op">(</span><span class="va">result</span>, <span class="va">path</span><span class="op">)</span></span>
+<span>  <span class="va">restored</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr_result_io.html">mssr_read_result</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">restored</span><span class="op">$</span><span class="va">engine</span><span class="op">$</span><span class="va">package_version</span>,</span>
+<span>                      <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/packageDescription.html" class="external-link">packageVersion</a></span><span class="op">(</span><span class="st">"mssrscopR"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">replay</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">mssr</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">original</span>, max_output_pixels <span class="op">=</span> <span class="fl">5e7</span>, max_memory_bytes <span class="op">=</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/mssr_settings.html">mssr_settings</a></span><span class="op">(</span><span class="va">restored</span><span class="op">)</span></span>
+<span>  <span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">replay_mask</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mssr_mask.html">mssr_mask</a></span><span class="op">(</span><span class="va">replay</span>, fraction <span class="op">=</span> <span class="va">context</span><span class="op">$</span><span class="va">fraction</span>,</span>
+<span>                           region <span class="op">=</span> <span class="va">context</span><span class="op">$</span><span class="va">region</span>, seed <span class="op">=</span> <span class="va">context</span><span class="op">$</span><span class="va">seed</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">replay</span><span class="op">$</span><span class="va">values</span>, <span class="va">restored</span><span class="op">$</span><span class="va">values</span><span class="op">)</span>,</span>
+<span>            <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">replay</span><span class="op">$</span><span class="va">transform</span>, <span class="va">restored</span><span class="op">$</span><span class="va">transform</span><span class="op">)</span>,</span>
+<span>            <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">replay_mask</span>, <span class="va">mask</span><span class="op">)</span>,</span>
+<span>            <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">original</span><span class="op">[</span><span class="va">replay_mask</span><span class="op">]</span><span class="op">)</span>, <span class="va">measurement</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>Preserve the package artifact and runtime environment with a durable
+analysis, for example by retaining <code><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo()</a></code> output.
+The helper refuses results from a different numerical engine and does
+not migrate historical results. A legacy result schema with the current
+engine can still supply validated settings. Matching engine and settings
+is not a promise of identical arithmetic across package versions or
+environments: verify values and the original-data measurement after
+replay. The measurement remains subject to mask selection; successful
+reproduction does not validate the scientific choice of mask.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -18,8 +18,8 @@
 <link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Single-Frame Mean-Shift Super-Resolution Structure Maps">
-<meta name="description" content="Computes the single-frame Mean-Shift Super-Resolution (MSSR) structure map of Torres-Garcia et al. (2022) &lt;doi:10.1038/s41467-022-34693-9&gt; with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, a self-test against bundled synthetic fixtures and an interactive shiny app for exploring parameters. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.">
-<meta property="og:description" content="Computes the single-frame Mean-Shift Super-Resolution (MSSR) structure map of Torres-Garcia et al. (2022) &lt;doi:10.1038/s41467-022-34693-9&gt; with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, a self-test against bundled synthetic fixtures and an interactive shiny app for exploring parameters. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.">
+<meta name="description" content="Computes the single-frame Mean-Shift Super-Resolution (MSSR) structure map of Torres-Garcia et al. (2022) &lt;doi:10.1038/s41467-022-34693-9&gt; with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, pixel-wise temporal statistics of the per-frame maps of an image sequence (mean, variance and lagged SOFI cumulants as defined in the articles supplement), a self-test against bundled synthetic fixtures and an interactive shiny' app for exploring parameters. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.">
+<meta property="og:description" content="Computes the single-frame Mean-Shift Super-Resolution (MSSR) structure map of Torres-Garcia et al. (2022) &lt;doi:10.1038/s41467-022-34693-9&gt; with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, pixel-wise temporal statistics of the per-frame maps of an image sequence (mean, variance and lagged SOFI cumulants as defined in the articles supplement), a self-test against bundled synthetic fixtures and an interactive shiny' app for exploring parameters. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.">
 <meta property="og:image" content="https://cttir.github.io/mssrscopR/logo.svg">
 <meta name="theme-color" content="#1565c0">
 <!-- Package browser icons -->
@@ -36,9 +36,10 @@
 
     <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
+    <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="index.html"><img src="logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="reference/figures/logo-dark.svg">mssrscopR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,6 +53,13 @@
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
 </form></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/temporal.html">Temporal statistics of MSSR maps</a></li>
+    <li><a class="dropdown-item" href="articles/method-concordance.html">Method concordance</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/CTTIR/mssrscopR/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
 <li class="nav-item dropdown">
@@ -76,7 +84,7 @@
 </div>
 <!-- badges: start -->
 
-<p><code>mssrscopR</code> computes single-frame Mean-Shift Super-Resolution (MSSR; Torres-García et al. 2022) structure maps in R. Geometry is explicit, degenerate input has a defined result, and a self-test can check any installation.</p>
+<p><code>mssrscopR</code> computes single-frame Mean-Shift Super-Resolution (MSSR; Torres-García et al. 2022) structure maps in R, and temporal statistics of them over frame sequences. Geometry is explicit, degenerate input has a defined result, and a self-test can check any installation.</p>
 <ul>
 <li>
 <strong>Compute:</strong> <code><a href="reference/mssr.html">mssr()</a></code> returns the MSSR structure map of one 2D frame, with its role, grid transform, parameters and diagnostics.</li>
@@ -85,11 +93,14 @@
 <li>
 <strong>Select:</strong> <code><a href="reference/mssr_mask.html">mssr_mask()</a></code> derives a structural mask on the input grid for measuring the <strong>original</strong> data, and reports how much of it tie-breaking decided.</li>
 <li>
+<strong>Summarize over time:</strong> <code><a href="reference/mssr_temporal.html">mssr_temporal()</a></code> reduces the per-frame maps of a frame sequence pixel by pixel (mean, variance, TPM, <code>Var / Mean</code>, SOFI).</li>
+<li>
 <strong>Verify:</strong> <code><a href="reference/mssr_selftest.html">mssr_selftest()</a></code> recomputes bundled synthetic fixtures.</li>
 </ul>
 <blockquote>
-<p><strong>Status: 0.1.0, experimental.</strong> At amplification 1 with intensity normalization off, the engine matches the authors’ single-frame R code (disk kernel, rotation undone) and Python code (square kernel) wherever their output is finite, apart from undefined refinement steps; the bundled synthetic fixtures guard against regressions. Its benefit for fluorescence, histology or hyperspectral analyses has not been established.</p>
+<p><strong>Status: 0.2.0.</strong> At amplification 1 with intensity normalization off, comparisons with the authors’ single-frame R code (disk kernel, rotation undone) and Python code (square kernel) agree on the tested non-degenerate examples. Engine <code>mssr_r_rev3</code> improves numerical stability; the unchanged bundled synthetic fixtures guard against regressions. Its benefit for fluorescence, histology or hyperspectral analyses has not been established.</p>
 </blockquote>
+<p>The method concordance in <code><a href="articles/method-concordance.html">vignette("method-concordance")</a></code> maps the official supplementary equations to the engine and records implementation differences, the temporal definitions and qualification boundaries (<a href="https://github.com/CTTIR/mssrscopR/blob/main/tools/qualification/METHOD_CONCORDANCE.md" class="external-link">Markdown source</a>).</p>
 <div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
 </h2>
@@ -109,22 +120,25 @@
 </h2>
 <p><strong>In scope</strong></p>
 <ul>
-<li>Single-frame MSSR of finite 2D numeric matrices of any shape, orders 0–10, integer amplification 1–64 on a field-of-view-preserving grid.</li>
+<li>Single-frame MSSR of finite 2D numeric matrices of any shape, orders 0–10, integer amplification 1–64 on a field-of-view-preserving grid. This is the accepted syntax; independent qualification covers a bounded subset, and orders above 3 are experimental.</li>
 <li>Defined results for degenerate input (flat frames, impulses on an exactly zero background), reported in the diagnostics.</li>
 <li>Structural masks with exact coverage for measurements on the original data.</li>
+<li>Temporal statistics of per-frame maps over a frame sequence (<code><a href="reference/mssr_temporal.html">mssr_temporal()</a></code>, <code><a href="articles/temporal.html">vignette("temporal")</a></code>): mean, population variance, TPM, the supplement’s “CV” (<code>Var / Mean</code>) and lagged, signed SOFI cumulants of orders 2 to 4, as defined in Supplementary Table S2.</li>
 <li>Input validation with classed errors and warnings, resource guards, and an installation self-test.</li>
 </ul>
 <p><strong>Out of scope</strong></p>
 <ul>
-<li>Temporal MSSR summaries over frame stacks (mean, variance, TPM).</li>
+<li>Fourier interpolation (Supplementary Note 6.2), which the article recommends for temporal analysis, and drift, bleaching or background correction of frame sequences.</li>
+<li>The zero-lag and absolute-deviation “SOFI” variants of the authors’ Python, MATLAB and Fiji tools.</li>
 <li>Tiled or out-of-core processing: every order step uses image-wide maxima.</li>
-<li>File readers, physical calibration, and claims of resolution gain, intensity fidelity or diagnostic value.</li>
+<li>General-purpose file readers, physical calibration, and claims of resolution gain, intensity fidelity or diagnostic value.</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="where-it-sits-in-cttir">Where it sits in CTTIR<a class="anchor" aria-label="anchor" href="#where-it-sits-in-cttir"></a>
 </h2>
-<pre><code>2D frame from any reader (one channel / one band at a time)
+<pre><code>2D frame from any reader (one channel / one band at a time; results of
+different channels need not keep their intensity ratios)
       │
       ▼
 mssrscopR::mssr()  →  structure map + coordinates + diagnostics
@@ -160,9 +174,18 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 <td>output pixel-center coordinates (<code>row</code>, <code>col</code>) in input-pixel units</td>
 </tr>
 <tr>
-<td><code>mssr_mask(result, fraction = 0.5, region = NULL, seed = 1)</code></td>
+<td><code>mssr_mask(result, fraction, region = NULL, seed = 1)</code></td>
 <td>logical mask on the input grid with <code>coverage</code>, <code>tie_fraction</code>, <code>n_region</code>
 </td>
+</tr>
+<tr>
+<td><code>mssr_temporal(x, statistic, fwhm, ...)</code></td>
+<td>
+<code>mssr_result</code> with role <code>temporal_&lt;statistic&gt;</code>: a temporal statistic of the per-frame maps of a rows x columns x frames array</td>
+</tr>
+<tr>
+<td><code>mssr_stack(x, fwhm, ...)</code></td>
+<td>stored per-frame maps (<code>mssr_stack</code>) for several temporal statistics</td>
 </tr>
 <tr>
 <td><code>mssr_selftest(tolerance = 1e-10)</code></td>
@@ -171,12 +194,14 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 </tr>
 <tr>
 <td><code>mssr_app(max_upload_mb = 50, ...)</code></td>
-<td>interactive Shiny explorer (needs shiny, bslib and jsonlite): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads</td>
+<td>interactive Shiny explorer (needs shiny, bslib, jsonlite, callr and digest): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads</td>
 </tr>
 </tbody>
 </table>
-<p><code>fwhm</code> is the point-spread-function width in <strong>input pixels</strong> and has no default. Errors inherit from <code>mssrscopR_error</code> (subclasses <code>_input</code>, <code>_nonfinite</code>, <code>_parameter</code>, <code>_resource</code>, <code>_unsupported</code>, <code>_numerical</code>, <code>_dependency</code>); negative input gives a <code>mssrscopR_warning_negative</code> warning, because MSSR assumes non-negative intensities, and undefined refinement steps give a <code>mssrscopR_warning_skipped_steps</code> warning.</p>
-<p>Use plain integer or double inputs; explicitly classed numeric objects must be converted deliberately. Intermediate overflow raises a numerical error. Coordinate and mask consumers check finite values and consistent grid metadata; they do not authenticate image provenance. Positive mask fractions select at least one pixel, but flat maps may yield entirely tie-selected masks. A quota mask is not a cell segmentation.</p>
+<p><code>fwhm</code> is the point-spread-function width in <strong>input pixels</strong> and has no default. An <code>fwhm</code> larger than the PSF’s FWHM enlarges the neighborhood and gives smoother maps with fewer fragments; choose it per data set and record it. Whatever the value, MSSR maps are visual aids, not a basis for segmentation or quantification. Errors inherit from <code>mssrscopR_error</code> (subclasses <code>_input</code>, <code>_nonfinite</code>, <code>_parameter</code>, <code>_resource</code>, <code>_unsupported</code>, <code>_numerical</code>, <code>_dependency</code>); negative input gives a <code>mssrscopR_warning_negative</code> warning, because MSSR assumes non-negative intensities, and undefined refinement steps give a <code>mssrscopR_warning_skipped_steps</code> warning.</p>
+<p>Use plain integer or double inputs; explicitly classed numeric objects must be converted deliberately. The engine scales internally and accumulates local differences to reduce overflow, underflow and cancellation. It reports a numerical error if scaling loses a nonzero input or the final output overflows. Very small intensity-weighted outputs remain subject to subnormal rounding, including zero. This cannot recover precision already lost in the supplied frame.</p>
+<p>A constant background changes the result, also for non-negative input: the order-0 structure map does not depend on it, but every refinement step (<code>order &gt;= 1</code>) compares the map with the input divided by its maximum, and intensity weighting multiplies by the input. Subtracting a background is therefore a preprocessing choice that changes the map; record it with the result. The range normalizer adapts to the largest local difference, so even rounding-level ripple on an otherwise flat frame is stretched to full contrast.</p>
+<p>Coordinate and mask consumers check finite values and consistent grid metadata; they do not authenticate image provenance. Positive mask fractions select at least one pixel. <code>tie_fraction</code> is the share of the selected pixels that random tie-breaking among equal scores (usually exact zeros) decided, and <code>cut_relative</code> the lowest selected score divided by the highest. A large <code>tie_fraction</code> or a <code>cut_relative</code> near 0 means the mask reaches beyond the structure that MSSR found, and <code><a href="reference/mssr_mask.html">mssr_mask()</a></code> warns; choose a smaller <code>fraction</code> or a <code>region</code>. A quota mask is not a cell segmentation.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -201,19 +226,46 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 <span><span class="va">res</span></span>
 <span><span class="fu"><a href="reference/mssr_coords.html">mssr_coords</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">$</span><span class="va">col</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span></span>
 <span></span>
-<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr_mask.html">mssr_mask</a></span><span class="op">(</span><span class="fu"><a href="reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">x</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>, fraction <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span></span>
+<span><span class="co"># A structural mask on the input grid. Only a few percent of this map is</span></span>
+<span><span class="co"># positive, so keep a smaller share than that.</span></span>
+<span><span class="va">r1</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">x</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">r1</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span>          <span class="co"># share of pixels with any structure</span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr_mask.html">mssr_mask</a></span><span class="op">(</span><span class="va">r1</span>, fraction <span class="op">=</span> <span class="fl">0.03</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">x</span><span class="op">[</span><span class="va">m</span><span class="op">]</span><span class="op">)</span>                       <span class="co"># measured on the original frame</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"tie_fraction"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"tie_fraction"</span><span class="op">)</span>          <span class="co"># 0: no pixel was chosen by tie-breaking</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">m</span>, <span class="st">"cut_relative"</span><span class="op">)</span>          <span class="co"># lowest kept score relative to the highest</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="reference/mssr_selftest.html">mssr_selftest</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"all_passed"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Explore parameters interactively (needs shiny, bslib and jsonlite):</span></span>
+<span><span class="co"># Explore parameters interactively (needs shiny, bslib, jsonlite, callr and digest):</span></span>
 <span><span class="co"># mssr_app()</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="temporal-statistics">Temporal statistics<a class="anchor" aria-label="anchor" href="#temporal-statistics"></a>
+</h2>
+<p><code><a href="reference/mssr_temporal.html">mssr_temporal()</a></code> computes MSSR for every frame of a sequence and reduces the maps pixel by pixel with one statistic, as in the article’s temporal MSSR (Fig. 7a, Supplementary Note 5.2). <code><a href="reference/mssr_temporal.html">mssr_stack()</a></code> keeps the per-frame maps so that several statistics need only one MSSR pass.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 40 frames of two blinking emitters with Poisson noise (synthetic).</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>r <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">16</span>, c <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">16</span><span class="op">)</span></span>
+<span><span class="va">spot</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">r0</span>, <span class="va">c0</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="op">(</span><span class="op">(</span><span class="va">g</span><span class="op">$</span><span class="va">r</span> <span class="op">-</span> <span class="va">r0</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="op">(</span><span class="va">g</span><span class="op">$</span><span class="va">c</span> <span class="op">-</span> <span class="va">c0</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="op">(</span><span class="fl">3</span> <span class="op">/</span> <span class="fl">2.3548</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">frames</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">16</span>, <span class="fl">16</span>, <span class="fl">40</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">t</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">40</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">on</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">0.4</span></span>
+<span>  <span class="va">frames</span><span class="op">[</span>, , <span class="va">t</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">256</span>, <span class="fl">20</span> <span class="op">*</span> <span class="op">(</span><span class="va">on</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="fu">spot</span><span class="op">(</span><span class="fl">8</span>, <span class="fl">7</span><span class="op">)</span> <span class="op">+</span> <span class="va">on</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">*</span> <span class="fu">spot</span><span class="op">(</span><span class="fl">8</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr_temporal.html">mssr_stack</a></span><span class="op">(</span><span class="va">frames</span>, fwhm <span class="op">=</span> <span class="fl">3</span>, amp <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">v</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr_temporal.html">mssr_temporal</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"var"</span><span class="op">)</span></span>
+<span><span class="va">k</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr_temporal.html">mssr_temporal</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"sofi2"</span><span class="op">)</span></span>
+<span><span class="va">v</span><span class="op">$</span><span class="va">diagnostics</span><span class="op">$</span><span class="va">mesh_index</span>         <span class="co"># sub-pixel grid, on signal-free pixels only</span></span>
+<span><span class="va">v</span><span class="op">$</span><span class="va">diagnostics</span><span class="op">$</span><span class="va">trend</span>              <span class="co"># raw intensity, last vs first tenth of the frames</span></span></code></pre></div>
+<p>The outputs are temporal statistics of nonlinear structure maps, not quantitative intensities, and no resolution gain is implied. Variance, <code>"cv"</code> and SOFI of per-frame MSSR maps, and higher MSSR orders, can show two maxima where there is a single emitter; sparse, dim data add maxima to every statistic; and with <code>amp &gt; 1</code> signal-free regions show a sub-pixel grid of period <code>amp</code>. TPM equals <code>M^2 * mean^2</code>. The package amplifies with the supplement’s cubic kernel and mesh compensation, not with the Fourier interpolation the article recommends for temporal analysis. Variance, <code>"cv"</code> and SOFI treat bleaching and drift as fluctuation: correct them first and record it; the <code>trend</code> diagnostic only reports them. The “SOFI” of the authors’ tools uses zero-lag or absolute deviations and is a different statistic; see <code><a href="articles/method-concordance.html">vignette("method-concordance")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="relation-to-the-authors-code">Relation to the authors’ code<a class="anchor" aria-label="anchor" href="#relation-to-the-authors-code"></a>
 </h2>
-<p>The authors distribute R, Python, MATLAB and ImageJ code at <a href="https://github.com/adanog/MSSR" class="external-link uri">https://github.com/adanog/MSSR</a>. <code>mssrscopR</code> is an independent implementation and contains none of it. At amplification 1 with intensity normalization off, its output equals the authors’ single-frame R function once that function’s final rotation is undone, and with <code>kernel = "square"</code> their Python function, wherever their code returns finite values. For flat frames and for impulses on an exactly zero background their R function returns <code>NaN</code> and their Python function returns zeros; <code>mssrscopR</code> returns flagged zeros for flat frames and keeps the map, counting the skipped step, for impulses. With intensity normalization on, their R function multiplies the rotated map by the unrotated input, so it matches <code><a href="reference/mssr.html">mssr()</a></code> only for frames that a 90-degree rotation leaves unchanged (and fails for non-square frames). Their R mesh compensation shifts asymmetrically (by <code>desp + 1</code> one way and <code>desp</code> the other); <code>mssrscopR</code> uses the symmetric shifts of their Python code. Amplification uses Keys cubic convolution on a field-of-view-preserving grid, so output for <code>amp &gt; 1</code> differs from the authors’ interpolation.</p>
+<p>The authors distribute R, Python, MATLAB and ImageJ code at <a href="https://github.com/adanog/MSSR" class="external-link uri">https://github.com/adanog/MSSR</a>. <code>mssrscopR</code> is an independent implementation and contains none of it. At amplification 1 with intensity normalization off, comparisons agree on tested non-degenerate examples with the authors’ single-frame R function once its final rotation is undone, and with <code>kernel = "square"</code> their Python function. This is a bounded numerical comparison, not a guarantee for every finite input: the revised engine avoids numerical failures of the direct arithmetic at extreme intensity ranges. For flat frames and for impulses on an exactly zero background their R function returns <code>NaN</code> and their Python function returns zeros; <code>mssrscopR</code> returns flagged zeros for flat frames and keeps the map, counting the skipped step, for impulses. With intensity normalization on, their R function multiplies the rotated map by the unrotated input, so it matches <code><a href="reference/mssr.html">mssr()</a></code> only for frames that a 90-degree rotation leaves unchanged (and fails for non-square frames). Their R mesh compensation shifts asymmetrically (by <code>desp + 1</code> one way and <code>desp</code> the other); <code>mssrscopR</code> uses the symmetric shifts of their Python code. Amplification uses Keys cubic convolution on a field-of-view-preserving grid, so output for <code>amp &gt; 1</code> differs from the authors’ interpolation, also with <code>grid = "endpoint"</code>, which reproduces their sample positions: pixel-wise agreement is not expected.</p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
@@ -239,6 +291,63 @@ measurements on the ORIGINAL frame (your analysis code)</code></pre>
 <p>Where applicable, LLM tools were used for narrowly defined, non-authorial tasks: copyediting, prose refinement, Markdown/LaTeX formatting, boilerplate scaffolding (such as CI configurations and build scripts), and code refactoring. Tools included <a href="https://kisski.gwdg.de/leistungen/2-02-llm-service/" class="external-link">Chat AI</a>, the KISSKI (GWDG) service, and self-hosted <strong>Mistral Small (24B, Apache-2.0)</strong> served through a local <strong>vLLM architecture</strong> on an Ubuntu Linux workstation with Intel processors and NVIDIA GPUs. The self-hosted model ran locally, with no data sent to third parties.</p>
 <p>All scientific claims, methodological choices, analyses, interpretations and conclusions remain the authors’ own. Where applicable, LLM-generated material must be reviewed and revised before inclusion, and references must be verified against their DOI, arXiv ID or ISBN.</p>
 <p>Local software setup: vLLM with Python/PyTorch, plus R and RStudio.</p>
+</div>
+<div class="section level2">
+<h2 id="inspect-preserve-and-resume-results">Inspect, preserve and resume results<a class="anchor" aria-label="anchor" href="#inspect-preserve-and-resume-results"></a>
+</h2>
+<p>The development interface adds <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> and <code><a href="reference/mssr_validate_result.html">mssr_validate_result()</a></code> for result inspection. Results carry a separate schema version, engine/package identity and an explicit evidence scope. Unknown acquisition calibration stays unknown; arbitrary matrix attributes are not copied into outputs.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">120</span><span class="op">)</span>, <span class="fl">10</span>, <span class="fl">12</span><span class="op">)</span></span>
+<span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr.html">mssr</a></span><span class="op">(</span><span class="va">x</span>, fwhm <span class="op">=</span> <span class="fl">3</span>, order <span class="op">=</span> <span class="fl">1</span>, max_memory_bytes <span class="op">=</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/mssr_validate_result.html">mssr_validate_result</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/mssr_estimate_resources.html">mssr_estimate_resources</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>, fwhm <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Optional packages digest and jsonlite are needed only for file exchange/batches.</span></span>
+<span><span class="co"># Paths are explicit and output replacement is refused by default.</span></span>
+<span><span class="co"># mssr_write_result(r, "frame.mssr")</span></span>
+<span><span class="co"># restored &lt;- mssr_read_result("frame.mssr")</span></span>
+<span><span class="co"># run &lt;- mssr_batch(list(frame_a = x, frame_b = t(x)), "batch-output",</span></span>
+<span><span class="co">#                   settings = list(fwhm = 3, order = 1))</span></span></code></pre></div>
+<p>Result files preserve exact binary64 values with SHA-256 integrity checks and bounded, non-executable metadata parsing. Readback establishes consistency, not source authenticity or biological validity. Batch processing is sequential: complete frames, verified reuse, retained failed/cancelled rows and separate attempt files. Cancellation takes effect between frames. The returned table’s <code>run_record</code> attribute identifies the durable invocation summary.</p>
+<p>The allocation model was calibrated on the peak RSS of fresh R processes on one Linux machine over 65,536–16,777,216 output pixels (amplification 1–4, orders 0–3, mesh and weighting on and off, both kernels), where it exceeded every measured peak by 30–220 %, least for order 3 with mesh and weighting. It includes a 128 MiB runtime allowance. Garbage collection, larger workloads, other platforms and retained objects can change RSS; this is not an OS memory cap.</p>
+<div class="section level3">
+<h3 id="recompute-a-saved-result">Recompute a saved result<a class="anchor" aria-label="anchor" href="#recompute-a-saved-result"></a>
+</h3>
+<p><code><a href="reference/mssr_settings.html">mssr_settings()</a></code> validates a result and returns the eight resolved computation arguments, including its grid. Use it instead of passing <code>result$parameters</code> directly: that field includes the derived <code>half_size</code> and omits the grid. Resolved settings describe what ran; for example, mesh compensation is recorded as off at amplification 1. Resource budgets must be set explicitly for replay.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Continue from x and r above; keep the original input separately.</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"digest"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"jsonlite"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".mssr"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="reference/mssr_result_io.html">mssr_write_result</a></span><span class="op">(</span><span class="va">r</span>, <span class="va">path</span><span class="op">)</span></span>
+<span>  <span class="va">restored</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mssr_result_io.html">mssr_read_result</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">restored</span><span class="op">$</span><span class="va">engine</span><span class="op">$</span><span class="va">package_version</span>,</span>
+<span>                      <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/packageDescription.html" class="external-link">packageVersion</a></span><span class="op">(</span><span class="st">"mssrscopR"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">replay</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">mssr</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, max_output_pixels <span class="op">=</span> <span class="fl">5e7</span>, max_memory_bytes <span class="op">=</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">3</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="reference/mssr_settings.html">mssr_settings</a></span><span class="op">(</span><span class="va">restored</span><span class="op">)</span></span>
+<span>  <span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">replay</span><span class="op">$</span><span class="va">values</span>, <span class="va">restored</span><span class="op">$</span><span class="va">values</span><span class="op">)</span>,</span>
+<span>            <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">replay</span><span class="op">$</span><span class="va">transform</span>, <span class="va">restored</span><span class="op">$</span><span class="va">transform</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>This demonstration retains the original input in memory. For a durable analysis, preserve it in trusted storage together with its identity, preprocessing, channel/frame selection, acquisition information, and mask region, fraction and seed. These are not stored in the <code>.mssr</code> result. Preserve the package artifact and runtime environment too. <code><a href="reference/mssr_settings.html">mssr_settings()</a></code> refuses records from other numerical engines; it does not migrate them. Matching engine/settings alone does not guarantee identical arithmetic across package versions or environments, so compare the recomputed values as above. See the vignette for a worked example that also reproduces the original-data measurement.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="numerical-qualification-boundary">Numerical qualification boundary<a class="anchor" aria-label="anchor" href="#numerical-qualification-boundary"></a>
+</h2>
+<p>The portable kit in <code>tools/qualification/</code> evaluates independent high-precision references and keeps failing cases visible. The current bounded core contains 76 passing cases at orders 0–3; this does not establish accuracy for every possible input or parameter combination. Across the wider 98-case sample, two order-10 cases exceed the unchanged tolerance. Small perturbations can be strongly amplified by repeated nonlinear refinement. Orders above 3 therefore produce an explicit qualification warning and remain experimental.</p>
+<p>A small map difference does not guarantee an identical mask: near a cutoff, score perturbations can change selected pixels and measurements made on the original frame. A fixed retained fraction is a quota, not a detector threshold, probability or confidence score. Always inspect retained coverage, cutoff ties, parameter sensitivity and the consequences for the original-data measurement.</p>
+</div>
+<div class="section level2">
+<h2 id="background-app-computation">Background app computation<a class="anchor" aria-label="anchor" href="#background-app-computation"></a>
+</h2>
+<p>The app runs one owned background R job per session. <strong>Cancel computation</strong> stops that job; pending, failed or cancelled work cannot be downloaded. <strong>Restore previous completed result</strong> recovers the prior input, settings and mask with an explicit restored-state label. Controls edited while a job runs do not change its captured inputs. Current mask controls can update a normally completed result; restored results retain their previous mask settings.</p>
+<p>Jobs stop when the session closes or after five minutes. They inherit CPU constraints and use one numerical thread. The app verifies package files and loaded function definitions in the child, preventing an unnoticed switch to an older installed version. Development-source launches additionally need pkgload; installed packages do not. Dependencies are never installed automatically.</p>
+<p>The app’s Run record uses schema 1.1.0 and includes SHA-256 identities for the uploaded file bytes and decoded frame. It retains neither the filename nor the local path. Keep the source file separately: these hashes establish content identity, not authenticity or acquisition provenance. You can compare the raw file hash with <code>digest::digest(file = "your-frame.csv", algo = "sha256", serialize = FALSE)</code>.</p>
+<p>The decoded-frame format <code>mssr-input-binary64-v1</code> hashes this concatenation: the ASCII tag <code>mssr-input-binary64-v1</code> followed by a newline, two little-endian signed 32-bit integers (row count, then column count), and all finite samples as little-endian IEEE-754 binary64 values in column-major order. Matrix attributes are excluded. Equal decoded frames from different file encodings have the same frame hash, while their uploaded-file hashes can differ.</p>
 </div>
 <div class="section level2">
 <h2 id="branding">Branding<a class="anchor" aria-label="anchor" href="#branding"></a>

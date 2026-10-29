@@ -21,7 +21,8 @@ mssr(
   grid = c("extent", "endpoint"),
   kernel = c("disk", "square"),
   rounding = c("half_even", "half_up"),
-  max_output_pixels = 5e+07
+  max_output_pixels = 5e+07,
+  max_memory_bytes = NULL
 )
 ```
 
@@ -30,13 +31,26 @@ mssr(
 - x:
 
   A plain integer or double matrix (rows = y, columns = x) with finite
-  values and no explicit class.
+  values and no explicit class. Input dimnames and other attributes are
+  discarded; acquisition metadata are never inferred from attributes.
 
 - fwhm:
 
   Full width at half maximum of the point-spread function, in **input
   pixels**. Required; there is no default because it is a property of
-  the acquisition.
+  the acquisition. Prefer a measured PSF: a theoretical value such as
+  `0.51 * wavelength / NA` (emission wavelength, divided by the pixel
+  size) describes an ideal widefield system, and aberrations, defocus
+  and pixel size can widen the recorded PSF. Under noise an `fwhm` below
+  the true PSF makes false peaks more likely, while a larger one gives a
+  shallower dip between close sources; when unsure, choose the larger
+  plausible value. An `fwhm` larger than the PSF's FWHM enlarges the
+  neighborhood and gives smoother maps with fewer fragments; choose it
+  per data set and record it. Whatever the value, MSSR maps are visual
+  aids, not a basis for segmentation or quantification. Only the kernel
+  half-size, `0.5 * fwhm * amp` rounded as set by `rounding` and at
+  least 1 (recorded in `parameters$half_size`), enters the computation,
+  so nearby values can give identical results.
 
 - amp:
 
@@ -44,7 +58,11 @@ mssr(
 
 - order:
 
-  MSSR order (whole number from 0 to 10).
+  MSSR order (whole number from 0 to 10). Orders above 3 are
+  experimental: bounded high-precision checks found larger errors at
+  order 10. They emit `mssrscopR_warning_unqualified_order`. Checks at
+  orders 0 through 3 cover only the documented synthetic domain, not
+  every input.
 
 - intensity_normalize:
 
@@ -75,6 +93,12 @@ mssr(
 
   Upper limit on output pixels, checked before any computation.
 
+- max_memory_bytes:
+
+  Optional positive allocation-estimate ceiling. `NULL` leaves this
+  guard disabled. This is not a hard process-memory cap; see
+  [`mssr_estimate_resources()`](https://cttir.github.io/mssrscopR/reference/mssr_estimate_resources.md).
+
 ## Value
 
 An object of class `mssr_result`: a list with `values` (numeric matrix),
@@ -84,7 +108,11 @@ An object of class `mssr_result`: a list with `values` (numeric matrix),
 spacing (input-pixel units), and `field_of_view`: the input frame's
 extent from pixel edge 0.5 to `n + 0.5`. Output samples cover it exactly
 on the extent grid; on the endpoint grid they span only the first to the
-last input pixel center. The input is not stored.
+last input pixel center. The input is not stored. `schema_version`
+identifies the result contract separately from the numerical engine;
+`input` records known axes and unknown calibration; `evidence`
+identifies the numerical-only scope. Qualification diagnostics disclose
+conservative high-order limits without assigning confidence.
 
 ## Details
 
@@ -95,51 +123,80 @@ spacing is exactly `1 / amp`. Amplification adds samples, not
 independent observations.
 
 **Relation to the authors' code.** At `amp = 1` with
-`intensity_normalize = FALSE`, the output equals the authors'
-single-frame R function after its final 90-degree rotation is undone
-(`kernel = "disk"`) or their Python function (`kernel = "square"`),
-wherever their code returns finite values, except for undefined
-refinement steps (see below). For `amp > 1`, Keys cubic convolution is
-used, which is not numerically identical to the authors' interpolation.
-With the default `intensity_normalize = TRUE` their R function
-multiplies the rotated map by the unrotated input, so it agrees with
-`mssr()` only for frames that a 90-degree rotation leaves unchanged (and
-fails for non-square frames).
+`intensity_normalize = FALSE`, tested non-degenerate examples agree with
+the authors' single-frame R function after its final 90-degree rotation
+is undone (`kernel = "disk"`) or their Python function
+(`kernel = "square"`) within floating-point tolerance. Extreme numeric
+ranges and undefined refinement steps can differ (see below). For
+`amp > 1`, `mssr()` uses the supplement's cubic kernel (Keys cubic
+convolution, a = -1/2). The authors' R script interpolates with akima's
+Akima method and their Python script with a SciPy spline, and their R
+mesh shifts asymmetrically, so the amplified input already differs
+beyond rounding; MSSR's range normalization and refinement are nonlinear
+and can enlarge such differences locally. Do not expect pixel-wise
+agreement with their amplified maps, even with `grid = "endpoint"`,
+which reproduces their sample positions. With the default
+`intensity_normalize = TRUE` their R function multiplies the rotated map
+by the unrotated input, so it agrees with `mssr()` only for frames that
+a 90-degree rotation leaves unchanged (and fails for non-square frames).
+
+**Several channels or bands.** `mssr()` processes one 2D frame. Applied
+to each channel or band of multichannel or spectral data, it gives every
+channel its own nonlinear structure map, scaled by that channel's
+maxima. Intensity-weighted outputs (the default) are guaranteed to keep
+the channels' intensity ratios only when one whole frame, background
+included, is a scaled copy of another; a different background or another
+object elsewhere in the frame can change the ratios, and the structure
+maps (`intensity_normalize = FALSE`) of scaled copies are identical. So
+do not compare channels, form ratios or indices, or assemble spectra
+from the outputs; measure them on the original data.
 
 **Degenerate input.** A flat frame, a frame whose amplified maximum is
-not positive, and a frame without any positive mean shift return zeros
-with `diagnostics$degenerate = TRUE` and a `degenerate_reason`. A
-refinement step (`order >= 1`) is undefined when the mean-shift map
-already equals the normalized input, for example for isolated impulses
-on an exactly zero background. Such a step leaves the map unchanged, is
-counted in `diagnostics$order_steps_skipped` and gives a warning of
-class `mssrscopR_warning_skipped_steps`: the result is not the limit for
-slightly perturbed input, because any positive background makes the step
-defined and changes the map. The authors' R function returns `NaN` in
-all of these cases; their Python function returns zeros, which equals
-`mssr()` for the degenerate frames but not for skipped refinement steps.
+not positive, a frame without any positive mean shift and a refinement
+step that leaves no positive value (possible only with signed input)
+return zeros with `diagnostics$degenerate = TRUE` and a
+`degenerate_reason`. A refinement step (`order >= 1`) is undefined when
+the mean-shift map already equals the normalized input, for example for
+isolated impulses on an exactly zero background. Such a step leaves the
+map unchanged, is counted in `diagnostics$order_steps_skipped` and gives
+a warning of class `mssrscopR_warning_skipped_steps`: the result is not
+the limit for slightly perturbed input, because any positive background
+makes the step defined and changes the map. The authors' R function
+returns `NaN` in all of these cases; their Python function returns
+zeros, which equals `mssr()` for the degenerate frames but not for
+skipped refinement steps.
 
-**Negative values.** MSSR assumes non-negative intensities. With
-negative input the structure map depends on the offset of the data and
-intensity-weighted output can be negative, so a warning of class
-`mssrscopR_warning_negative` is given.
+**Negative values and background.** MSSR assumes non-negative
+intensities. Negative input gives a warning of class
+`mssrscopR_warning_negative`, and intensity-weighted output can then be
+negative. Non-negative input is not free of offset effects either: the
+order-0 structure map (`intensity_normalize = FALSE`) does not change
+with a constant background, but every refinement step (`order >= 1`)
+compares the map with the input divided by its maximum, which a
+background changes, and intensity weighting multiplies by the input.
+Subtracting a background is therefore a preprocessing choice that
+changes the result; record it with the result. The range normalizer
+adapts to the largest local difference at each pixel, so even
+rounding-level ripple on an otherwise flat frame is stretched to full
+contrast: only an exactly flat frame is degenerate.
 
 **Numeric domain.** Input and numeric parameters must use plain integer
 or double storage, without explicit classes. Convert calibrated or other
-classed data deliberately before calling. Finite input can still
-overflow intermediate arithmetic; this raises
-`mssrscopR_error_numerical` rather than returning an invalid or
-misleading zero map. Extreme underflow is not a calibrated intensity
-regime; retain any input rescaling in provenance. A large constant
-offset relative to the signal's variation (for example 1e12 added to
-values that vary by 1) costs accuracy through cancellation; subtract
-such offsets first.
+classed data deliberately before calling. The engine uses internal
+power-of-two scaling, centered interpolation for non-negative input and
+weighted local differences to limit overflow, underflow and
+cancellation. A nonzero input lost during scaling or an overflowing
+final result raises `mssrscopR_error_numerical`. Rounding already
+present in the supplied data cannot be recovered. Intensity-weighted
+output is rescaled to the original numeric units but remains
+non-quantitative; subnormal output still has limited precision and can
+round to zero.
 
 **Cost.** Every order step uses image-wide maxima, so frames must be
 processed whole. Time grows with the number of output pixels times the
 number of neighborhood offsets (about `pi * h^2` for the disk kernel and
-`(2 * h + 1)^2 - 1` for the square kernel, with half-size
-`h = round(0.5 * fwhm * amp)`). Calls whose estimated work exceeds 1e10
+`(2 * h + 1)^2 - 1` for the square kernel, with half-size `h`, recorded
+in `parameters$half_size`). Calls whose estimated work exceeds 1e10
 operations, whose output exceeds `max_output_pixels`, or whose kernel
 half-size exceeds 1000 pixels are refused before computing.
 
@@ -153,7 +210,10 @@ within a single imaging frame. *Nature Communications* 2022;13:7452.
 
 [`mssr_coords()`](https://cttir.github.io/mssrscopR/reference/mssr_coords.md),
 [`mssr_mask()`](https://cttir.github.io/mssrscopR/reference/mssr_mask.md),
-[`mssr_selftest()`](https://cttir.github.io/mssrscopR/reference/mssr_selftest.md)
+[`mssr_selftest()`](https://cttir.github.io/mssrscopR/reference/mssr_selftest.md),
+and
+[`mssr_temporal()`](https://cttir.github.io/mssrscopR/reference/mssr_temporal.md)
+for temporal statistics of a frame sequence
 
 ## Examples
 
@@ -167,7 +227,7 @@ res
 #> <mssr_result> intensity_weighted_structure
 #>   input 21 x 25 -> output 42 x 50 (amp 2, extent grid)
 #>   fwhm 3 px, order 1, kernel disk (half-size 3), mesh TRUE
-#>   engine mssr_r_rev2; zero fraction 0.490
+#>   engine mssr_r_rev3; zero fraction 0.498
 #>   Not a quantitative intensity: measure on the original data.
 dim(as.matrix(res))
 #> [1] 42 50

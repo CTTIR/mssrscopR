@@ -22,9 +22,10 @@ data (see mssr_mask())."><meta property="og:image" content="https://cttir.github
 
     <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
+    <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="../index.html"><img src="../logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="../reference/figures/logo-dark.svg">mssrscopR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +36,11 @@ data (see mssr_mask())."><meta property="og:image" content="https://cttir.github
       <ul class="navbar-nav me-auto"></ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/temporal.html">Temporal statistics of MSSR maps</a></li>
+    <li><a class="dropdown-item" href="../articles/method-concordance.html">Method concordance</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/CTTIR/mssrscopR/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
 <li class="nav-item dropdown">
@@ -76,7 +82,8 @@ data (see <code><a href="mssr_mask.html">mssr_mask()</a></code>).</p>
 <span>  grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"extent"</span>, <span class="st">"endpoint"</span><span class="op">)</span>,</span>
 <span>  kernel <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"disk"</span>, <span class="st">"square"</span><span class="op">)</span>,</span>
 <span>  rounding <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"half_even"</span>, <span class="st">"half_up"</span><span class="op">)</span>,</span>
-<span>  max_output_pixels <span class="op">=</span> <span class="fl">5e+07</span></span>
+<span>  max_output_pixels <span class="op">=</span> <span class="fl">5e+07</span>,</span>
+<span>  max_memory_bytes <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -86,13 +93,26 @@ data (see <code><a href="mssr_mask.html">mssr_mask()</a></code>).</p>
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>A plain integer or double matrix (rows = y, columns = x) with
-finite values and no explicit class.</p></dd>
+finite values and no explicit class. Input dimnames and other attributes
+are discarded; acquisition metadata are never inferred from attributes.</p></dd>
 
 
 <dt id="arg-fwhm">fwhm<a class="anchor" aria-label="anchor" href="#arg-fwhm"></a></dt>
 <dd><p>Full width at half maximum of the point-spread function, in
 <strong>input pixels</strong>. Required; there is no default because it is a property
-of the acquisition.</p></dd>
+of the acquisition. Prefer a measured PSF: a theoretical value such as
+<code>0.51 * wavelength / NA</code> (emission wavelength, divided by the pixel size)
+describes an ideal widefield system, and aberrations, defocus and pixel
+size can widen the recorded PSF. Under noise an <code>fwhm</code> below the true PSF
+makes false peaks more likely, while a larger one gives a shallower dip
+between close sources; when unsure, choose the larger plausible value. An
+<code>fwhm</code> larger than the PSF's FWHM enlarges the neighborhood and gives
+smoother maps with fewer fragments; choose it per data set and record it.
+Whatever the value, MSSR maps are visual aids, not a basis for segmentation
+or quantification. Only
+the kernel half-size, <code>0.5 * fwhm * amp</code> rounded as set by <code>rounding</code> and at
+least 1 (recorded in <code>parameters$half_size</code>), enters the computation, so
+nearby values can give identical results.</p></dd>
 
 
 <dt id="arg-amp">amp<a class="anchor" aria-label="anchor" href="#arg-amp"></a></dt>
@@ -100,7 +120,10 @@ of the acquisition.</p></dd>
 
 
 <dt id="arg-order">order<a class="anchor" aria-label="anchor" href="#arg-order"></a></dt>
-<dd><p>MSSR order (whole number from 0 to 10).</p></dd>
+<dd><p>MSSR order (whole number from 0 to 10). Orders above 3
+are experimental: bounded high-precision checks found larger errors at
+order 10. They emit <code>mssrscopR_warning_unqualified_order</code>. Checks at orders
+0 through 3 cover only the documented synthetic domain, not every input.</p></dd>
 
 
 <dt id="arg-intensity-normalize">intensity_normalize<a class="anchor" aria-label="anchor" href="#arg-intensity-normalize"></a></dt>
@@ -132,6 +155,12 @@ code does; for comparison only).</p></dd>
 <dd><p>Upper limit on output pixels, checked before any
 computation.</p></dd>
 
+
+<dt id="arg-max-memory-bytes">max_memory_bytes<a class="anchor" aria-label="anchor" href="#arg-max-memory-bytes"></a></dt>
+<dd><p>Optional positive allocation-estimate ceiling.
+<code>NULL</code> leaves this guard disabled. This is not a hard process-memory cap;
+see <code><a href="mssr_estimate_resources.html">mssr_estimate_resources()</a></code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -143,7 +172,10 @@ and the spacing (input-pixel units), and <code>field_of_view</code>: the input f
 extent from pixel edge 0.5 to <code>n + 0.5</code>. Output samples cover it exactly on
 the extent grid; on the endpoint grid they span only the first to the last
 input pixel center. The input is not
-stored.</p>
+stored. <code>schema_version</code> identifies the result contract separately from
+the numerical engine; <code>input</code> records known axes and unknown calibration;
+<code>evidence</code> identifies the numerical-only scope. Qualification diagnostics
+disclose conservative high-order limits without assigning confidence.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -152,17 +184,35 @@ stored.</p>
 pixel centers lie at <code>(k - 0.5) / amp + 0.5</code> input pixels, so the spacing is
 exactly <code>1 / amp</code>. Amplification adds samples, not independent observations.</p>
 <p><strong>Relation to the authors' code.</strong> At <code>amp = 1</code> with
-<code>intensity_normalize = FALSE</code>, the output equals the authors' single-frame R
-function after its final 90-degree rotation is undone (<code>kernel = "disk"</code>) or
-their Python function (<code>kernel = "square"</code>), wherever their code returns
-finite values, except for undefined refinement steps (see below). For
-<code>amp &gt; 1</code>, Keys cubic convolution is used, which is not numerically
-identical to the authors' interpolation. With the default
+<code>intensity_normalize = FALSE</code>, tested non-degenerate examples agree with
+the authors' single-frame R function after its final 90-degree rotation is
+undone (<code>kernel = "disk"</code>) or
+their Python function (<code>kernel = "square"</code>) within floating-point tolerance.
+Extreme numeric ranges and undefined refinement steps can differ (see below). For
+<code>amp &gt; 1</code>, <code>mssr()</code> uses the supplement's cubic kernel (Keys cubic
+convolution, a = -1/2). The authors' R script interpolates with akima's Akima
+method and their Python script with a SciPy spline, and their R mesh shifts
+asymmetrically, so the amplified input already differs beyond rounding;
+MSSR's range normalization and refinement are nonlinear and can enlarge such
+differences locally. Do not expect pixel-wise agreement with their amplified
+maps, even with <code>grid = "endpoint"</code>, which reproduces their sample positions.
+With the default
 <code>intensity_normalize = TRUE</code> their R function multiplies the rotated map by
 the unrotated input, so it agrees with <code>mssr()</code> only for frames that a
 90-degree rotation leaves unchanged (and fails for non-square frames).</p>
+<p><strong>Several channels or bands.</strong> <code>mssr()</code> processes one 2D frame. Applied to
+each channel or band of multichannel or spectral data, it gives every channel
+its own nonlinear structure map, scaled by that channel's maxima.
+Intensity-weighted outputs (the default) are guaranteed to keep the channels'
+intensity ratios only when one whole frame, background included, is a scaled
+copy of another; a different background or another object elsewhere in the
+frame can change the ratios, and the structure maps
+(<code>intensity_normalize = FALSE</code>) of scaled copies are identical. So do not
+compare channels, form ratios or indices, or assemble spectra from the
+outputs; measure them on the original data.</p>
 <p><strong>Degenerate input.</strong> A flat frame, a frame whose amplified maximum is not
-positive, and a frame without any positive mean shift return zeros with
+positive, a frame without any positive mean shift and a refinement step that
+leaves no positive value (possible only with signed input) return zeros with
 <code>diagnostics$degenerate = TRUE</code> and a <code>degenerate_reason</code>. A refinement step
 (<code>order &gt;= 1</code>) is undefined when the mean-shift map already equals the
 normalized input, for example for isolated impulses on an exactly zero
@@ -173,24 +223,33 @@ perturbed input, because any positive background makes the step defined and
 changes the map. The authors' R function returns <code>NaN</code> in
 all of these cases; their Python function returns zeros, which equals
 <code>mssr()</code> for the degenerate frames but not for skipped refinement steps.</p>
-<p><strong>Negative values.</strong> MSSR assumes non-negative intensities. With negative
-input the structure map depends on the offset of the data and
-intensity-weighted output can be negative, so a warning of class
-<code>mssrscopR_warning_negative</code> is given.</p>
+<p><strong>Negative values and background.</strong> MSSR assumes non-negative intensities.
+Negative input gives a warning of class <code>mssrscopR_warning_negative</code>, and
+intensity-weighted output can then be negative. Non-negative input is not
+free of offset effects either: the order-0 structure map
+(<code>intensity_normalize = FALSE</code>) does not change with a constant background,
+but every refinement step (<code>order &gt;= 1</code>) compares the map with the input
+divided by its maximum, which a background changes, and intensity weighting
+multiplies by the input. Subtracting a background is therefore a
+preprocessing choice that changes the result; record it with the result.
+The range normalizer adapts to the largest local difference at each pixel,
+so even rounding-level ripple on an otherwise flat frame is stretched to
+full contrast: only an exactly flat frame is degenerate.</p>
 <p><strong>Numeric domain.</strong> Input and numeric parameters must use plain integer or
 double storage, without explicit classes. Convert calibrated or other
-classed data deliberately before calling. Finite input can still overflow
-intermediate arithmetic; this raises <code>mssrscopR_error_numerical</code> rather than
-returning an invalid or misleading zero map. Extreme underflow is not a
-calibrated intensity regime; retain any input rescaling in provenance. A
-large constant offset relative to the signal's variation (for example 1e12
-added to values that vary by 1) costs accuracy through cancellation;
-subtract such offsets first.</p>
+classed data deliberately before calling. The engine uses internal
+power-of-two scaling, centered interpolation for non-negative input and
+weighted local differences to limit overflow, underflow and cancellation.
+A nonzero input lost during scaling or an overflowing final result
+raises <code>mssrscopR_error_numerical</code>. Rounding already present in the supplied
+data cannot be recovered. Intensity-weighted output is rescaled to
+the original numeric units but remains non-quantitative; subnormal output
+still has limited precision and can round to zero.</p>
 <p><strong>Cost.</strong> Every order step uses image-wide maxima, so frames must be
 processed whole. Time grows with the number of output pixels times the
 number of neighborhood offsets (about <code>pi * h^2</code> for the disk kernel and
-<code>(2 * h + 1)^2 - 1</code> for the square kernel, with half-size
-<code>h = round(0.5 * fwhm * amp)</code>). Calls whose
+<code>(2 * h + 1)^2 - 1</code> for the square kernel, with half-size <code>h</code>, recorded in
+<code>parameters$half_size</code>). Calls whose
 estimated work exceeds 1e10 operations, whose output exceeds
 <code>max_output_pixels</code>, or whose kernel half-size exceeds 1000 pixels are
 refused before computing.</p>
@@ -203,7 +262,8 @@ resolution within a single imaging frame. <em>Nature Communications</em>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="mssr_coords.html">mssr_coords()</a></code>, <code><a href="mssr_mask.html">mssr_mask()</a></code>, <code><a href="mssr_selftest.html">mssr_selftest()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="mssr_coords.html">mssr_coords()</a></code>, <code><a href="mssr_mask.html">mssr_mask()</a></code>, <code><a href="mssr_selftest.html">mssr_selftest()</a></code>, and
+<code><a href="mssr_temporal.html">mssr_temporal()</a></code> for temporal statistics of a frame sequence</p></div>
     </div>
 
     <div class="section level2">
@@ -217,7 +277,7 @@ resolution within a single imaging frame. <em>Nature Communications</em>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;mssr_result&gt; intensity_weighted_structure</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   input 21 x 25 -&gt; output 42 x 50 (amp 2, extent grid)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   fwhm 3 px, order 1, kernel disk (half-size 3), mesh TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   engine mssr_r_rev2; zero fraction 0.490</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   engine mssr_r_rev3; zero fraction 0.498</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Not a quantitative intensity: measure on the original data.</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 42 50</span>

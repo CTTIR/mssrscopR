@@ -12,9 +12,10 @@
 
     <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
+    <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="../index.html"><img src="../logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="../reference/figures/logo-dark.svg">mssrscopR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,6 +26,11 @@
       <ul class="navbar-nav me-auto"></ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/temporal.html">Temporal statistics of MSSR maps</a></li>
+    <li><a class="dropdown-item" href="../articles/method-concordance.html">Method concordance</a></li>
+  </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/CTTIR/mssrscopR/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
 <li class="nav-item dropdown">
@@ -44,6 +50,66 @@
       <small>Source: <a href="https://github.com/CTTIR/mssrscopR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="mssrscopr-020">mssrscopR 0.2.0<a class="anchor" aria-label="anchor" href="#mssrscopr-020"></a></h2>
+<p>This release collects every development version since 0.1.0 (0.1.0.9000 to 0.1.0.9005); 0.1.0 itself was never tagged.</p>
+<div class="section level3">
+<h3 id="breaking-changes-0-2-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-2-0"></a></h3>
+<ul><li>The engine definition is <code>mssr_r_rev3</code>, which replaces <code>mssr_r_rev2</code> of 0.1.0 and the earlier <code>mssr_r_rev1</code>. The bundled fixture values are unchanged, but final rounding can differ. <code><a href="../reference/mssr_settings.html">mssr_settings()</a></code> refuses to replay records of the older engines, since no engine migration is inferred; <code><a href="../reference/mssr_validate_result.html">mssr_validate_result()</a></code> and <code><a href="../reference/mssr_result_io.html">mssr_read_result()</a></code> keep their engine identity.</li>
+<li>
+<code><a href="../reference/mssr_mask.html">mssr_mask()</a></code> requires <code>fraction</code>; it has no default any more. The former default of 0.5 selected exact zeros on typical maps and so mostly gave masks decided by tie-breaking; callers now choose the share, ideally below the share of positive map values.</li>
+<li>Temporal records use result schema 1.1.0; single-frame results keep schema 1.0.0, and files written by earlier versions still read. Temporal records written by the unreleased 0.1.0.9005 development builds, whose diagnostics differed, are refused.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="temporal-statistics-0-2-0">Temporal statistics<a class="anchor" aria-label="anchor" href="#temporal-statistics-0-2-0"></a></h3>
+<ul><li>New <code><a href="../reference/mssr_temporal.html">mssr_temporal()</a></code> computes temporal statistics of per-frame MSSR maps (temporal MSSR, article Fig. 7a and Supplementary Note 5.2) with the definitions of Supplementary Table S2: mean, population variance, TPM (the squared frame sum, <code>M^2 * mean^2</code>), the supplement’s “CV” (<code>Var / Mean</code>, an index of dispersion that takes the sign of the mean) and lagged, signed SOFI cumulants of orders 2 to 4, optionally as absolute values. <code><a href="../reference/mssr_temporal.html">mssr_stack()</a></code> stores the per-frame maps so that several statistics need MSSR only once per frame. Statistics are formed from centered deviations in a power-of-two scaled range; the stored and recomputed computation paths give the same values. There is no default statistic, and no resolution gain is implied: the help and <code><a href="../articles/temporal.html">vignette("temporal")</a></code> describe spurious splitting, the effect of sparse dim data and of slow trends, and the sub-pixel grid of amplified data. The “SOFI” of the authors’ Python, MATLAB and Fiji tools uses zero-lag or absolute deviations and is a different statistic; the method concordance lists the differences. Fourier interpolation is not implemented.</li>
+<li>Temporal results report <code>mesh_index</code>, the sub-pixel grid measured on signal-free input pixels (strictly below the median of the raw temporal mean, or a supplied <code>background</code> mask), with <code>mesh_region</code> and <code>mesh_pixels</code> naming the pixels used, and <code>trend</code>, the raw intensity of the last tenth of the frames relative to the first tenth. Both are diagnostics only. The mesh index is formed only on the default <code>grid = "extent"</code>, uses absolute values for the SOFI statistics, and is labelled <code>"below_median_stack"</code> for a frame subset of an <code>mssr_stack</code>, whose stored raw mean covers all its frames. <code>background</code> therefore requires <code>amp &gt; 1</code> on the extent grid and is refused with a classed error otherwise.</li>
+<li>Raw frames are checked and averaged one at a time, so the input array is not copied, and the memory estimate is checked before any frame is read and counts the raw mean and one raw frame; stored maps are counted twice, a margin for the garbage R lets grow with the live heap. Stored maps are filled in place. <code><a href="../reference/mssr_temporal.html">mssr_stack()</a></code> refuses maps above 2 GiB (with that margin) unless <code>max_memory_bytes</code> allows them; for an <code>mssr_stack</code>, <code>max_memory_bytes</code> limits the reduction’s buffers. A temporal statistic that would underflow to zero is refused like one that overflows.</li>
+<li>Result schema 1.1.0 adds temporal records; <code><a href="../reference/mssr_validate_result.html">mssr_validate_result()</a></code>, <code><a href="../reference/mssr_result_io.html">mssr_write_result()</a></code>, <code><a href="../reference/mssr_result_io.html">mssr_read_result()</a></code>, <code><a href="../reference/mssr_settings.html">mssr_settings()</a></code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> and <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> handle them. Single-frame results keep schema 1.0.0, and files written by earlier versions still read.</li>
+<li>
+<code><a href="../reference/mssr_estimate_resources.html">mssr_estimate_resources()</a></code> gains <code>frames</code> and <code>statistic</code> and then also estimates the stored and recomputed paths of a temporal call.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="engine-numerics-and-resources-0-2-0">Engine, numerics and resources<a class="anchor" aria-label="anchor" href="#engine-numerics-and-resources-0-2-0"></a></h3>
+<ul><li>Engine <code>mssr_r_rev3</code> uses internal power-of-two scaling, centered interpolation and weighted local differences to reduce overflow, underflow and cancellation. Existing expected fixture values are unchanged. Background subtraction is still a distinct preprocessing choice; higher-order MSSR is not invariant to additive background.</li>
+<li>The two neighborhood passes of engine <code>mssr_r_rev3</code> (range normalizer and weighted mean shift) now run in compiled C code. They form the same sums in the same order as before and round every product before adding it, so results agree with the R passes to within 1e-12 of the map maximum; whether they are bitwise identical depends on the platform and the R version, since R’s own <code><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp()</a></code> can differ from the system’s in the last bit. The R passes are kept as an internal reference, and the tests and the qualification kit compare the two. No offset stack is held in memory, so peak memory falls, and frames run about 2 to 4 times faster; the gain grows with the neighborhood size, and the remaining time is mostly the weight’s exponential. The computation stays single-threaded and can still be interrupted. The engine identity is unchanged; the package version identifies the implementation.</li>
+<li>A refinement step that leaves no positive value (possible only with signed input) now returns a degenerate result with reason <code>"zero refinement map"</code> instead of an unflagged all-zero map.</li>
+<li>Expanded independent numerical qualification. Orders above 3 now warn that they are outside the bounded qualified core; two order-10 cases fail the unchanged tolerance. The engine equations and frozen fixtures are unchanged.</li>
+<li>Added a calibrated allocation estimate, opt-in memory guard and sequential complete-frame batches with verified reuse, retained failures and recovery.</li>
+<li>
+<code><a href="../reference/mssr_estimate_resources.html">mssr_estimate_resources()</a></code> uses a model recalibrated on the compiled engine (<code>whole_frame_buffers_v2</code>): it was two to eight times too high and now exceeded every measured peak on the calibration ladder by 30 to 220 percent. The default budget of <code><a href="../reference/mssr_batch.html">mssr_batch()</a></code> is now 2 GiB, so ordinary 1024 x 1024 frames at amplification 2 are no longer refused.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="results-masks-files-and-the-app-0-2-0">Results, masks, files and the app<a class="anchor" aria-label="anchor" href="#results-masks-files-and-the-app-0-2-0"></a></h3>
+<ul><li>Added versioned result inspection, strict validation and bounded binary result exchange with SHA-256 checks, exact numeric readback and no implicit overwrite.</li>
+<li>Added validated callable settings for reproducible result replay, including the output grid and explicit refusal of historical engine definitions.</li>
+<li>Run records now identify uploaded bytes and decoded matrix content with SHA-256 hashes while excluding source filenames and paths.</li>
+<li>Arbitrary source matrix attributes are removed so identifying metadata do not silently propagate into computed values.</li>
+<li>
+<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> of a result prints a short report; the returned list keeps its fields and gains the output grid.</li>
+<li>
+<code><a href="../reference/mssr_mask.html">mssr_mask()</a></code> warns (class <code>mssrscopR_warning_mask_ties</code>) when tie-breaking chose more than half of the selected pixels or the lowest selected score is at most 1e-6 of the highest, that is, when the mask reaches beyond the structure the map shows. The README, vignette and help examples now use a share below the positive part of the map and explain <code>tie_fraction</code> and <code>cut_relative</code>. The app keeps its own inline message for this case.</li>
+<li>The app’s background jobs are checked against the code the R session loaded: package files (in development checkouts including the C sources), function definitions and the loaded native library. A file edited after the package was loaded is refused, also before the first job.</li>
+<li>Figure downloads retain interpretation, computed settings and run identity. Download actions are unavailable until their result or mask is ready.</li>
+<li>Notification dismissal restores keyboard focus, and Browse has a visible focus indicator in both themes.</li>
+<li>Replaced app sliders with native numeric controls and improved document semantics, keyboard focus, summary reflow and status/hover contrast.</li>
+<li>Image uploads preserve single-row and single-column channel dimensions, report decoder failures with classed errors, and check decoded dimensions before reading PNG pixels or a selected TIFF page. TIFF page selection needs tiff &gt;= 0.1-8. Run records include the mask’s relative cutoff diagnostic. Multichannel planar-separate TIFFs are refused because the underlying reader can silently corrupt them; explicit volumetric TIFFs are outside the 2D scope.</li>
+<li>TIFF metadata traversal is bounded. Packed 12-bit, non-top-left orientation and other unqualified layouts are refused before pixel decoding. Application state, exports, keyboard access and textual diagnostics are more explicit.</li>
+<li>Expanded synthetic TIFF coverage for LZW, Deflate and PackBits across supported sample types and storage layouts. Invalid strip/tile extents are now refused before decoding.</li>
+<li>Added tests for corrupted result metadata, the batch record of a frame that fails after it started, and package files changing before an app job loads them, and a result file written by 0.1.0.9003 that must still read, validate and replay.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-2-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-2-0"></a></h3>
+<ul><li>Reviewed the official supplementary methods and documented equation-to-code concordance, including the published cubic kernel, symmetric mesh scheme and unresolved temporal definitions. Numerical engine equations, regression values and scientific claims are unchanged.</li>
+<li>Re-checked the method concordance against the article, the supplement and the authors’ R and Python scripts. The concordance now names their interpolation backends, the Fourier interpolation option that mssrscopR does not implement, and the zero-lag products of the Python SOFI functions. <code><a href="../reference/mssr.html">?mssr</a></code> and the README now say that amplified maps are not expected to agree pixel-wise with the authors’ code, even with <code>grid = "endpoint"</code>, which reproduces their sample positions.</li>
+<li>Corrected the vignette and app: MSSR can separate sources that the pixels show merged (at amp 2, two peaks for sources 2.6 px apart with FWHM 3 px, where the input pixels show one maximum), with the peaks closer together than the sources. Documented that a rod three FWHM long becomes two peaks near its ends, and that under noise single sources and short rods can break up, more so with an <code>fwhm</code> below the true PSF.</li>
+<li>Documented that channels or bands processed one at a time are guaranteed to keep their intensity ratios only when one whole frame is a scaled copy of another (intensity-weighted output), so ratios, indices and spectra belong to the original data (help, vignette example, app, tests), and that filled objects are hollowed and should be segmented on the original data.</li>
+<li>Added guidance on <code>fwhm</code>: prefer a measured PSF, since a theoretical value describes an ideal system; under noise a too-small <code>fwhm</code> adds false peaks and a larger one weakens the separation of close sources, so when unsure choose the larger plausible value. Only the kernel half-size enters the computation.</li>
+<li>The <code>fwhm</code> documentation says that a larger value than the PSF’s FWHM enlarges the neighborhood and gives smoother maps with fewer fragments, and that MSSR maps are visual aids, not a basis for segmentation or quantification.</li>
+<li>Documented plainly that maps of order 1 and higher change with a constant background even for non-negative input, so background subtraction must be recorded, and that rounding-level ripple on an otherwise flat frame is stretched to full contrast.</li>
+<li>Standardize the named v5 package logo across README, documentation pages and available application headers, with matching light and dark artwork.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="mssrscopr-010">mssrscopR 0.1.0<a class="anchor" aria-label="anchor" href="#mssrscopr-010"></a></h2>
 <ul><li><p>Input qualification rejects explicit numeric classes before arithmetic; finite intermediate overflow raises <code>mssrscopR_error_numerical</code>.</p></li>
