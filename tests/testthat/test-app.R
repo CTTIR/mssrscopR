@@ -409,7 +409,7 @@ test_that("the mask tab measures the original input and needs the extent grid", 
     session$flushReact()
     session$setInputs(mask_fraction = 0.2, mask_seed = 3)
     m <- mask()
-    expect_identical(m$mask, mssr_mask(run()$result, fraction = 0.2, seed = 3))
+    expect_identical(m$mask, mask_quietly(run()$result, fraction = 0.2, seed = 3))
     expect_match(output$mask_table, "input mean inside the mask", fixed = TRUE)
     expect_match(output$mask_plot$src, "^data:image/png")
     expect_match(output$mask_warning$html, "no structure", fixed = TRUE)

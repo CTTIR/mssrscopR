@@ -40,7 +40,11 @@ mssr_coords <- function(result) {
 #' region. Interpolation and rounding leave many tiny positive values (often
 #' below 1e-6 of the maximum) where MSSR found no structure; they rank above
 #' exact zeros without counting as ties, so a small `cut_relative` means the
-#' mask reaches beyond the structure.
+#' mask reaches beyond the structure. A warning of class
+#' `mssrscopR_warning_mask_ties` is given when tie-breaking chose more than half
+#' of the selected pixels or `cut_relative` is at most 1e-6; the mask is still
+#' returned. A `fraction` near the share of positive map values, or a `region`,
+#' avoids it.
 #' Both mask and coordinate consumers reject nonfinite values or inconsistent
 #' grid metadata. This checks the stored matrix/grid contract, not authenticity
 #' of the image, parameters or review status.
@@ -55,8 +59,11 @@ mssr_coords <- function(result) {
 #'   score in the region is positive) and `n_region`.
 #' @examples
 #' x <- matrix(runif(400), 20, 20)
-#' m <- mssr_mask(mssr(x, fwhm = 3), fraction = 0.5)
+#' r <- mssr(x, fwhm = 3)
+#' mean(as.matrix(r) > 0)  # share of pixels with any structure
+#' m <- mssr_mask(r, fraction = 0.1)
 #' attr(m, "tie_fraction")
+#' attr(m, "cut_relative")
 #' mean(x[m])
 #' @export
 mssr_mask <- function(result, fraction = 0.5, region = NULL, seed = 1L) {
@@ -102,6 +109,13 @@ mssr_mask <- function(result, fraction = 0.5, region = NULL, seed = 1L) {
   tie_fraction <- if (n_above + n_tied > k) (k - n_above) / k else 0
   top <- max(s)
   cut_relative <- if (top > 0) cut / top else 0
+  if (tie_fraction > 0.5 || cut_relative <= 1e-6) {
+    mssr_warn("mask_ties", sprintf(paste(
+      "The mask reaches pixels where the MSSR map shows no structure: %.0f%% of the",
+      "selected pixels were chosen by tie-breaking and the lowest selected score is %.2g of",
+      "the highest. Choose a smaller `fraction` or a `region`."
+    ), 100 * tie_fraction, cut_relative))
+  }
   structure(mask, coverage = k / length(s), tie_fraction = tie_fraction,
             cut_relative = cut_relative, n_region = length(s))
 }

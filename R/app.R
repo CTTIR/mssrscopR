@@ -1307,7 +1307,11 @@ mssr_app_server <- function(input, output, session) {
     ))
     fraction <- r$mask_settings$fraction
     seed <- r$mask_settings$seed
-    m <- mssr_app_try(mssr_mask(r$result, fraction = fraction, seed = seed))
+    # The inline mask warning below already reports ties and near-zero cuts.
+    m <- mssr_app_try(withCallingHandlers(
+      mssr_mask(r$result, fraction = fraction, seed = seed),
+      mssrscopR_warning_mask_ties = function(w) invokeRestart("muffleWarning")
+    ))
     shiny::req(m)
     list(mask = m, fraction = fraction, seed = seed)
   })

@@ -97,7 +97,8 @@ test_that("a bright block cannot erase distinct scores in other blocks", {
   r$values <- scores[rep(1:2, each = 2), rep(1:3, each = 2)]
   expect_identical(mssr_block_mean(r$values, 2), scores)
   for (seed in 1:5) {
-    mask <- mssr_mask(r, fraction = 2 / 6, seed = seed)
+    # The dim scores are far below 1e-6 of the bright block, which warns.
+    mask <- mask_quietly(r, fraction = 2 / 6, seed = seed)
     expect_identical(which(mask), c(1L, 6L))
     expect_equal(attr(mask, "tie_fraction"), 0)
   }

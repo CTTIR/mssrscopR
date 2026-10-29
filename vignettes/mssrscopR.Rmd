@@ -185,13 +185,25 @@ measured under a mask as below.
 A structure map can select pixels, but measurements belong to the original
 image. `mssr_mask()` keeps an exact number of pixels of a region.
 `tie_fraction` reports the share of the selected pixels that random
-tie-breaking decided. That share can be large, because the mean shift is
-clipped at zero and many pixels tie there.
+tie-breaking decided, and `cut_relative` the lowest selected score relative to
+the highest. The mean shift is clipped at zero, so most of this map is exactly
+zero; keep a share below the positive one.
 
 ```{r mask}
-m <- mssr_mask(mssr(x, fwhm = 3), fraction = 0.2)
-c(coverage = attr(m, "coverage"), tie_fraction = attr(m, "tie_fraction"))
+r <- mssr(x, fwhm = 3)
+mean(as.matrix(r) > 0)             # share of pixels with any structure
+m <- mssr_mask(r, fraction = 0.02)
+c(coverage = attr(m, "coverage"), tie_fraction = attr(m, "tie_fraction"),
+  cut_relative = attr(m, "cut_relative"))
 c(mean_all = mean(x), mean_masked = mean(x[m]))
+```
+
+A larger share reaches into the zeros. Tie-breaking then decides most of the
+mask, which `mssr_mask()` reports with a warning:
+
+```{r mask-ties}
+wide <- mssr_mask(r, fraction = 0.2)
+attr(wide, "tie_fraction")
 ```
 
 Selecting pixels this way changes the measured population. It is not known to

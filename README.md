@@ -113,8 +113,12 @@ background can change higher-order MSSR mathematically; subtracting it remains
 an explicit preprocessing decision.
 Coordinate and mask consumers check finite values and consistent grid metadata;
 they do not authenticate image provenance. Positive mask fractions select at
-least one pixel, but flat maps may yield entirely tie-selected masks. A quota
-mask is not a cell segmentation.
+least one pixel. `tie_fraction` is the share of the selected pixels that random
+tie-breaking among equal scores (usually exact zeros) decided, and
+`cut_relative` the lowest selected score divided by the highest. A large
+`tie_fraction` or a `cut_relative` near 0 means the mask reaches beyond the
+structure that MSSR found, and `mssr_mask()` warns; choose a smaller `fraction`
+or a `region`. A quota mask is not a cell segmentation.
 
 ## Installation
 
@@ -138,9 +142,14 @@ res <- mssr(x, fwhm = 3, amp = 2)
 res
 mssr_coords(res)$col[1:4]
 
-m <- mssr_mask(mssr(x, fwhm = 3), fraction = 0.25)
+# A structural mask on the input grid. Only a few percent of this map is
+# positive, so keep a smaller share than that.
+r1 <- mssr(x, fwhm = 3)
+mean(as.matrix(r1) > 0)          # share of pixels with any structure
+m <- mssr_mask(r1, fraction = 0.03)
 mean(x[m])                       # measured on the original frame
-attr(m, "tie_fraction")
+attr(m, "tie_fraction")          # 0: no pixel was chosen by tie-breaking
+attr(m, "cut_relative")          # lowest kept score relative to the highest
 
 attr(mssr_selftest(), "all_passed")
 

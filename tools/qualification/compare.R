@@ -51,8 +51,11 @@ for (i in seq_len(nrow(plan$cases))) {
     reference <- result$value
     reference$values <- c$expected
     for (fraction in c(0.1, 0.5, 0.9)) {
-      actual_mask <- mssr_mask(result$value, fraction = fraction, seed = 174L)
-      reference_mask <- mssr_mask(reference, fraction = fraction, seed = 174L)
+      # Wide quotas reach into ties by design here; the warning is not a finding.
+      actual_mask <- suppressWarnings(mssr_mask(result$value, fraction = fraction, seed = 174L),
+                                      classes = "mssrscopR_warning_mask_ties")
+      reference_mask <- suppressWarnings(mssr_mask(reference, fraction = fraction, seed = 174L),
+                                         classes = "mssrscopR_warning_mask_ties")
       scale <- max(abs(c$input))
       a_mean <- mean((c$input / if (scale > 0) scale else 1)[actual_mask])
       r_mean <- mean((c$input / if (scale > 0) scale else 1)[reference_mask])

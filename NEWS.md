@@ -14,6 +14,12 @@
   instead of an unflagged all-zero map.
 * The app's background job also checks the package's C sources for changes in
   development checkouts.
+* `mssr_mask()` warns (class `mssrscopR_warning_mask_ties`) when tie-breaking
+  chose more than half of the selected pixels or the lowest selected score is
+  at most 1e-6 of the highest, that is, when the mask reaches beyond the
+  structure the map shows. The README, vignette and help examples now use a
+  share below the positive part of the map and explain `tie_fraction` and
+  `cut_relative`. The app keeps its own inline message for this case.
 
 # mssrscopR 0.1.0.9003
 
