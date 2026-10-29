@@ -14,7 +14,7 @@ jobs:
     # The shared workflow declares read-all, and a called workflow cannot
     # exceed the permissions of the job that calls it.
     permissions: read-all
-    uses: CTTIR/.github/.github/workflows/lint.yaml@bd4664ca7168f9c5f86c521bf81293e2db006eec
+    uses: CTTIR/.github/.github/workflows/lint.yaml@7781930dce57f5d8ac05a7803fb42fe3b591d354
     with:
       blocking: true
       with-defaults: false
