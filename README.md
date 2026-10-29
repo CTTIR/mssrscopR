@@ -108,9 +108,16 @@ converted deliberately. The engine scales internally and accumulates local
 differences to reduce overflow, underflow and cancellation. It reports a numerical
 error if scaling loses a nonzero input or the final output overflows. Very small
 intensity-weighted outputs remain subject to subnormal rounding, including zero.
-This cannot recover precision already lost in the supplied frame. A constant
-background can change higher-order MSSR mathematically; subtracting it remains
-an explicit preprocessing decision.
+This cannot recover precision already lost in the supplied frame.
+
+A constant background changes the result, also for non-negative input: the
+order-0 structure map does not depend on it, but every refinement step
+(`order >= 1`) compares the map with the input divided by its maximum, and
+intensity weighting multiplies by the input. Subtracting a background is
+therefore a preprocessing choice that changes the map; record it with the
+result. The range normalizer adapts to the largest local difference, so even
+rounding-level ripple on an otherwise flat frame is stretched to full contrast.
+
 Coordinate and mask consumers check finite values and consistent grid metadata;
 they do not authenticate image provenance. Positive mask fractions select at
 least one pixel. `tie_fraction` is the share of the selected pixels that random

@@ -27,6 +27,10 @@
   frames at amplification 2 are no longer refused.
 * `summary()` of a result prints a short report; the returned list keeps its
   fields and gains the output grid.
+* Documented plainly that maps of order 1 and higher change with a constant
+  background even for non-negative input, so background subtraction must be
+  recorded, and that rounding-level ripple on an otherwise flat frame is
+  stretched to full contrast.
 
 # mssrscopR 0.1.0.9003
 

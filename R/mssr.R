@@ -56,10 +56,18 @@
 #' all of these cases; their Python function returns zeros, which equals
 #' `mssr()` for the degenerate frames but not for skipped refinement steps.
 #'
-#' **Negative values.** MSSR assumes non-negative intensities. With negative
-#' input the structure map depends on the offset of the data and
-#' intensity-weighted output can be negative, so a warning of class
-#' `mssrscopR_warning_negative` is given.
+#' **Negative values and background.** MSSR assumes non-negative intensities.
+#' Negative input gives a warning of class `mssrscopR_warning_negative`, and
+#' intensity-weighted output can then be negative. Non-negative input is not
+#' free of offset effects either: the order-0 structure map
+#' (`intensity_normalize = FALSE`) does not change with a constant background,
+#' but every refinement step (`order >= 1`) compares the map with the input
+#' divided by its maximum, which a background changes, and intensity weighting
+#' multiplies by the input. Subtracting a background is therefore a
+#' preprocessing choice that changes the result; record it with the result.
+#' The range normalizer adapts to the largest local difference at each pixel,
+#' so even rounding-level ripple on an otherwise flat frame is stretched to
+#' full contrast: only an exactly flat frame is degenerate.
 #'
 #' **Numeric domain.** Input and numeric parameters must use plain integer or
 #' double storage, without explicit classes. Convert calibrated or other
@@ -68,9 +76,7 @@
 #' weighted local differences to limit overflow, underflow and cancellation.
 #' A nonzero input lost during scaling or an overflowing final result
 #' raises `mssrscopR_error_numerical`. Rounding already present in the supplied
-#' data cannot be recovered. Large offsets can change higher-order maps
-#' mathematically, so subtracting a background is a separate preprocessing
-#' decision that must be recorded. Intensity-weighted output is rescaled to
+#' data cannot be recovered. Intensity-weighted output is rescaled to
 #' the original numeric units but remains non-quantitative; subnormal output
 #' still has limited precision and can round to zero.
 #'
