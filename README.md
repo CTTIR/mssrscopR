@@ -7,8 +7,9 @@
 <!-- badges: end -->
 
 `mssrscopR` computes single-frame Mean-Shift Super-Resolution (MSSR;
-Torres-García et al. 2022) structure maps in R. Geometry is explicit, degenerate
-input has a defined result, and a self-test can check any installation.
+Torres-García et al. 2022) structure maps in R, and temporal statistics of them
+over frame sequences. Geometry is explicit, degenerate input has a defined
+result, and a self-test can check any installation.
 
 - **Compute:** `mssr()` returns the MSSR structure map of one 2D frame, with its
   role, grid transform, parameters and diagnostics.
@@ -16,6 +17,8 @@ input has a defined result, and a self-test can check any installation.
 - **Select:** `mssr_mask()` derives a structural mask on the input grid for
   measuring the **original** data, and reports how much of it tie-breaking
   decided.
+- **Summarize over time:** `mssr_temporal()` reduces the per-frame maps of a
+  frame sequence pixel by pixel (mean, variance, TPM, `Var / Mean`, SOFI).
 - **Verify:** `mssr_selftest()` recomputes bundled synthetic fixtures.
 
 > **Status: 0.1.0.9004, development candidate.** At amplification 1 with intensity
@@ -27,7 +30,7 @@ input has a defined result, and a self-test can check any installation.
 
 The method concordance in `vignette("method-concordance")` maps the official
 supplementary equations to the engine and records implementation differences,
-unresolved temporal definitions and qualification boundaries
+the temporal definitions and qualification boundaries
 ([Markdown source](https://github.com/CTTIR/mssrscopR/blob/main/tools/qualification/METHOD_CONCORDANCE.md)).
 
 ## Why
@@ -57,12 +60,20 @@ is labeled as a non-quantitative structure map.
 - Defined results for degenerate input (flat frames, impulses on an exactly
   zero background), reported in the diagnostics.
 - Structural masks with exact coverage for measurements on the original data.
+- Temporal statistics of per-frame maps over a frame sequence (`mssr_temporal()`,
+  `vignette("temporal")`): mean, population variance, TPM, the supplement's
+  "CV" (`Var / Mean`) and lagged, signed SOFI cumulants of orders 2 to 4, as
+  defined in Supplementary Table S2.
 - Input validation with classed errors and warnings, resource guards, and an
   installation self-test.
 
 **Out of scope**
 
-- Temporal MSSR summaries over frame stacks (mean, variance, TPM).
+- Fourier interpolation (Supplementary Note 6.2), which the article recommends
+  for temporal analysis, and drift, bleaching or background correction of
+  frame sequences.
+- The zero-lag and absolute-deviation "SOFI" variants of the authors' Python,
+  MATLAB and Fiji tools.
 - Tiled or out-of-core processing: every order step uses image-wide maxima.
 - General-purpose file readers, physical calibration, and claims of resolution gain,
   intensity fidelity or diagnostic value.
@@ -93,6 +104,8 @@ or segmentation workflows has not been validated.
 | `mssr(x, fwhm, amp = 1, order = 1, ...)` | `mssr_result`: `values`, `role`, `transform`, `parameters`, `engine`, `diagnostics` |
 | `mssr_coords(result)` | output pixel-center coordinates (`row`, `col`) in input-pixel units |
 | `mssr_mask(result, fraction, region = NULL, seed = 1)` | logical mask on the input grid with `coverage`, `tie_fraction`, `n_region` |
+| `mssr_temporal(x, statistic, fwhm, ...)` | `mssr_result` with role `temporal_<statistic>`: a temporal statistic of the per-frame maps of a rows x columns x frames array |
+| `mssr_stack(x, fwhm, ...)` | stored per-frame maps (`mssr_stack`) for several temporal statistics |
 | `mssr_selftest(tolerance = 1e-10)` | fixture errors, with attribute `all_passed` |
 | `mssr_app(max_upload_mb = 50, ...)` | interactive Shiny explorer (needs shiny, bslib, jsonlite, callr and digest): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads |
 
@@ -166,6 +179,44 @@ attr(mssr_selftest(), "all_passed")
 # Explore parameters interactively (needs shiny, bslib, jsonlite, callr and digest):
 # mssr_app()
 ```
+
+## Temporal statistics
+
+`mssr_temporal()` computes MSSR for every frame of a sequence and reduces the
+maps pixel by pixel with one statistic, as in the article's temporal MSSR
+(Fig. 7a, Supplementary Note 5.2). `mssr_stack()` keeps the per-frame maps so
+that several statistics need only one MSSR pass.
+
+``` r
+# 40 frames of two blinking emitters with Poisson noise (synthetic).
+set.seed(1)
+g <- expand.grid(r = 1:16, c = 1:16)
+spot <- function(r0, c0) exp(-((g$r - r0)^2 + (g$c - c0)^2) / (2 * (3 / 2.3548)^2))
+frames <- array(0, c(16, 16, 40))
+for (t in 1:40) {
+  on <- runif(2) < 0.4
+  frames[, , t] <- rpois(256, 20 * (on[1] * spot(8, 7) + on[2] * spot(8, 10)) + 2)
+}
+
+s <- mssr_stack(frames, fwhm = 3, amp = 2)
+v <- mssr_temporal(s, "var")
+k <- mssr_temporal(s, "sofi2")
+v$diagnostics$mesh_index         # sub-pixel grid, on signal-free pixels only
+v$diagnostics$trend              # raw intensity, last vs first tenth of the frames
+```
+
+The outputs are temporal statistics of nonlinear structure maps, not
+quantitative intensities, and no resolution gain is implied. Variance, `"cv"`
+and SOFI of per-frame MSSR maps, and higher MSSR orders, can show two maxima
+where there is a single emitter; sparse, dim data add maxima to every
+statistic; and with `amp > 1` signal-free regions show a sub-pixel grid of
+period `amp`. TPM equals `M^2 * mean^2`. The package amplifies with the
+supplement's cubic kernel and mesh compensation, not with the Fourier
+interpolation the article recommends for temporal analysis. Variance, `"cv"`
+and SOFI treat bleaching and drift as fluctuation: correct them first and record
+it; the `trend` diagnostic only reports them. The
+"SOFI" of the authors' tools uses zero-lag or absolute deviations and is a
+different statistic; see `vignette("method-concordance")`.
 
 ## Relation to the authors' code
 

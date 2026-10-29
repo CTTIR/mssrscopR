@@ -9,6 +9,10 @@ reference:
       - mssr
       - mssr_coords
       - mssr_mask
+  - title: Temporal statistics
+    contents:
+      - mssr_temporal
+      - mssr_stack
   - title: Validation
     contents:
       - mssr_selftest
@@ -30,4 +34,5 @@ articles:
     navbar: ~
     contents:
       - mssrscopR
+      - temporal
       - method-concordance

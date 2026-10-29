@@ -4,7 +4,10 @@ The official supplementary methods for Torres-García et al. (2022) were reviewe
 against engine `mssr_r_rev3` on 24 October 2026 and re-checked against the
 article, the supplement and the pinned R and Python scripts on 27 October 2026.
 This comparison documents the defined single-frame operator and its differences
-from the authors' code. The MATLAB code and the Fiji plugin were not compared.
+from the authors' code. The MATLAB code and the Fiji plugin were not compared for
+the single-frame operator. The temporal definitions (29 October 2026) were
+checked against Supplementary Table S2 and all four author implementations; the
+MATLAB code and the Fiji plugin were read for them, not run.
 
 Sources:
 
@@ -40,7 +43,7 @@ can enlarge such differences locally. Pixel-wise agreement with the authors'
 amplified maps is therefore not expected.
 
 Supplementary Note 6 and the Python script also offer Fourier interpolation,
-which the article uses for temporal analysis; mssrscopR does not implement it. The paper
+which the article recommends for temporal analysis; mssrscopR does not implement it. The paper
 also describes scaling zero-order output to the original maximum (p.17), which
 differs from optional pixelwise weighting. Rev3 fixes its two
 output roles explicitly. Flat-input results, zero-range handling, skipped
@@ -60,22 +63,58 @@ proof for the full adaptive operator or assert that the theorem's conclusion is
 false. Physical calibration, measured PSFs, resolution gain and application
 benefit remain separate requirements.
 
-## Temporal and dimensional restrictions
+## Temporal statistics
 
-Temporal functions remain unsupported. Table S2 (p.25) and the pinned scripts
-contain material differences:
+`mssr_temporal()` applies the pixel-wise temporal functions of Supplementary
+Note 5.2 and Table S2 (p.25) to a stack of per-frame MSSR maps, as in article
+Fig. 7a. Per pixel, `x_1, ..., x_M` are the maps' values, `x̄` their mean and
+`δx_t = x_t − x̄`.
 
-- TPM has an unspecified `j` index in the table; both scripts compute the square
-  of the frame sum.
-- The table uses population variance; the R script uses sample variance and a
-  different missing-data policy. The table labels `Var/Mean` as CV.
-- The displayed SOFI formulas use signed, distinct-lag products. The Python
-  implementation instead uses absolute deviations, and its shifted slices are
-  re-aligned so that all factors come from one frame: orders 2 and 3 average
-  `|δx_k|²` and `|δx_k|³`, and order 4 returns `|⟨|δx|⁴⟩ − 3⟨|δx|²⟩²|`.
+| Statistic | Table S2 | mssrscopR | Authors' code |
+|---|---|---|---|
+| Mean | `(1/M) Σ x_i` | the same | plain average in all four tools |
+| Var | `(1/M) Σ (x_i − x̄)²` | population variance | Python `1/M`; R, MATLAB and Fiji `1/(M − 1)` |
+| TPM | `(1/M) Σ (x_i x_j)²`, with `j` undefined | `(Σ_t x_t)² = M² · Mean²` | `(Σ_t x_t)²` in all four tools |
+| CV | `Var / Mean` | literally `Var / Mean`, 0 where the mean is 0 | Fiji only: sample variance divided by the mean |
+| SOFI2, SOFI3 | `⟨δx_i δx_{i+1}⟩`, `⟨δx_i δx_{i+1} δx_{i+2}⟩` | lagged, signed deviations, averaged over the frames where every lag exists | Python, MATLAB: absolute deviations at zero lag; Fiji: absolute deviations, lags wrapping around |
+| SOFI4 | lagged fourth-order product minus the three pair-product terms | the same, every term averaged over the same `M − 3` frames | Python, MATLAB: absolute value of `⟨δx⁴⟩ − 3⟨δx²⟩²` on absolute deviations at zero lag; Fiji: absolute value of the table form on absolute deviations, lags wrapping around |
 
-Any future temporal operator needs a resolved formula and independent
-qualification on genuine repeated-time data. Wavelength, depth and lifetime-delay
+Notes:
+
+- **SOFI.** The table's SOFI rows are the lagged auto-cumulants of the SOFI
+  reference it cites (Dertinger et al. 2009, PNAS 106:22287). Because of the
+  lags, noise that is independent from frame to frame does not enter their
+  expectation. The authors' Python and MATLAB functions form every product from
+  one frame (zero lag) and average from frame `k` on, so their order 2 is the
+  variance without the first frame. Absolute deviations, used by all three
+  tools, keep a positive contribution of independent noise even at a lag, and
+  their orders 3 and 4 are no longer cumulants. These are different statistics,
+  not rounding differences, so the tools' "SOFI" outputs do not match
+  `mssr_temporal()` by design. Orders 3 and 4 change sign with the emitters'
+  duty cycle; `sign = "absolute"` returns the absolute value.
+- **TPM.** Every tool squares the frame sum, so mssrscopR does the same. For
+  non-negative maps it is a monotone function of the mean and adds nothing to
+  it; the help says so.
+- **Variance and CV.** The table's variance divides by `M`, and its "CV" is
+  `Var / Mean`, an index of dispersion rather than the standard deviation
+  divided by the mean; mssrscopR follows the table. The R script also has a
+  different missing-data policy. The Fiji batch TPM plugin for more than 100
+  frames is not registered in the plugin's menu configuration.
+- **Interpolation.** The article's Discussion and Supplementary Note 6.2.1
+  recommend Fourier interpolation for temporal analysis, because the bicubic
+  mesh-like artifact appears in temporal statistics (Note 6.1.1, Fig. S16, the
+  variance of a noise stack with the period of the amplification). The figure
+  legends of the temporal results do not state which interpolation was used.
+  mssrscopR amplifies with the supplement's cubic kernel and mesh compensation;
+  Fourier interpolation is not implemented, and `diagnostics$mesh_index`
+  reports the remaining sub-pixel grid on signal-free data.
+
+The package tests compare the reduction with values derived by hand for
+constant, alternating and periodic stacks and with an explicit-loop
+implementation, check its offset, scale, time-reversal and pixel-order
+properties, and check that the stored and recomputed computation paths give the
+same values. These checks establish the definitions, not a resolution gain or
+any behaviour on real fluctuation data. Wavelength, depth and lifetime-delay
 axes cannot be substituted for time. Note 10.7 (p.54) explicitly leaves a full
 anisotropic 3D extension for further development.
 
