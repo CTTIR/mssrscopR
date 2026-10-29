@@ -9,7 +9,7 @@ mssr_batch(
   output_dir,
   settings,
   resume = TRUE,
-  max_memory_bytes = 1024^3,
+  max_memory_bytes = 2 * 1024^3,
   max_result_bytes = 256 * 1024^2,
   cancel = NULL
 )
@@ -25,7 +25,9 @@ unique opaque IDs containing only letters, digits, underscore or hyphen.}
 
 \item{resume}{Reuse matching, verified completed results.}
 
-\item{max_memory_bytes}{Positive estimated-memory budget; default 1 GiB.}
+\item{max_memory_bytes}{Positive estimated-memory budget; default 2 GiB. A
+frame runs only if its \code{\link[=mssr_estimate_resources]{mssr_estimate_resources()}} estimate plus the size of
+all input frames held in \code{frames} fits within it.}
 
 \item{max_result_bytes}{Positive serialized-result limit; default 256 MiB.}
 

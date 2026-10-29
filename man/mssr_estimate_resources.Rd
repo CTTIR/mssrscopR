@@ -24,12 +24,15 @@ estimated peak bytes, model ID, and limitations.
 }
 \description{
 Reports a conservative allocation model before allocating an output frame.
-The estimate includes a 192 MiB runtime allowance, 64 double buffers per
-output pixel, five input buffers, and reflected-index/offset storage.
-It is a planning guard, not a hard process-memory limit: R, loaded packages,
-retained objects, garbage collection and the allocator can change peak RSS.
-Calibration evidence covers the workload ladder described in the package
-documentation; estimates outside that ladder are extrapolations.
+The estimate includes a 128 MiB runtime allowance, 20 double buffers per
+output pixel, six per input pixel, and reflected-index and offset storage.
+It was calibrated on the peak resident memory of fresh R processes on Linux
+over a workload ladder of 65,536 to 16,777,216 output pixels (amplification
+1 to 4, orders 0 to 3, mesh and intensity weighting on and off, disk and
+square kernels), where it exceeded every measured peak by 20 to 40 percent.
+It is a planning guard, not a hard process-memory limit: other platforms,
+loaded packages, retained objects, garbage collection and the allocator can
+change peak RSS, and estimates outside that ladder are extrapolations.
 }
 \examples{
 mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2)

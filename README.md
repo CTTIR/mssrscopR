@@ -244,10 +244,12 @@ complete frames, verified reuse, retained failed/cancelled rows and separate
 attempt files. Cancellation takes effect between frames. The returned table's
 `run_record` attribute identifies the durable invocation summary.
 
-The allocation model was calibrated on a bounded Linux workload ladder
-(1,536–393,216 output pixels, amplification 1–3, orders 0–3). It includes a
-192 MiB runtime allowance and conservative working buffers. Larger workloads,
-other runtimes and retained objects can change RSS; this is not an OS memory cap.
+The allocation model was calibrated on the peak RSS of fresh R processes on
+Linux over 65,536–16,777,216 output pixels (amplification 1–4, orders 0–3,
+mesh and weighting on and off, both kernels), where it exceeded every measured
+peak by 20–40 %. It includes a 128 MiB runtime allowance. Larger workloads,
+other platforms and retained objects can change RSS; this is not an OS memory
+cap.
 
 ### Recompute a saved result
 

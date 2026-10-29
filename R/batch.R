@@ -25,7 +25,9 @@
 #' @param settings Named list of [mssr()] arguments, including `fwhm`; `x` and
 #'   `max_memory_bytes` are supplied by the runner and cannot be overridden.
 #' @param resume Reuse matching, verified completed results.
-#' @param max_memory_bytes Positive estimated-memory budget; default 1 GiB.
+#' @param max_memory_bytes Positive estimated-memory budget; default 2 GiB. A
+#'   frame runs only if its [mssr_estimate_resources()] estimate plus the size of
+#'   all input frames held in `frames` fits within it.
 #' @param max_result_bytes Positive serialized-result limit; default 256 MiB.
 #' @param cancel Optional function with no arguments returning a single logical.
 #'   `TRUE` marks remaining frames cancelled without running them.
@@ -34,7 +36,7 @@
 #'   identities, completion state and hashes. Complete results use `.mssr` files.
 #' @export
 mssr_batch <- function(frames, output_dir, settings, resume = TRUE,
-                       max_memory_bytes = 1024^3, max_result_bytes = 256 * 1024^2,
+                       max_memory_bytes = 2 * 1024^3, max_result_bytes = 256 * 1024^2,
                        cancel = NULL) {
   call <- sys.call()
   for (pkg in c("digest", "jsonlite")) {

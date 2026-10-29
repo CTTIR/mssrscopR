@@ -24,3 +24,38 @@ test_that("opt-in memory guard refuses before numerical evaluation", {
   expect_error(mssr(x, 3, max_memory_bytes = NA), class = "mssrscopR_error_parameter")
   expect_identical(mssr(x, 3)$values, mssr(x, 3, max_memory_bytes = 1024^3)$values)
 })
+
+test_that("the allocation estimate bounds measured peak memory on a small ladder", {
+  skip_on_cran()
+  skip_on_covr()
+  skip_if_not_installed("callr")
+  skip_if_not(file.exists("/proc/self/status"), "peak RSS is read from /proc")
+  ns <- asNamespace("mssrscopR")
+  root <- getNamespaceInfo(ns, "path")
+  development <- exists(".__DEVTOOLS__", ns, inherits = FALSE)
+  if (development) skip_if_not_installed("pkgload")
+  ladder <- list(c(n = 256, amp = 2, order = 1), c(n = 384, amp = 2, order = 3),
+                 c(n = 512, amp = 1, order = 1))
+  for (step in ladder) {
+    measured <- callr::r(function(root, development, step) {
+      if (development) {
+        pkgload::load_all(root, quiet = TRUE)
+      } else {
+        loadNamespace("mssrscopR", lib.loc = dirname(root))
+      }
+      ns <- asNamespace("mssrscopR")
+      set.seed(1)
+      x <- matrix(stats::rpois(step[["n"]]^2, 20) + 0, step[["n"]], step[["n"]])
+      get("mssr", ns)(x, fwhm = 3, amp = step[["amp"]], order = step[["order"]])
+      status <- readLines("/proc/self/status")
+      as.numeric(sub("^VmHWM:\\s+([0-9]+) kB$", "\\1", grep("^VmHWM", status, value = TRUE))) * 1024
+    }, args = list(root = root, development = development, step = step), libpath = .libPaths())
+    estimate <- mssr_estimate_resources(rep(step[["n"]], 2), fwhm = 3,
+                                        amp = step[["amp"]])$estimated_peak_bytes
+    label <- paste(step, collapse = "/")
+    # The estimate must cover the measured peak without being needlessly large;
+    # pkgload in development children adds to the measured baseline.
+    expect_lte(measured, estimate * if (development) 1.5 else 1, label = label)
+    expect_lte(estimate, 3 * measured, label = label)
+  }
+})

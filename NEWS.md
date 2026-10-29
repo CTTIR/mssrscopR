@@ -20,6 +20,11 @@
   structure the map shows. The README, vignette and help examples now use a
   share below the positive part of the map and explain `tie_fraction` and
   `cut_relative`. The app keeps its own inline message for this case.
+* `mssr_estimate_resources()` uses a model recalibrated on the compiled engine
+  (`whole_frame_buffers_v2`): it was two to eight times too high and now
+  exceeds measured peak memory by 20 to 40 percent on the calibration ladder.
+  The default budget of `mssr_batch()` is now 2 GiB, so ordinary 1024 x 1024
+  frames at amplification 2 are no longer refused.
 
 # mssrscopR 0.1.0.9003
 
