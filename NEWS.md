@@ -33,7 +33,8 @@
   stretched to full contrast.
 * Added tests for corrupted result metadata, the batch record of a frame that
   fails after it started, and package files changing before an app job loads
-  them.
+  them, and a result file written by 0.1.0.9003 that must still read, validate
+  and replay.
 
 # mssrscopR 0.1.0.9003
 
