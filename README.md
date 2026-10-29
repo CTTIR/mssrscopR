@@ -92,7 +92,7 @@ or segmentation workflows has not been validated.
 |---|---|
 | `mssr(x, fwhm, amp = 1, order = 1, ...)` | `mssr_result`: `values`, `role`, `transform`, `parameters`, `engine`, `diagnostics` |
 | `mssr_coords(result)` | output pixel-center coordinates (`row`, `col`) in input-pixel units |
-| `mssr_mask(result, fraction = 0.5, region = NULL, seed = 1)` | logical mask on the input grid with `coverage`, `tie_fraction`, `n_region` |
+| `mssr_mask(result, fraction, region = NULL, seed = 1)` | logical mask on the input grid with `coverage`, `tie_fraction`, `n_region` |
 | `mssr_selftest(tolerance = 1e-10)` | fixture errors, with attribute `all_passed` |
 | `mssr_app(max_upload_mb = 50, ...)` | interactive Shiny explorer (needs shiny, bslib, jsonlite, callr and digest): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads |
 

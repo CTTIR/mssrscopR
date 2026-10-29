@@ -50,7 +50,9 @@ mssr_coords <- function(result) {
 #' of the image, parameters or review status.
 #'
 #' @param result An `mssr_result`.
-#' @param fraction Fraction of the region to keep, in (0, 1].
+#' @param fraction Fraction of the region to keep, in (0, 1]. Required: a
+#'   suitable share depends on how much of the map is positive, which differs
+#'   from frame to frame, so there is no default.
 #' @param region Optional logical matrix with the input dimensions; defaults to
 #'   the whole frame.
 #' @param seed Whole number used for tie-breaking.
@@ -66,13 +68,19 @@ mssr_coords <- function(result) {
 #' attr(m, "cut_relative")
 #' mean(x[m])
 #' @export
-mssr_mask <- function(result, fraction = 0.5, region = NULL, seed = 1L) {
+mssr_mask <- function(result, fraction, region = NULL, seed = 1L) {
   call <- sys.call()
   check_result(result, call)
   tr <- result$transform
   if (tr$amp > 1L && tr$grid != "extent") {
     mssr_abort("unsupported", paste("Masks are defined on the input grid only for results",
                                     "computed with grid = 'extent'."), call)
+  }
+  if (missing(fraction)) {
+    mssr_abort("parameter", paste(
+      "`fraction` is required: the share of the region to keep, in (0, 1].",
+      "Choose it below the share of positive map values, e.g. mean(as.matrix(result) > 0)."
+    ), call)
   }
   bad_fraction <- !plain_real(fraction) || length(fraction) != 1L || !is.finite(fraction)
   if (bad_fraction || fraction <= 0 || fraction > 1) {

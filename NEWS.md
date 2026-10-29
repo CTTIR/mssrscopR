@@ -1,5 +1,9 @@
 # mssrscopR 0.1.0.9004
 
+* Breaking change: `mssr_mask()` has no default `fraction` any more. The former
+  default of 0.5 selected exact zeros on typical maps and so mostly gave masks
+  decided by tie-breaking; callers now choose the share, ideally below the
+  share of positive map values.
 * The two neighborhood passes of engine `mssr_r_rev3` (range normalizer and
   weighted mean shift) now run in compiled C code. They form the same sums in
   the same order as before, so results are unchanged: the R passes are kept as

@@ -1361,10 +1361,10 @@ mssr_app_server <- function(input, output, session) {
 
   output$mask_warning <- shiny::renderUI({
     m <- mask()$mask
-    if (attr(m, "cut_relative") < 1e-6 || attr(m, "tie_fraction") > 0) {
+    if (attr(m, "cut_relative") <= 1e-6 || attr(m, "tie_fraction") > 0) {
       shiny::div(class = "ms-stale mb-2", paste(
-        "The mask reaches pixels where MSSR found no structure (scores below 1e-6 of the",
-        "maximum or decided by tie-breaking). Lower the fraction to stay on the structure."
+        "The mask reaches pixels where MSSR found no structure (scores at most 1e-6 of",
+        "the maximum or decided by tie-breaking). Lower the fraction to stay on the structure."
       ))
     }
   })

@@ -4,12 +4,14 @@
 \alias{mssr_mask}
 \title{Structural mask on the input grid}
 \usage{
-mssr_mask(result, fraction = 0.5, region = NULL, seed = 1L)
+mssr_mask(result, fraction, region = NULL, seed = 1L)
 }
 \arguments{
 \item{result}{An \code{mssr_result}.}
 
-\item{fraction}{Fraction of the region to keep, in (0, 1].}
+\item{fraction}{Fraction of the region to keep, in (0, 1]. Required: a
+suitable share depends on how much of the map is positive, which differs
+from frame to frame, so there is no default.}
 
 \item{region}{Optional logical matrix with the input dimensions; defaults to
 the whole frame.}

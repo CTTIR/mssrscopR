@@ -40,16 +40,18 @@ test_that("tie-breaking is seeded and leaves the caller's RNG state untouched", 
   expect_warning(r <- mssr(z, fwhm = 3), class = "mssrscopR_warning_skipped_steps")
   set.seed(42)
   before <- .Random.seed
-  a <- mask_quietly(r, seed = 7)
+  a <- mask_quietly(r, fraction = 0.5, seed = 7)
   expect_identical(.Random.seed, before)
-  expect_identical(a, mask_quietly(r, seed = 7))
-  expect_false(identical(c(a), c(mask_quietly(r, seed = 8))))
+  expect_identical(a, mask_quietly(r, fraction = 0.5, seed = 7))
+  expect_false(identical(c(a), c(mask_quietly(r, fraction = 0.5, seed = 8))))
 })
 
 test_that("mask arguments are validated", {
   r <- mssr(matrix(stats::runif(100), 10, 10), fwhm = 3)
   expect_error(mssr_mask(r, fraction = 0), class = "mssrscopR_error_parameter")
-  expect_error(mssr_mask(r, region = matrix(TRUE, 5, 5)), class = "mssrscopR_error_parameter")
+  expect_error(mssr_mask(r), "is required", class = "mssrscopR_error_parameter")
+  expect_error(mssr_mask(r, fraction = 0.5, region = matrix(TRUE, 5, 5)),
+               class = "mssrscopR_error_parameter")
   endpoint <- mssr(matrix(stats::runif(100), 10, 10), fwhm = 3, amp = 2, grid = "endpoint")
   expect_error(mssr_mask(endpoint), class = "mssrscopR_error_unsupported")
   expect_error(mssr_mask("x"), class = "mssrscopR_error_input")

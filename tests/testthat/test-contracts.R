@@ -24,7 +24,7 @@ test_that("numeric arguments reject complex and classed scalars consistently", {
   for (bad in list(2 + 1i, structure(2, class = "calibrated"))) {
     expect_error(mssr(x, fwhm = bad), class = "mssrscopR_error_parameter")
     expect_error(mssr(x, fwhm = 2, amp = bad), class = "mssrscopR_error_parameter")
-    expect_error(mssr_mask(r, seed = bad), class = "mssrscopR_error_parameter")
+    expect_error(mssr_mask(r, fraction = 0.5, seed = bad), class = "mssrscopR_error_parameter")
     expect_error(mssr_selftest(tolerance = bad), class = "mssrscopR_error_parameter")
   }
   for (bad in list(0.5 + 0.1i, structure(0.5, class = "calibrated"))) {
