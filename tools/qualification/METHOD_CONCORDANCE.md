@@ -94,12 +94,12 @@ Notes:
   duty cycle; `sign = "absolute"` returns the absolute value.
 - **TPM.** Every tool squares the frame sum, so mssrscopR does the same. For
   non-negative maps it is a monotone function of the mean and adds nothing to
-  it; the help says so.
+  it; the help says so. The Fiji batch TPM plugin for more than 100 frames is
+  not registered in the plugin's menu configuration.
 - **Variance and CV.** The table's variance divides by `M`, and its "CV" is
   `Var / Mean`, an index of dispersion rather than the standard deviation
   divided by the mean; mssrscopR follows the table. The R script also has a
-  different missing-data policy. The Fiji batch TPM plugin for more than 100
-  frames is not registered in the plugin's menu configuration.
+  different missing-data policy.
 - **Interpolation.** The article's Discussion and Supplementary Note 6.2.1
   recommend Fourier interpolation for temporal analysis, because the bicubic
   mesh-like artifact appears in temporal statistics (Note 6.1.1, Fig. S16, the
@@ -107,7 +107,8 @@ Notes:
   legends of the temporal results do not state which interpolation was used.
   mssrscopR amplifies with the supplement's cubic kernel and mesh compensation;
   Fourier interpolation is not implemented, and `diagnostics$mesh_index`
-  reports the remaining sub-pixel grid on signal-free data.
+  reports the remaining sub-pixel grid on signal-free input pixels of the
+  field-of-view-preserving grid.
 
 The package tests compare the reduction with values derived by hand for
 constant, alternating and periodic stacks and with an explicit-loop

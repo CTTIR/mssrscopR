@@ -142,13 +142,18 @@ quantitative intensities, and no resolution gain is implied:
 `diagnostics$mesh_index` measures the grid as the range of the mean over the
 `amp x amp` sub-pixel phases, relative to the mean. Where structure is present
 the index would mix structure and grid, so it uses only signal-free input
-pixels: by default those whose raw temporal mean is below its median, or a
-`background` mask you supply.
+pixels: by default those whose raw temporal mean is strictly below its median,
+or a `background` mask you supply. For the SOFI statistics it is computed on
+the absolute values, since signed cumulants average to about zero off the
+structure. It is formed only on the default field-of-view-preserving grid,
+where each input pixel holds every phase once. A frame subset of an
+`mssr_stack` uses the stack's raw mean over all its frames, recorded as
+`mesh_region = "below_median_stack"`.
 
 ```{r mesh}
 c(m$diagnostics$mesh_region, format(m$diagnostics$mesh_index, digits = 3))
 corner <- matrix(FALSE, size, size)
-corner[13:20, 1:6] <- TRUE   # no emitter here
+corner[16:20, 1:5] <- TRUE   # at least six pixels from every emitter
 mssr_temporal(s, "mean", background = corner)$diagnostics$mesh_index
 ```
 
