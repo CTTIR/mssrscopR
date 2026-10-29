@@ -8,7 +8,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/CTTIR/mssrscopR/blob/main/inst/CITATION)
+[`inst/CITATION`](https://github.com/CTTIR/mssrscopR/blob/v0.2.0/inst/CITATION)
 
 Torres-García E, Pinto-Cámara R, Linares A, others (2022). “Extending
 resolution within a single imaging frame.” *Nature Communications*,
