@@ -252,9 +252,10 @@ attempt files. Cancellation takes effect between frames. The returned table's
 `run_record` attribute identifies the durable invocation summary.
 
 The allocation model was calibrated on the peak RSS of fresh R processes on
-Linux over 65,536–16,777,216 output pixels (amplification 1–4, orders 0–3,
-mesh and weighting on and off, both kernels), where it exceeded every measured
-peak by 20–40 %. It includes a 128 MiB runtime allowance. Larger workloads,
+one Linux machine over 65,536–16,777,216 output pixels (amplification 1–4,
+orders 0–3, mesh and weighting on and off, both kernels), where it exceeded
+every measured peak by 30–220 %, least for order 3 with mesh and weighting. It
+includes a 128 MiB runtime allowance. Garbage collection, larger workloads,
 other platforms and retained objects can change RSS; this is not an OS memory
 cap.
 

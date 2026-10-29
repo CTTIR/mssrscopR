@@ -1,12 +1,14 @@
 #' Estimate whole-frame MSSR resources
 #'
 #' Reports a conservative allocation model before allocating an output frame.
-#' The estimate includes a 128 MiB runtime allowance, 20 double buffers per
+#' The estimate includes a 128 MiB runtime allowance, 24 double buffers per
 #' output pixel, six per input pixel, and reflected-index and offset storage.
-#' It was calibrated on the peak resident memory of fresh R processes on Linux
-#' over a workload ladder of 65,536 to 16,777,216 output pixels (amplification
-#' 1 to 4, orders 0 to 3, mesh and intensity weighting on and off, disk and
-#' square kernels), where it exceeded every measured peak by 20 to 40 percent.
+#' It was calibrated on the peak resident memory of fresh R processes on one
+#' Linux machine over a workload ladder of 65,536 to 16,777,216 output pixels
+#' (amplification 1 to 4, orders 0 to 3, mesh and intensity weighting on and
+#' off, disk and square kernels), where it exceeded every measured peak by 30
+#' to 220 percent; the margin is smallest for order 3 with mesh and weighting,
+#' and garbage-collection timing changes peaks from run to run.
 #' It is a planning guard, not a hard process-memory limit: other platforms,
 #' loaded packages, retained objects, garbage collection and the allocator can
 #' change peak RSS, and estimates outside that ladder are extrapolations.
@@ -50,7 +52,7 @@ mssr_estimate_resources <- function(input_dim, fwhm, amp = 1L,
     mssr_abort("resource", "Estimated neighborhood work exceeds 1e10 operations.", call)
   }
   # Calibrated on peak RSS of the compiled engine (see the help page).
-  peak <- 128 * 1024^2 + 8 * (20 * n_out + 6 * prod(input_dim)) +
+  peak <- 128 * 1024^2 + 8 * (24 * n_out + 6 * prod(input_dim)) +
     4 * (2 * hs + 1) * sum(output_dim) + 64 * n_offsets
   list(input_dim = as.integer(input_dim), output_dim = output_dim,
        output_pixels = n_out, half_size = hs, n_offsets = n_offsets,
