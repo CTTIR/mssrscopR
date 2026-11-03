@@ -15,6 +15,7 @@ Useful links:
 \itemize{
   \item \url{https://github.com/CTTIR/mssrscopR}
   \item \url{https://cttir.github.io/mssrscopR/}
+  \item \url{https://cttir.r-universe.dev/mssrscopR}
   \item Report bugs at \url{https://github.com/CTTIR/mssrscopR/issues}
 }
 

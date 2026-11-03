@@ -21,7 +21,7 @@ result, and a self-test can check any installation.
   frame sequence pixel by pixel (mean, variance, TPM, `Var / Mean`, SOFI).
 - **Verify:** `mssr_selftest()` recomputes bundled synthetic fixtures.
 
-> **Status: 0.2.0.** At amplification 1 with intensity
+> **Status: 0.2.0.9001 development version.** At amplification 1 with intensity
 > normalization off, comparisons with the authors' single-frame R code (disk
 > kernel, rotation undone) and Python code (square kernel) agree on the tested
 > non-degenerate examples. Engine `mssr_r_rev3` improves numerical stability;
@@ -32,6 +32,16 @@ The method concordance in `vignette("method-concordance")` maps the official
 supplementary equations to the engine and records implementation differences,
 the temporal definitions and qualification boundaries
 ([Markdown source](https://github.com/CTTIR/mssrscopR/blob/main/tools/qualification/METHOD_CONCORDANCE.md)).
+
+Temporal calculations scale each spatial pixel independently, so a bright pixel
+does not erase another pixel's dim but representable statistics. Extreme ratios
+within one pixel that lose nonzero intermediate values are refused explicitly;
+ordinary floating-point rounding and cancellation remain possible. The explorer
+retains 17 significant digits in CSV downloads and decodes decimal uploads
+independently of base R's platform-dependent scanner. The qualification kit
+transports exact binary64 matrices alongside its readable high-precision CSV
+records. See the [maintenance record](https://github.com/CTTIR/mssrscopR/blob/main/planning/maintenance-2026-11-03.md) for the
+observed checks and remaining limits.
 
 ## Why
 

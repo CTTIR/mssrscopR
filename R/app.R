@@ -9,7 +9,7 @@
 #' same as in R; it adds no processing of its own.
 #'
 #' **Uploads.** Delimited text (`.csv` comma-separated, `.tsv` or `.txt`
-#' separated by tabs or spaces; numbers only, no header), PNG (needs the `png`
+#' separated by tabs or spaces; numbers only, no header or comments), PNG (needs the `png`
 #' package; values as returned by `png::readPNG()`, scaled to 0..1) and TIFF
 #' (needs the `tiff` package; stored values, unscaled). Multi-channel images are
 #' not converted to gray: choose one channel. For multi-page TIFF choose a
@@ -20,6 +20,9 @@
 #' original input and preprocessing separately; a digest identifies content,
 #' not acquisition authenticity. Compare a retained file with
 #' `digest::digest(file = path, algo = "sha256", serialize = FALSE)`.
+#' CSV downloads retain 17 significant digits. Text uploads decode decimal
+#' samples with `jsonlite` so finite values near the binary64 limit survive
+#' export and re-upload independently of the platform's base R scanner.
 #'
 #' **Limits.** To keep the app responsive, runs whose estimated work exceeds
 #' 5e8 operations are refused; call [mssr()] directly for larger runs. The
@@ -332,28 +335,74 @@ mssr_app_tiff_scale <- function(meta) {
   if (bits == 32) 2^bits else 2^bits - 1
 }
 
+# Tokenize with R's delimiter reader, but decode decimal samples with the
+# JSON parser's strtod implementation. On platforms without an extended
+# long double, R's scanner can turn a valid double.xmax decimal into Inf.
+mssr_app_parse_numbers <- function(tokens) {
+  mssr_app_need("jsonlite", "numeric text samples")
+  tokens <- trimws(tokens)
+  decimal <- grepl("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$", tokens)
+  hexadecimal <- grepl(paste0("^[+-]?0[xX]([[:xdigit:]]+([.][[:xdigit:]]*)?|",
+                              "[.][[:xdigit:]]+)([pP][+-]?[0-9]+)?$"), tokens)
+  nonfinite <- is.na(tokens) | grepl("^[+-]?(NA|NaN|Inf|Infinity)$", tokens, ignore.case = TRUE)
+  if (any(!decimal & !hexadecimal & !nonfinite)) {
+    mssr_abort("input", "Text files must contain numbers only, without a header row or comments.")
+  }
+  if (any(nonfinite)) {
+    mssr_abort("nonfinite", "The text frame contains missing or non-finite samples.")
+  }
+  values <- numeric(length(tokens))
+  # Hexadecimal tokens were already supported and have exact binary scaling.
+  values[hexadecimal] <- as.numeric(tokens[hexadecimal])
+  positions <- which(decimal)
+  if (length(positions)) {
+    # Canonicalize syntax lexically; never round via an intermediate number.
+    canonical <- sub("^[+]", "", tokens[positions])
+    canonical <- sub("^[.]", "0.", canonical)
+    canonical <- sub("^-[.]", "-0.", canonical)
+    canonical <- sub("^(-?)0+(?=[0-9])", "\\1", canonical, perl = TRUE)
+    canonical <- sub("[.](?=[eE]|$)", ".0", canonical, perl = TRUE)
+    for (first in seq.int(1L, length(positions), by = 65536L)) {
+      at <- first:min(length(positions), first + 65535L)
+      encoded <- paste0("[", paste(canonical[at], collapse = ","), "]")
+      values[positions[at]] <- jsonlite::fromJSON(encoded)
+    }
+  }
+  if (any(!is.finite(values))) {
+    mssr_abort("nonfinite", "The text frame contains samples outside the finite binary64 range.")
+  }
+  values
+}
+
 # Returns list(x = numeric matrix, info = one-line description).
 mssr_app_read <- function(path, name, channel = 1L, page = 1L) {
   ext <- mssr_app_ext(name)
   if (ext %in% c("csv", "tsv", "txt")) {
     df <- tryCatch(
       if (ext == "csv") {
-        utils::read.csv(path, header = FALSE, strip.white = TRUE)
+        utils::read.csv(path, header = FALSE, strip.white = TRUE, row.names = NULL,
+                        colClasses = "character", na.strings = character())
       } else {
-        utils::read.table(path, header = FALSE)
+        utils::read.table(path, header = FALSE, comment.char = "", row.names = NULL,
+                          colClasses = "character", na.strings = character())
       },
       error = function(e) NULL
     )
-    if (is.null(df) || !all(vapply(df, is.numeric, logical(1)))) {
-      mssr_abort("input", paste("Text files must contain numbers only, without a header row;",
-                                "`.csv` is comma-separated, `.tsv`/`.txt` tab- or",
-                                "space-separated."))
+    if (is.null(df)) {
+      mssr_abort("input", paste(
+        "Text files must contain numbers only, without a header row or comments;",
+        "`.csv` is comma-separated, `.tsv`/`.txt` tab- or space-separated."
+      ))
     }
-    x <- unname(as.matrix(df))
+    x <- matrix(mssr_app_parse_numbers(as.vector(as.matrix(df))), nrow(df), ncol(df))
+    parser_version <- as.character(utils::packageVersion("jsonlite"))
     return(list(x = x, info = sprintf("Text table, %d x %d", nrow(x), ncol(x)),
                 metadata = list(format = "text", axes = c("row_y", "column_x"),
                                 physical_sampling = NULL, sample_units = "user_supplied",
-                                reader = "utils::read.table")))
+                                reader = "utils::read.table",
+                                numeric_parser = c(decimal = "jsonlite::fromJSON",
+                                                   hexadecimal = "base::as.numeric"),
+                                numeric_parser_version = parser_version)))
   }
   if (ext == "png") {
     mssr_app_need("png", "PNG files")
@@ -722,37 +771,55 @@ mssr_app_guide <- function(guide, dark) {
   }
 }
 
-# Input and MSSR profiles along one input row or column, each scaled to its
-# own maximum. The MSSR line is the output row/column whose center is closest
+# Input and MSSR profiles along one input row or column. A line is divided by
+# its positive maximum when that division stays finite; otherwise it retains
+# its values and carries an explicit display label. The MSSR line is the output
+# row/column whose center is closest
 # to the chosen input pixel center; with even amplification two are equally
 # close and their mean is used.
 mssr_app_profile <- function(x, res, axis = "row", index = 1L) {
   co <- mssr_coords(res)
-  scale1 <- function(v) if (max(v) > 0) v / max(v) else v
+  scale1 <- function(v) {
+    if (max(v) <= 0) {
+      return(list(values = v, normalization = "original values (no positive maximum)"))
+    }
+    scaled <- v / max(v)
+    if (any(!is.finite(scaled))) {
+      return(list(values = v, normalization = "original values (scaling would overflow)"))
+    }
+    list(values = scaled, normalization = "divided by positive line maximum")
+  }
   nearest <- function(centers) {
     d <- abs(centers - index)
     which(d <= min(d) + 1e-9)
   }
   if (axis == "row") {
     k <- nearest(co$row)
-    list(pos_in = seq_len(ncol(x)), val_in = scale1(x[index, ]), pos_out = co$col,
-         val_out = scale1(colMeans(res$values[k, , drop = FALSE])), center = mean(co$row[k]))
+    input <- scale1(x[index, ])
+    output <- scale1(colMeans(res$values[k, , drop = FALSE]))
+    positions <- list(pos_in = seq_len(ncol(x)), pos_out = co$col, center = mean(co$row[k]))
   } else {
     k <- nearest(co$col)
-    list(pos_in = seq_len(nrow(x)), val_in = scale1(x[, index]), pos_out = co$row,
-         val_out = scale1(rowMeans(res$values[, k, drop = FALSE])), center = mean(co$col[k]))
+    input <- scale1(x[, index])
+    output <- scale1(rowMeans(res$values[, k, drop = FALSE]))
+    positions <- list(pos_in = seq_len(nrow(x)), pos_out = co$row, center = mean(co$col[k]))
   }
+  c(positions, list(val_in = input$values, val_out = output$values,
+                    normalization_in = input$normalization,
+                    normalization_out = output$normalization))
 }
 
 mssr_app_plot_profile <- function(x, res, axis = "row", index = 1L, dark = FALSE) {
   op <- mssr_app_par(dark)
+  op$yaxs <- graphics::par("yaxs")
   on.exit(graphics::par(op))
   cl <- mssr_app_colors(dark)
   pr <- mssr_app_profile(x, res, axis, index)
   along <- if (axis == "row") "column" else "row"
+  limits <- range(c(0, 1.05, pr$val_in, pr$val_out))
   graphics::plot(pr$pos_in, pr$val_in, type = "o", pch = 16, cex = 0.6, col = cl$muted,
-                 ylim = c(0, 1.05), las = 1, xlab = sprintf("%s (input px)", along),
-                 ylab = "value / maximum of the line",
+                 ylim = limits, yaxs = "i", las = 1, xlab = sprintf("%s (input px)", along),
+                 ylab = "displayed value (scaling described below)",
                  main = sprintf("Profile along input %s %d (MSSR %s centered at %.3g)", axis,
                                 index, axis, pr$center))
   graphics::lines(pr$pos_out, pr$val_out, col = cl$accent, lwd = 2)
@@ -830,7 +897,14 @@ mssr_app_record <- function(run, source, mask = NULL, current_args = NULL, curre
 }
 
 mssr_app_write_matrix <- function(m, file) {
-  utils::write.table(m, file, sep = ",", row.names = FALSE, col.names = FALSE)
+  # write.table() uses about 15 significant digits, which can round a finite
+  # value above double.xmax. Seventeen digits recover each binary64 sample.
+  # Stream rows so a large frame needs no second full matrix of strings.
+  con <- base::file(file, "wt")
+  on.exit(close(con))
+  for (i in seq_len(nrow(m))) {
+    writeLines(paste(sprintf("%.17g", m[i, ]), collapse = ","), con)
+  }
 }
 
 # ---- User interface ------------------------------------------------------------
@@ -989,10 +1063,15 @@ mssr_app_ui <- function() {
                               value = 16, step = 1, width = "100%")
         ),
         shiny::plotOutput("profile", height = "360px"),
+        shiny::textOutput("profile_scaling"),
         shiny::tags$details(shiny::tags$summary("Profile values"),
                             shiny::tableOutput("profile_table")),
         shiny::div(class = "ms-note",
-                   paste("Each line is scaled to its own maximum. The dashed line in the Maps tab",
+                   paste("Each line is divided by its positive maximum when that stays finite;",
+                         "otherwise its original values are shown. Negative values remain visible.",
+                         "These display scalings do not make input and MSSR",
+                         "intensities comparable.",
+                         "The dashed line in the Maps tab",
                          "marks the position. Amplification adds samples, not observations."))
       ),
       bslib::nav_panel(
@@ -1310,8 +1389,17 @@ mssr_app_server <- function(input, output, session) {
     mssr_app_plot_profile(r$x, r$result, g$axis, g$index, dark())
   }, bg = "transparent", alt = function() {
     g <- guide()
-    sprintf(paste("Input and MSSR profiles along input %s %d, each divided by its own maximum.",
-                  "Exact displayed values are in the Profile values table."), g$axis, g$index)
+    pr <- mssr_app_profile(run()$x, run()$result, g$axis, g$index)
+    sprintf(paste("Input and MSSR profiles along input %s %d. Input: %s. MSSR: %s.",
+                  "Exact displayed values are in the Profile values table."),
+            g$axis, g$index, pr$normalization_in, pr$normalization_out)
+  })
+
+  output$profile_scaling <- shiny::renderText({
+    r <- run()
+    g <- guide()
+    pr <- mssr_app_profile(r$x, r$result, g$axis, g$index)
+    sprintf("Input: %s. MSSR: %s.", pr$normalization_in, pr$normalization_out)
   })
 
   output$profile_table <- shiny::renderTable({
@@ -1320,7 +1408,9 @@ mssr_app_server <- function(input, output, session) {
     pr <- mssr_app_profile(r$x, r$result, g$axis, g$index)
     data.frame(series = c(rep("input", length(pr$pos_in)), rep("MSSR", length(pr$pos_out))),
                position_input_pixels = c(pr$pos_in, pr$pos_out),
-               value_divided_by_line_maximum = c(pr$val_in, pr$val_out))
+               displayed_value = c(pr$val_in, pr$val_out),
+               normalization = c(rep(pr$normalization_in, length(pr$pos_in)),
+                                 rep(pr$normalization_out, length(pr$pos_out))))
   }, digits = 6)
 
   mask <- shiny::reactive({

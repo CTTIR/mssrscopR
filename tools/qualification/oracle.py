@@ -8,6 +8,7 @@ Run with Python 3 and mpmath==1.3.0; see README.md. No input data or network.
 """
 import argparse
 import csv
+import struct
 import hashlib
 import itertools
 import json
@@ -135,6 +136,13 @@ def write_matrix(path, matrix):
     with path.open('w',newline='') as f:
         csv.writer(f).writerows([[mp.nstr(v,60) if isinstance(v,mp.mpf) else repr(v)
                                  for v in row] for row in matrix])
+    # Exact binary64 transport avoids platform-dependent decimal scanners.
+    # CSV remains the human-readable, high-precision audit representation.
+    rows, cols = len(matrix), len(matrix[0])
+    values = [float(v) for row in matrix for v in row]
+    path.with_suffix('.bin').write_bytes(
+        b'MSSR64LE' + struct.pack('<II', rows, cols) +
+        struct.pack('<' + 'd' * len(values), *values))
 
 
 def main():
@@ -145,6 +153,7 @@ def main():
     cases=case_plan()
     params=['fwhm','amp','order','intensity_normalize','mesh','grid','kernel','rounding']
     plan={'oracle_version':'equations_scalar_v1','mpmath_version':mp.__version__,
+          'transport':'binary64_le_v1',
           'precisions_decimal_digits':[100,160], 'hard_case_precision':220,
           'acceptance_normalized_max_error':1e-11,
           'pixelwise_mixed_rule':'abs(error)/peak <= 1e-11 + 1e-11*abs(expected)/peak + 2*smallest_subnormal/peak',

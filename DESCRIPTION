@@ -1,6 +1,6 @@
 Package: mssrscopR
 Title: Single-Frame Mean-Shift Super-Resolution Structure Maps
-Version: 0.2.0
+Version: 0.2.0.9001
 Authors@R:
     person("R.", "Heller",
            email = "raban.heller@uni-ulm.de",
@@ -19,7 +19,10 @@ Description: Computes the single-frame Mean-Shift Super-Resolution ('MSSR')
     physical resolution or benefit for any application is implied.
 License: MIT + file LICENSE
 URL: https://github.com/CTTIR/mssrscopR,
-    https://cttir.github.io/mssrscopR/
+    https://cttir.github.io/mssrscopR/,
+    https://cttir.r-universe.dev/mssrscopR
+X-schema.org-keywords: microscopy, image-processing, mean-shift,
+    temporal-statistics, structural-maps
 BugReports: https://github.com/CTTIR/mssrscopR/issues
 Encoding: UTF-8
 Language: en-US

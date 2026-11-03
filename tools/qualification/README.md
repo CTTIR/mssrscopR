@@ -19,7 +19,12 @@ its seed, options, precision and tolerance before evaluations. It performs scala
 weighted absolute-intensity calculations with 16-tap interpolation and repeated
 reflection, unlike the R engine's conditioned local-difference vectorization.
 Inputs are lifted from their exact binary64 values. Expected CSV values contain
-60 significant decimal digits. Output reductions are over complete frames.
+60 significant decimal digits. The comparator reads the accompanying `.bin`
+matrices: an eight-byte `MSSR64LE` header, two little-endian 32-bit dimensions,
+then row-major little-endian binary64 values. This transports the original
+inputs and the rounded expected values exactly; the CSV files retain the
+high-precision values for inspection. Regenerate older output directories
+before using the current comparator. Output reductions are over complete frames.
 
 The bounded design covers six scene families, both grids and kernels, both
 rounding rules, mesh and weighting choices, amplification 1–4, orders 0/1/3/10,

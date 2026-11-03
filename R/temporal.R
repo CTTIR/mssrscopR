@@ -11,8 +11,9 @@ temporal_min_frames <- c(mean = 1L, var = 2L, tpm = 1L, cv = 2L,
 # Degree of each statistic under x -> s * x (used to undo internal scaling).
 temporal_degree <- c(mean = 1L, var = 2L, tpm = 2L, cv = 1L,
                      sofi2 = 2L, sofi3 = 3L, sofi4 = 4L)
-# Output-sized double buffers the reduction holds (model "temporal_buffers_v3").
-temporal_buffers <- c(mean = 4, var = 6, tpm = 4, cv = 6, sofi2 = 7, sofi3 = 8, sofi4 = 15)
+# Output-sized buffers, including per-pixel exponents and scaling work arrays
+# (model "temporal_buffers_v4"). This remains an allocation estimate, not RSS.
+temporal_buffers <- c(mean = 12, var = 14, tpm = 12, cv = 14, sofi2 = 15, sofi3 = 16, sofi4 = 23)
 temporal_schema_version <- "1.1.0"
 temporal_definition <- "table_s2_lagged"
 temporal_paths <- c("stored", "recompute", "single_pass", "stack")
@@ -97,8 +98,17 @@ temporal_frame_arguments <- c("fwhm", "amp", "order", "intensity_normalize", "me
 #' raw intensity at the end and at the start of the selected frames.
 #'
 #' **Computation.** Every statistic is formed from centered deviations in
-#' frame order, in a power-of-two scaled range so that products of up to four
-#' deviations stay representable. The scaling is undone at the end; a value
+#' frame order, in a separate power-of-two scaled range for each pixel so that
+#' unrelated bright pixels cannot erase dim pixels' representable statistics.
+#' The raw temporal mean uses the same conditioning to avoid overflowing an
+#' intermediate sum. Products of up to four deviations are formed in the scaled
+#' range. A nonzero frame value, accumulated sum, intermediate product or
+#' quotient lost during conditioning or reduction is refused, including a series
+#' whose within-pixel dynamic range cannot be kept in the scaled representation.
+#' Global rescaling alone cannot repair such within-pixel ratios.
+#' This is conservative even when a rounded mean
+#' would remain finite; it is not a guarantee against all cancellation error.
+#' The scaling is undone at the end; a value
 #' that would exceed the numeric range, or a nonzero value that would fall
 #' below the smallest representable magnitude, raises
 #' `mssrscopR_error_numerical`, and very small results keep only subnormal
@@ -261,7 +271,8 @@ mssr_temporal <- function(x, statistic, fwhm, amp = 1L, order = 1L, intensity_no
       f
     }
     counts <- temporal_counts(stack$diagnostics[index, , drop = FALSE])
-    reduced <- temporal_reduce(source, length(index), statistic, call)
+    reduced <- temporal_reduce(source, length(index), statistic, call,
+                               frame_indices = stack$parameters$first_frame + index - 1)
     first <- stack$parameters$first_frame + (index[1] - 1)
     return(temporal_result(reduced, statistic, sign, length(index), first, stack$transform,
                            stack$parameters, stack$engine, counts, "stack", region,
@@ -285,7 +296,7 @@ mssr_temporal <- function(x, statistic, fwhm, amp = 1L, order = 1L, intensity_no
   region <- temporal_region(background, scan$input_mean, "below_median")
   temporal_order_warning(settings$order)
   runner <- temporal_frame_runner(x, index, settings, store = path == "stored", call)
-  reduced <- temporal_reduce(runner$frame, length(index), statistic, call)
+  reduced <- temporal_reduce(runner$frame, length(index), statistic, call, frame_indices = index)
   info <- runner$info()
   temporal_frame_warnings(info$diagnostics)
   temporal_result(reduced, statistic, sign, length(index), index[1], info$transform,
@@ -382,9 +393,9 @@ temporal_check_array <- function(x, call) {
 # the input grid and the frames' field means. Holds one frame at a time.
 temporal_scan_frames <- function(x, index, call) {
   d <- dim(x)
-  total <- matrix(0, d[1], d[2])
-  frame_means <- numeric(length(index))
-  for (t in seq_along(index)) {
+  state <- new.env(parent = emptyenv())
+  state$frame_means <- numeric(length(index))
+  frame <- function(t, pass) {
     f <- x[, , index[t]]
     # Resetting the dimensions drops dimnames, so no input names reach the
     # results; extraction already drops every other attribute.
@@ -394,10 +405,11 @@ temporal_scan_frames <- function(x, index, call) {
         "Frame %d of `x` contains NA, NaN or infinite values; MSSR is undefined for them."
       ), index[t]), call)
     }
-    total <- total + f
-    frame_means[t] <- mean(f)
+    state$frame_means[t] <- mean(f)
+    f
   }
-  list(input_mean = total / length(index), frame_means = frame_means)
+  input_mean <- temporal_reduce(frame, length(index), "mean", call, frame_indices = index)
+  list(input_mean = input_mean, frame_means = state$frame_means)
 }
 
 temporal_check_settings <- function(x, fwhm, amp, order, intensity_normalize, mesh, grid,
@@ -564,6 +576,19 @@ temporal_counts <- function(diagnostics) {
 
 # x * 2^k without an intermediate overflow or underflow of 2^k itself.
 temporal_ldexp <- function(x, k) {
+  if (length(k) > 1L) {
+    while (any(k > 1000)) {
+      idx <- which(k > 1000)
+      x[idx] <- x[idx] * 2^1000
+      k[idx] <- k[idx] - 1000
+    }
+    while (any(k < -1000)) {
+      idx <- which(k < -1000)
+      x[idx] <- x[idx] * 2^-1000
+      k[idx] <- k[idx] + 1000
+    }
+    return(x * 2^k)
+  }
   while (k > 1000) {
     x <- x * 2^1000
     k <- k - 1000
@@ -575,40 +600,51 @@ temporal_ldexp <- function(x, k) {
   x * 2^k
 }
 
-# The engine's power-of-two exponent rule (R/engine.R).
+# The engine's power-of-two exponent rule (R/engine.R), applied per pixel.
+# Zero uses the smallest exponent until a nonzero value is observed there.
 temporal_exponent <- function(m) {
-  max(-1074, min(1023, floor(log2(m))))
+  out <- floor(log2(m))
+  out[] <- pmax(-1074, pmin(1023, out))
+  out
 }
 
 # Two-pass reduction over frames delivered in order by `frame(t, pass)`.
-# Pass 1 forms the frame sum in units of 2^e, e the exponent of the largest
-# magnitude seen so far; rescaling by powers of two is exact, so the sum equals
-# one formed directly in the final units. Pass 2 forms the deviation products in
-# those units, which keeps products of up to four deviations in range.
-temporal_reduce <- function(frame, n, statistic, call = NULL) {
-  e <- -Inf
+# Pass 1 forms each pixel's sum in units of 2^e, e the exponent of its largest
+# magnitude so far. Conditioning is independent across pixels. Pass 2 forms
+# centered deviation products in those units. Power-of-two rescaling preserves
+# ordinary binary arithmetic; the final rescaling checks representability.
+temporal_reduce <- function(frame, n, statistic, call = NULL, frame_indices = seq_len(n)) {
+  e <- NULL
   total <- NULL
+  condition_scale <- function(value, exponent) {
+    scaled <- temporal_ldexp(value, exponent)
+    if (any(value != 0 & scaled == 0)) {
+      mssr_abort("numerical", sprintf(paste(
+        "Frame %d: the within-pixel temporal dynamic range",
+        "loses nonzero values during numerical scaling. Use a narrower frame range or",
+        "a validated higher-precision calculation before retrying."
+      ), frame_indices[t]), call)
+    }
+    scaled
+  }
   for (t in seq_len(n)) {
     f <- frame(t, 1L)
-    m <- max(abs(f))
-    if (m > 0) {
-      et <- temporal_exponent(m)
-      if (et > e) {
-        if (!is.null(total) && is.finite(e)) total <- temporal_ldexp(total, e - et)
-        e <- et
-      }
+    et <- temporal_exponent(abs(f))
+    if (is.null(total)) {
+      e <- et
+      total <- condition_scale(f, -e)
+    } else {
+      next_e <- pmax(e, et)
+      total <- condition_scale(total, e - next_e) + condition_scale(f, -next_e)
+      e <- next_e
     }
-    unit <- if (is.finite(e)) e else 0
-    scaled <- temporal_ldexp(f, -unit)
-    total <- if (is.null(total)) scaled else total + scaled
   }
-  if (!is.finite(e)) e <- 0
-  center <- total / n
+  center <- temporal_divide(total, n, call)
   degree <- temporal_degree[[statistic]]
   values <- switch(statistic,
     mean = center,
-    tpm = total * total,
-    temporal_deviations(frame, n, statistic, center, e)
+    tpm = temporal_multiply(total, total, call),
+    temporal_deviations(frame, n, statistic, center, e, call, frame_indices)
   )
   scaled <- values
   values <- temporal_ldexp(scaled, degree * e)
@@ -624,7 +660,37 @@ temporal_reduce <- function(frame, n, statistic, call = NULL) {
   values
 }
 
-temporal_deviations <- function(frame, n, statistic, center, e) {
+# A product can underflow in conditioned units even when later rescaling would
+# make the mathematical result representable. Refuse that loss before it can
+# masquerade as an exact zero in a cumulant or a variance.
+temporal_multiply <- function(x, y, call = NULL) {
+  value <- x * y
+  if (any(x != 0 & y != 0 & value == 0)) {
+    mssr_abort("numerical", paste(
+      "The within-pixel temporal dynamic range loses a nonzero",
+      "intermediate product. Use a narrower frame range or a validated higher-precision",
+      "calculation; global rescaling alone cannot fix this ratio."
+    ), call)
+  }
+  value
+}
+
+temporal_divide <- function(x, y, call = NULL) {
+  value <- x / y
+  if (any(x != 0 & value == 0)) {
+    mssr_abort("numerical", paste(
+      "The temporal calculation loses a nonzero intermediate",
+      "average or ratio. Use a narrower frame range or a validated higher-precision",
+      "calculation before retrying."
+    ), call)
+  }
+  value
+}
+
+temporal_deviations <- function(frame, n, statistic, center, e, call = NULL,
+                                frame_indices = seq_len(n)) {
+  multiply <- function(x, y) temporal_multiply(x, y, call)
+  divide <- function(x, y) temporal_divide(x, y, call)
   acc <- matrix(0, nrow(center), ncol(center))
   keep <- c(var = 0L, cv = 0L, sofi2 = 1L, sofi3 = 2L, sofi4 = 3L)[[statistic]]
   lagged <- list()
@@ -633,39 +699,52 @@ temporal_deviations <- function(frame, n, statistic, center, e) {
     names(a) <- c("a0123", "a01", "a23", "a02", "a13", "a03", "a12")
   }
   for (t in seq_len(n)) {
-    d <- temporal_ldexp(frame(t, 2L), -e) - center
+    f <- frame(t, 2L)
+    scaled <- temporal_ldexp(f, -e)
+    if (any(f != 0 & scaled == 0)) {
+      mssr_abort("numerical", sprintf(paste(
+        "Frame %d: the within-pixel temporal dynamic range",
+        "loses nonzero values while forming deviations. Use a narrower frame range or",
+        "a validated higher-precision calculation before retrying."
+      ), frame_indices[t]), call)
+    }
+    d <- scaled - center
     if (statistic %in% c("var", "cv")) {
-      acc <- acc + d * d
+      acc <- acc + multiply(d, d)
     } else if (statistic == "sofi2" && t >= 2L) {
-      acc <- acc + lagged[[1]] * d
+      acc <- acc + multiply(lagged[[1]], d)
     } else if (statistic == "sofi3" && t >= 3L) {
-      acc <- acc + (lagged[[2]] * lagged[[1]]) * d
+      acc <- acc + multiply(multiply(lagged[[2]], lagged[[1]]), d)
     } else if (statistic == "sofi4" && t >= 4L) {
       d0 <- lagged[[3]]
       d1 <- lagged[[2]]
       d2 <- lagged[[1]]
-      a$a0123 <- a$a0123 + ((d0 * d1) * d2) * d
-      a$a01 <- a$a01 + d0 * d1
-      a$a23 <- a$a23 + d2 * d
-      a$a02 <- a$a02 + d0 * d2
-      a$a13 <- a$a13 + d1 * d
-      a$a03 <- a$a03 + d0 * d
-      a$a12 <- a$a12 + d1 * d2
+      a$a0123 <- a$a0123 + multiply(multiply(multiply(d0, d1), d2), d)
+      a$a01 <- a$a01 + multiply(d0, d1)
+      a$a23 <- a$a23 + multiply(d2, d)
+      a$a02 <- a$a02 + multiply(d0, d2)
+      a$a13 <- a$a13 + multiply(d1, d)
+      a$a03 <- a$a03 + multiply(d0, d)
+      a$a12 <- a$a12 + multiply(d1, d2)
     }
     if (keep > 0L) lagged <- c(list(d), lagged)[seq_len(min(t, keep))]
   }
   switch(statistic,
-    var = acc / n,
+    var = divide(acc, n),
     cv = {
-      v <- acc / n
-      ifelse(center == 0, 0, v / center)
+      v <- divide(acc, n)
+      value <- matrix(0, nrow(center), ncol(center))
+      nonzero <- center != 0
+      value[nonzero] <- divide(v[nonzero], center[nonzero])
+      value
     },
-    sofi2 = acc / (n - 1),
-    sofi3 = acc / (n - 2),
+    sofi2 = divide(acc, n - 1),
+    sofi3 = divide(acc, n - 2),
     sofi4 = {
       k <- n - 3
-      a$a0123 / k - (a$a01 / k) * (a$a23 / k) - (a$a02 / k) * (a$a13 / k) -
-        (a$a03 / k) * (a$a12 / k)
+      divide(a$a0123, k) - multiply(divide(a$a01, k), divide(a$a23, k)) -
+        multiply(divide(a$a02, k), divide(a$a13, k)) -
+        multiply(divide(a$a03, k), divide(a$a12, k))
     }
   )
 }

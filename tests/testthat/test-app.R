@@ -539,6 +539,7 @@ test_that("app plots have text alternatives and dynamic status regions", {
     expect_match(output$maps$alt, "shared input-pixel coordinates", fixed = TRUE)
     expect_match(output$profile$alt, "Profile values table", fixed = TRUE)
     expect_match(output$mask_plot$alt, "pixels selected", fixed = TRUE)
-    expect_match(output$profile_table, "value_divided_by_line_maximum", fixed = TRUE)
+    expect_match(output$profile_table, "displayed_value", fixed = TRUE)
+    expect_match(output$profile_scaling, "divided by positive line maximum", fixed = TRUE)
   })
 })

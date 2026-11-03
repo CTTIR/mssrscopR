@@ -367,7 +367,7 @@ test_that("temporal resource estimates extend the single-frame model", {
   expect_identical(est$stack_bytes, 8 * base$output_pixels * 10)
   expect_gt(est$stored_peak_bytes, est$recompute_peak_bytes)
   expect_identical(est$recompute_work, 2 * est$stored_work)
-  expect_identical(est$temporal_model, "temporal_buffers_v3")
+  expect_identical(est$temporal_model, "temporal_buffers_v4")
   expect_equal(est$stored_peak_bytes - est$recompute_peak_bytes, 2 * est$stack_bytes)
   mean_est <- mssr_estimate_resources(c(32, 40), fwhm = 3, amp = 2, frames = 10,
                                       statistic = "mean")

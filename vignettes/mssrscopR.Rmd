@@ -50,7 +50,7 @@ doi:10.1038/s41467-022-34693-9) subtracts a local, range-weighted mean-shift
 estimate from each pixel and refines the result over `order` steps. `fwhm` is
 the point-spread-function width in **input pixels** and has no default.
 
-```{r points}
+```{r points, fig.alt = "Two synthetic point sources in the input image and their MSSR structure map on a twofold amplified grid."}
 g <- expand.grid(r = 1:31, c = 1:41)
 spot <- function(r0, c0, a = 1) a * exp(-((g$r - r0)^2 + (g$c - c0)^2) / (2 * (3 / 2.3548)^2))
 pair <- function(sep) matrix(spot(16, 18) + spot(16, 18 + sep) + 0.05, 31, 41)
@@ -116,7 +116,7 @@ limit.
 MSSR is nonlinear. A dim structure next to a bright one is strongly
 suppressed, and broad filled objects can be hollowed or fragmented:
 
-```{r failures}
+```{r failures, fig.alt = "Three panels show suppression of a dim source beside a bright source, a filled input disk, and its hollow ring-shaped MSSR map."}
 y <- matrix(spot(16, 14) + spot(16, 21.5, 0.1) + 0.02, 31, 41)   # 10:1 brightness
 disk <- outer(1:31, 1:41, function(r, c) as.numeric((r - 16)^2 + (c - 21)^2 <= 81))
 disk <- disk + 0.02
@@ -134,7 +134,7 @@ with a zero center, so segment filled objects such as nuclei on the original
 data. A rod three FWHM long becomes two peaks near its ends, with a lower
 interior:
 
-```{r rod}
+```{r rod, fig.alt = "A horizontal profile compares the MSSR map of a rod with its scaled input profile; MSSR emphasizes two end peaks over the interior."}
 rod <- matrix(Reduce(`+`, lapply(seq(16.5, 25.5, length.out = 41),
                                  function(cc) spot(16, cc, 1 / 41))) + 0.002, 31, 41)
 rr <- mssr(rod, fwhm = 3, amp = 2)
@@ -227,6 +227,19 @@ bslib, jsonlite, callr and digest packages). It shows the input and the structur
 same input-pixel axes, line profiles, masks measured on the input and the
 self-test, and offers the results for download. The examples above are
 available there, and frames can be uploaded as text tables, PNG or TIFF.
+Text tables contain numbers only, with no header or comments: CSV uses commas,
+and TSV/TXT uses tabs or spaces. Comment rows and inline comments are rejected
+rather than removed. CSV downloads retain 17 significant digits so finite
+binary64 values survive numerical readback, including values near the largest
+representable number. Text uploads use the existing jsonlite dependency for
+decimal conversion, preserving those values when a CSV is uploaded again;
+ordinary forms such as `+1`, `.5`, `1.`, leading zeros and `1e+03` remain accepted.
+
+Profiles retain negative samples. Each line is divided by its positive maximum
+when that division remains finite; otherwise the original values are shown.
+The scaling applied to each series appears below the plot and in its values
+table. These independent display scalings do not make input and MSSR values
+quantitatively comparable.
 
 Computation runs in one background job per app session. Cancel stops the owned
 job, and incomplete results cannot be exported. A previous completed input,

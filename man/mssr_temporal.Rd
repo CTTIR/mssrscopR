@@ -187,8 +187,17 @@ first, and record what was done; \code{diagnostics$trend} reports the ratio of t
 raw intensity at the end and at the start of the selected frames.
 
 \strong{Computation.} Every statistic is formed from centered deviations in
-frame order, in a power-of-two scaled range so that products of up to four
-deviations stay representable. The scaling is undone at the end; a value
+frame order, in a separate power-of-two scaled range for each pixel so that
+unrelated bright pixels cannot erase dim pixels' representable statistics.
+The raw temporal mean uses the same conditioning to avoid overflowing an
+intermediate sum. Products of up to four deviations are formed in the scaled
+range. A nonzero frame value, accumulated sum, intermediate product or
+quotient lost during conditioning or reduction is refused, including a series
+whose within-pixel dynamic range cannot be kept in the scaled representation.
+Global rescaling alone cannot repair such within-pixel ratios.
+This is conservative even when a rounded mean
+would remain finite; it is not a guarantee against all cancellation error.
+The scaling is undone at the end; a value
 that would exceed the numeric range, or a nonzero value that would fall
 below the smallest representable magnitude, raises
 \code{mssrscopR_error_numerical}, and very small results keep only subnormal

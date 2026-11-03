@@ -1,3 +1,22 @@
+# mssrscopR 0.2.0.9001
+
+* Temporal summaries now condition each pixel separately, preserving dim
+  pixels beside unrelated bright pixels. Raw input means no longer overflow
+  merely because their intermediate sum does. The existing statistical
+  definitions and result schemas are unchanged.
+* Numerical errors now identify lost nonzero contributions, products and
+  averages within a pixel. Such extreme dynamic ranges are refused rather
+  than silently returning zero; this is not an exact-arithmetic guarantee.
+  The temporal allocation estimate includes the additional work arrays.
+* The explorer exports 17 significant decimal digits and imports numeric
+  fields without the platform-dependent base R decimal scanner. Signed
+  profiles retain negative values and accurately label their normalization.
+  Numbers-only text imports explicitly reject comment rows.
+* The portable qualification kit transports matrices as explicit little-endian
+  binary64 files, alongside the existing high-precision CSV records, so decimal
+  parsing cannot change the tested input on different platforms. The bounded
+  numerical thresholds and known high-order limitations remain unchanged.
+
 # mssrscopR 0.2.0
 
 This release collects every development version since 0.1.0 (0.1.0.9000 to
