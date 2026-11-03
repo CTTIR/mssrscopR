@@ -44,10 +44,13 @@ mssr(
   and pixel size can widen the recorded PSF. Under noise an `fwhm` below
   the true PSF makes false peaks more likely, while a larger one gives a
   shallower dip between close sources; when unsure, choose the larger
-  plausible value. Only the kernel half-size, `0.5 * fwhm * amp` rounded
-  as set by `rounding` and at least 1 (recorded in
-  `parameters$half_size`), enters the computation, so nearby values can
-  give identical results.
+  plausible value. An `fwhm` larger than the PSF's FWHM enlarges the
+  neighborhood and gives smoother maps with fewer fragments; choose it
+  per data set and record it. Whatever the value, MSSR maps are visual
+  aids, not a basis for segmentation or quantification. Only the kernel
+  half-size, `0.5 * fwhm * amp` rounded as set by `rounding` and at
+  least 1 (recorded in `parameters$half_size`), enters the computation,
+  so nearby values can give identical results.
 
 - amp:
 
@@ -207,7 +210,10 @@ within a single imaging frame. *Nature Communications* 2022;13:7452.
 
 [`mssr_coords()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_coords.md),
 [`mssr_mask()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_mask.md),
-[`mssr_selftest()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_selftest.md)
+[`mssr_selftest()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_selftest.md),
+and
+[`mssr_temporal()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_temporal.md)
+for temporal statistics of a frame sequence
 
 ## Examples
 

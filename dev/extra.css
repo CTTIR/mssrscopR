@@ -1,0 +1,14 @@
+/* Scientific figures retain their encoded colours in either site theme. */
+html[data-bs-theme] img.r-plt {
+  filter: none;
+  background-color: #fff;
+}
+
+/* Keep code comments and printed R output readable on each code background. */
+html[data-bs-theme="light"] .sourceCode .co {
+  color: #56606a;
+}
+
+html[data-bs-theme="dark"] .sourceCode .co {
+  color: #adb5bd;
+}

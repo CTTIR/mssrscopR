@@ -17,13 +17,20 @@ mssr_settings(result)
 - result:
 
   A result returned by
-  [`mssr()`](https://cttir.github.io/mssrscopR/dev/reference/mssr.md) or
+  [`mssr()`](https://cttir.github.io/mssrscopR/dev/reference/mssr.md),
+  [`mssr_temporal()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_temporal.md)
+  or
   [`mssr_read_result()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_result_io.md).
 
 ## Value
 
 A named list containing `fwhm`, `amp`, `order`, `intensity_normalize`,
-`mesh`, `grid`, `kernel` and `rounding`.
+`mesh`, `grid`, `kernel` and `rounding`. For a temporal result it also
+starts with `statistic` and `frames` (the frame indices of the original
+input), plus `sign` for the SOFI statistics, so that it can be passed to
+[`mssr_temporal()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_temporal.md)
+together with the original raw frames (not with an `mssr_stack`, which
+refuses per-frame settings).
 
 ## Details
 

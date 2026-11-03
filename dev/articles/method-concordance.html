@@ -17,7 +17,8 @@
 <link href="../deps/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Method concordance">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Method concordance">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#1565c0">
 <!-- Package browser icons -->
@@ -37,7 +38,7 @@
     <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="../index.html"><img src="../logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="../reference/figures/logo-dark.svg">mssrscopR</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.1.0.9004</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">0.2.0.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,7 +55,8 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/method-concordance.html">Method concordance</a></li>
+<li><a class="dropdown-item" href="../articles/temporal.html">Temporal statistics of MSSR maps</a></li>
+    <li><a class="dropdown-item" href="../articles/method-concordance.html">Method concordance</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -112,7 +114,10 @@ were reviewed against engine <code>mssr_r_rev3</code> on 24 October 2026
 and re-checked against the article, the supplement and the pinned R and
 Python scripts on 27 October 2026. This comparison documents the defined
 single-frame operator and its differences from the authors’ code. The
-MATLAB code and the Fiji plugin were not compared.</p>
+MATLAB code and the Fiji plugin were not compared for the single-frame
+operator. The temporal definitions (29 October 2026) were checked
+against Supplementary Table S2 and all four author implementations; the
+MATLAB code and the Fiji plugin were read for them, not run.</p>
 <p>Sources:</p>
 <ul>
 <li>
@@ -207,12 +212,12 @@ are nonlinear and can enlarge such differences locally. Pixel-wise
 agreement with the authors’ amplified maps is therefore not
 expected.</p>
 <p>Supplementary Note 6 and the Python script also offer Fourier
-interpolation, which the article uses for temporal analysis; mssrscopR
-does not implement it. The paper also describes scaling zero-order
-output to the original maximum (p.17), which differs from optional
-pixelwise weighting. Rev3 fixes its two output roles explicitly.
-Flat-input results, zero-range handling, skipped undefined refinement,
-arithmetic conditioning and resource refusals are documented
+interpolation, which the article recommends for temporal analysis;
+mssrscopR does not implement it. The paper also describes scaling
+zero-order output to the original maximum (p.17), which differs from
+optional pixelwise weighting. Rev3 fixes its two output roles
+explicitly. Flat-input results, zero-range handling, skipped undefined
+refinement, arithmetic conditioning and resource refusals are documented
 implementation extensions. Quota masks are a separate package
 feature.</p>
 </div>
@@ -232,26 +237,125 @@ PSFs, resolution gain and application benefit remain separate
 requirements.</p>
 </div>
 <div class="section level2">
-<h2 id="temporal-and-dimensional-restrictions">Temporal and dimensional restrictions<a class="anchor" aria-label="anchor" href="#temporal-and-dimensional-restrictions"></a>
+<h2 id="temporal-statistics">Temporal statistics<a class="anchor" aria-label="anchor" href="#temporal-statistics"></a>
 </h2>
-<p>Temporal functions remain unsupported. Table S2 (p.25) and the pinned
-scripts contain material differences:</p>
+<p><code><a href="../reference/mssr_temporal.html">mssr_temporal()</a></code> applies the pixel-wise temporal
+functions of Supplementary Note 5.2 and Table S2 (p.25) to a stack of
+per-frame MSSR maps, as in article Fig. 7a. Per pixel,
+<code>x_1, ..., x_M</code> are the maps’ values, <code>x̄</code> their
+mean and <code>δx_t = x_t − x̄</code>.</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th>Statistic</th>
+<th>Table S2</th>
+<th>mssrscopR</th>
+<th>Authors’ code</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Mean</td>
+<td><code>(1/M) Σ x_i</code></td>
+<td>the same</td>
+<td>plain average in all four tools</td>
+</tr>
+<tr class="even">
+<td>Var</td>
+<td><code>(1/M) Σ (x_i − x̄)²</code></td>
+<td>population variance</td>
+<td>Python <code>1/M</code>; R, MATLAB and Fiji
+<code>1/(M − 1)</code>
+</td>
+</tr>
+<tr class="odd">
+<td>TPM</td>
+<td>
+<code>(1/M) Σ (x_i x_j)²</code>, with <code>j</code> undefined</td>
+<td><code>(Σ_t x_t)² = M² · Mean²</code></td>
+<td>
+<code>(Σ_t x_t)²</code> in all four tools</td>
+</tr>
+<tr class="even">
+<td>CV</td>
+<td><code>Var / Mean</code></td>
+<td>literally <code>Var / Mean</code>, 0 where the mean is 0</td>
+<td>Fiji only: sample variance divided by the mean</td>
+</tr>
+<tr class="odd">
+<td>SOFI2, SOFI3</td>
+<td>
+<code>⟨δx_i δx_{i+1}⟩</code>,
+<code>⟨δx_i δx_{i+1} δx_{i+2}⟩</code>
+</td>
+<td>lagged, signed deviations, averaged over the frames where every lag
+exists</td>
+<td>Python, MATLAB: absolute deviations at zero lag; Fiji: absolute
+deviations, lags wrapping around</td>
+</tr>
+<tr class="even">
+<td>SOFI4</td>
+<td>lagged fourth-order product minus the three pair-product terms</td>
+<td>the same, every term averaged over the same <code>M − 3</code>
+frames</td>
+<td>Python, MATLAB: absolute value of <code>⟨δx⁴⟩ − 3⟨δx²⟩²</code> on
+absolute deviations at zero lag; Fiji: absolute value of the table form
+on absolute deviations, lags wrapping around</td>
+</tr>
+</tbody>
+</table>
+<p>Notes:</p>
 <ul>
-<li>TPM has an unspecified <code>j</code> index in the table; both
-scripts compute the square of the frame sum.</li>
-<li>The table uses population variance; the R script uses sample
-variance and a different missing-data policy. The table labels
-<code>Var/Mean</code> as CV.</li>
-<li>The displayed SOFI formulas use signed, distinct-lag products. The
-Python implementation instead uses absolute deviations, and its shifted
-slices are re-aligned so that all factors come from one frame: orders 2
-and 3 average <code>|δx_k|²</code> and <code>|δx_k|³</code>, and order 4
-returns <code>|⟨|δx|⁴⟩ − 3⟨|δx|²⟩²|</code>.</li>
+<li>
+<strong>SOFI.</strong> The table’s SOFI rows are the lagged
+auto-cumulants of the SOFI reference it cites (Dertinger et al. 2009,
+PNAS 106:22287). Because of the lags, noise that is independent from
+frame to frame does not enter their expectation. The authors’ Python and
+MATLAB functions form every product from one frame (zero lag) and
+average from frame <code>k</code> on, so their order 2 is the variance
+without the first frame. Absolute deviations, used by all three tools,
+keep a positive contribution of independent noise even at a lag, and
+their orders 3 and 4 are no longer cumulants. These are different
+statistics, not rounding differences, so the tools’ “SOFI” outputs do
+not match <code><a href="../reference/mssr_temporal.html">mssr_temporal()</a></code> by design. Orders 3 and 4 change
+sign with the emitters’ duty cycle; <code>sign = "absolute"</code>
+returns the absolute value.</li>
+<li>
+<strong>TPM.</strong> Every tool squares the frame sum, so mssrscopR
+does the same. For non-negative maps it is a monotone function of the
+mean and adds nothing to it; the help says so. The Fiji batch TPM plugin
+for more than 100 frames is not registered in the plugin’s menu
+configuration.</li>
+<li>
+<strong>Variance and CV.</strong> The table’s variance divides by
+<code>M</code>, and its “CV” is <code>Var / Mean</code>, an index of
+dispersion rather than the standard deviation divided by the mean;
+mssrscopR follows the table. The R script also has a different
+missing-data policy.</li>
+<li>
+<strong>Interpolation.</strong> The article’s Discussion and
+Supplementary Note 6.2.1 recommend Fourier interpolation for temporal
+analysis, because the bicubic mesh-like artifact appears in temporal
+statistics (Note 6.1.1, Fig. S16, the variance of a noise stack with the
+period of the amplification). The figure legends of the temporal results
+do not state which interpolation was used. mssrscopR amplifies with the
+supplement’s cubic kernel and mesh compensation; Fourier interpolation
+is not implemented, and <code>diagnostics$mesh_index</code> reports the
+remaining sub-pixel grid on signal-free input pixels of the
+field-of-view-preserving grid.</li>
 </ul>
-<p>Any future temporal operator needs a resolved formula and independent
-qualification on genuine repeated-time data. Wavelength, depth and
-lifetime-delay axes cannot be substituted for time. Note 10.7 (p.54)
-explicitly leaves a full anisotropic 3D extension for further
+<p>The package tests compare the reduction with values derived by hand
+for constant, alternating and periodic stacks and with an explicit-loop
+implementation, check its offset, scale, time-reversal and pixel-order
+properties, and check that the stored and recomputed computation paths
+give the same values. These checks establish the definitions, not a
+resolution gain or any behaviour on real fluctuation data. Wavelength,
+depth and lifetime-delay axes cannot be substituted for time. Note 10.7
+(p.54) explicitly leaves a full anisotropic 3D extension for further
 development.</p>
 <p>The article’s open-access licence and the user guide’s
 plugin-specific public-domain statement do not resolve every upstream

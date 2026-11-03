@@ -23,7 +23,9 @@ mssr_estimate_resources(
   amp = 1L,
   kernel = c("disk", "square"),
   rounding = c("half_even", "half_up"),
-  max_output_pixels = 5e+07
+  max_output_pixels = 5e+07,
+  frames = NULL,
+  statistic = NULL
 )
 ```
 
@@ -38,10 +40,36 @@ mssr_estimate_resources(
   As in
   [`mssr()`](https://cttir.github.io/mssrscopR/dev/reference/mssr.md).
 
+- frames, statistic:
+
+  Optional: the number of frames and the statistic of a temporal call
+  (see
+  [`mssr_temporal()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_temporal.md)).
+  Give both or neither.
+
 ## Value
 
 A list with input/output dimensions, pixels, offsets, estimated work,
-estimated peak bytes, model ID, and limitations.
+estimated peak bytes, model ID, and limitations; with `frames` and
+`statistic`, also the temporal estimates described above.
+
+## Details
+
+With `frames` and `statistic`, the list also estimates a call of
+[`mssr_temporal()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_temporal.md)
+(model `temporal_buffers_v4`): `stack_bytes` for the stored per-frame
+maps, `stored_peak_bytes` and `recompute_peak_bytes` for its two
+computation paths (the single-frame peak plus the output-sized buffers
+each path holds, including eight additional exponent/scaling and
+arithmetic-check work arrays for per-pixel conditioning, the raw
+temporal mean and one raw frame), and the total neighborhood work of
+each path. The stored path counts the maps twice (a 100 percent margin):
+R lets garbage accumulate in proportion to the live heap before it
+collects, and on long stored stacks the measured peak came close to
+twice the bare map size. The input array is read frame by frame and not
+copied, so it is not counted. The per-frame limits of
+[`mssr()`](https://cttir.github.io/mssrscopR/dev/reference/mssr.md)
+apply to every frame.
 
 ## Examples
 
@@ -76,5 +104,60 @@ mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2)
 #> 
 #> $limitation
 #> [1] "Allocation estimate; retained objects and runtime can increase process RSS."
+#> 
+mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2, frames = 100, statistic = "var")
+#> $input_dim
+#> [1] 128 192
+#> 
+#> $output_dim
+#> [1] 256 384
+#> 
+#> $output_pixels
+#> [1] 98304
+#> 
+#> $half_size
+#> [1] 3
+#> 
+#> $n_offsets
+#> [1] 28
+#> 
+#> $estimated_work
+#> [1] 2752512
+#> 
+#> $estimated_peak_bytes
+#> [1] 154291456
+#> 
+#> $model
+#> [1] "whole_frame_buffers_v2"
+#> 
+#> $hard_limit
+#> [1] FALSE
+#> 
+#> $limitation
+#> [1] "Allocation estimate; retained objects and runtime can increase process RSS."
+#> 
+#> $frames
+#> [1] 100
+#> 
+#> $statistic
+#> [1] "var"
+#> 
+#> $stack_bytes
+#> [1] 78643200
+#> 
+#> $stored_peak_bytes
+#> [1] 322981120
+#> 
+#> $recompute_peak_bytes
+#> [1] 165694720
+#> 
+#> $stored_work
+#> [1] 275251200
+#> 
+#> $recompute_work
+#> [1] 550502400
+#> 
+#> $temporal_model
+#> [1] "temporal_buffers_v4"
 #> 
 ```

@@ -31,7 +31,9 @@ op <- par(mfrow = c(1, 2), mar = c(0.5, 0.5, 2, 0.5))
 show(x, "input"); show(as.matrix(res), "mssr(amp = 2)")
 ```
 
-![](mssrscopR_files/figure-html/points-1.png)
+![Two synthetic point sources in the input image and their MSSR
+structure map on a twofold amplified
+grid.](mssrscopR_files/figure-html/points-1.png)
 
 ``` r
 
@@ -128,7 +130,9 @@ op <- par(mfrow = c(1, 3), mar = c(0.5, 0.5, 2, 0.5))
 show(ry, "dim beside bright"); show(disk, "filled disk"); show(rd, "mssr(disk)")
 ```
 
-![](mssrscopR_files/figure-html/failures-1.png)
+![Three panels show suppression of a dim source beside a bright source,
+a filled input disk, and its hollow ring-shaped MSSR
+map.](mssrscopR_files/figure-html/failures-1.png)
 
 ``` r
 
@@ -153,7 +157,9 @@ lines(1:41, rod[16, ] / max(rod[16, ]) * max(rr$values), lty = 2)
 legend("topright", c("mssr", "input (scaled)"), lty = 1:2, bty = "n")
 ```
 
-![](mssrscopR_files/figure-html/rod-1.png)
+![A horizontal profile compares the MSSR map of a rod with its scaled
+input profile; MSSR emphasizes two end peaks over the
+interior.](mssrscopR_files/figure-html/rod-1.png)
 
 ``` r
 
@@ -273,7 +279,21 @@ jsonlite, callr and digest packages). It shows the input and the
 structure map on the same input-pixel axes, line profiles, masks
 measured on the input and the self-test, and offers the results for
 download. The examples above are available there, and frames can be
-uploaded as text tables, PNG or TIFF.
+uploaded as text tables, PNG or TIFF. Text tables contain numbers only,
+with no header or comments: CSV uses commas, and TSV/TXT uses tabs or
+spaces. Comment rows and inline comments are rejected rather than
+removed. CSV downloads retain 17 significant digits so finite binary64
+values survive numerical readback, including values near the largest
+representable number. Text uploads use the existing jsonlite dependency
+for decimal conversion, preserving those values when a CSV is uploaded
+again; ordinary forms such as `+1`, `.5`, `1.`, leading zeros and
+`1e+03` remain accepted.
+
+Profiles retain negative samples. Each line is divided by its positive
+maximum when that division remains finite; otherwise the original values
+are shown. The scaling applied to each series appears below the plot and
+in its values table. These independent display scalings do not make
+input and MSSR values quantitatively comparable.
 
 Computation runs in one background job per app session. Cancel stops the
 owned job, and incomplete results cannot be exported. A previous
@@ -352,7 +372,7 @@ summary(result)
 #>                intensity weighting TRUE, mesh FALSE
 #>   Values:      range 0 to 1.05; zero fraction 0.805; negative fraction 0.000
 #>   Diagnostics: defined; 0 undefined order step(s) skipped; 12 offsets
-#>   Engine:      mssr_r_rev3, mssrscopR 0.1.0.9004; result schema 1.0.0; evidence numerical_tool_only
+#>   Engine:      mssr_r_rev3, mssrscopR 0.2.0.9001; result schema 1.0.0; evidence numerical_tool_only
 #>   Not a quantitative intensity: measure on the original data.
 mssr_estimate_resources(dim(frame), fwhm = 3)
 #> $input_dim

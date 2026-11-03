@@ -47,7 +47,7 @@ summary(r)
 #>                intensity weighting TRUE, mesh FALSE
 #>   Values:      range 0 to 20; zero fraction 0.650; negative fraction 0.000
 #>   Diagnostics: defined; 0 undefined order step(s) skipped; 4 offsets
-#>   Engine:      mssr_r_rev3, mssrscopR 0.1.0.9004; result schema 1.0.0; evidence numerical_tool_only
+#>   Engine:      mssr_r_rev3, mssrscopR 0.2.0.9001; result schema 1.0.0; evidence numerical_tool_only
 #>   Not a quantitative intensity: measure on the original data.
 plot(r)
 ```

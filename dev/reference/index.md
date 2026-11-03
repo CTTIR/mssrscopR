@@ -9,6 +9,12 @@
 - [`mssr_mask()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_mask.md)
   : Structural mask on the input grid
 
+## Temporal statistics
+
+- [`mssr_temporal()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_temporal.md)
+  [`mssr_stack()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_temporal.md)
+  : Temporal statistics of per-frame MSSR maps
+
 ## Validation
 
 - [`mssr_selftest()`](https://cttir.github.io/mssrscopR/dev/reference/mssr_selftest.md)
