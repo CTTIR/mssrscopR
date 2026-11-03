@@ -8,7 +8,23 @@ package <- normalizePath(args[2], mustWork = TRUE)
 pkgload::load_all(package, quiet = TRUE)
 plan <- jsonlite::read_json(file.path(out, "plan.json"), simplifyVector = TRUE)
 params <- c("fwhm", "amp", "order", "intensity_normalize", "mesh", "grid", "kernel", "rounding")
-read_matrix <- function(path) as.matrix(utils::read.csv(path, header = FALSE))
+read_matrix <- function(path) {
+  binary <- sub("[.]csv$", ".bin", path)
+  if (!file.exists(binary)) stop("Missing binary oracle matrix; rerun oracle.py: ", binary)
+  con <- file(binary, "rb")
+  on.exit(close(con))
+  magic <- readBin(con, "raw", n = 8L)
+  if (!identical(magic, charToRaw("MSSR64LE"))) stop("Invalid oracle matrix header: ", binary)
+  shape <- readBin(con, integer(), n = 2L, size = 4L, endian = "little")
+  if (length(shape) != 2L || anyNA(shape) || any(shape < 1L)) {
+    stop("Invalid oracle matrix dimensions: ", binary)
+  }
+  count <- prod(as.double(shape))
+  if (file.info(binary)$size != 16 + 8 * count) stop("Invalid oracle matrix length: ", binary)
+  values <- readBin(con, double(), n = count, size = 8L, endian = "little")
+  if (length(values) != count || any(!is.finite(values))) stop("Invalid oracle values: ", binary)
+  matrix(values, shape[1], shape[2], byrow = TRUE)
+}
 read_case <- function(i) {
   c <- plan$cases[i, ]
   list(case = c, input = read_matrix(file.path(out, paste0(c$id, "_input.csv"))),

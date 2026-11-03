@@ -91,3 +91,10 @@
 /pkgdown/*
 !/pkgdown/favicon/
 !/pkgdown/favicon/**
+!/pkgdown/extra.css
+!/planning/
+/planning/*
+!/planning/maintenance-2026-11-03.md
+.gcov
+src/*.gcda
+src/*.gcno

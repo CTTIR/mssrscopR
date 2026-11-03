@@ -27,3 +27,6 @@
 ^codecov\.yml$
 ^\.zenodo\.json$
 ^tools/branding$
+^planning$
+^Rplots[.]pdf$
+^src/.*[.]gc(da|no)$

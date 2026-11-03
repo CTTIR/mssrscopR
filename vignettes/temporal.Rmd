@@ -77,7 +77,7 @@ k2 <- mssr_temporal(s, "sofi2")
 v
 ```
 
-```{r maps, fig.height = 2.6}
+```{r maps, fig.height = 2.6, fig.alt = "Four panels compare the raw-frame mean with the mean, variance, and signed SOFI2 of MSSR maps from the same synthetic blinking-emitter sequence."}
 op <- graphics::par(mfrow = c(1, 4), mar = c(0.5, 0.5, 2, 0.5))
 show(apply(frames, c(1, 2), mean), "mean of raw frames")
 show(as.matrix(m), "mean of maps")

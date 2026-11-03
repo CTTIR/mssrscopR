@@ -14,10 +14,11 @@
 #' change peak RSS, and estimates outside that ladder are extrapolations.
 #'
 #' With `frames` and `statistic`, the list also estimates a call of
-#' [mssr_temporal()] (model `temporal_buffers_v3`): `stack_bytes` for the stored
+#' [mssr_temporal()] (model `temporal_buffers_v4`): `stack_bytes` for the stored
 #' per-frame maps, `stored_peak_bytes` and `recompute_peak_bytes` for its two
 #' computation paths (the single-frame peak plus the output-sized buffers each
-#' path holds, the raw temporal mean and one raw frame), and the total
+#' path holds, including eight additional exponent/scaling and arithmetic-check
+#' work arrays for per-pixel conditioning, the raw temporal mean and one raw frame), and the total
 #' neighborhood work of each path. The stored path counts the maps twice (a
 #' 100 percent margin): R lets garbage accumulate in proportion to the live
 #' heap before it collects, and on long stored stacks the measured peak came
@@ -91,5 +92,5 @@ mssr_estimate_resources <- function(input_dim, fwhm, amp = 1L,
               stored_peak_bytes = peak + temporal_stack_margin * 8 * n_out * frames + buffers,
               recompute_peak_bytes = peak + buffers,
               stored_work = work * frames, recompute_work = work * frames * passes,
-              temporal_model = "temporal_buffers_v3"))
+              temporal_model = "temporal_buffers_v4"))
 }

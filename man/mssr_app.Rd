@@ -27,7 +27,7 @@ same as in R; it adds no processing of its own.
 }
 \details{
 \strong{Uploads.} Delimited text (\code{.csv} comma-separated, \code{.tsv} or \code{.txt}
-separated by tabs or spaces; numbers only, no header), PNG (needs the \code{png}
+separated by tabs or spaces; numbers only, no header or comments), PNG (needs the \code{png}
 package; values as returned by \code{png::readPNG()}, scaled to 0..1) and TIFF
 (needs the \code{tiff} package; stored values, unscaled). Multi-channel images are
 not converted to gray: choose one channel. For multi-page TIFF choose a
@@ -38,6 +38,9 @@ content (needs \code{digest}). Source filenames and paths are excluded. Retain t
 original input and preprocessing separately; a digest identifies content,
 not acquisition authenticity. Compare a retained file with
 \code{digest::digest(file = path, algo = "sha256", serialize = FALSE)}.
+CSV downloads retain 17 significant digits. Text uploads decode decimal
+samples with \code{jsonlite} so finite values near the binary64 limit survive
+export and re-upload independently of the platform's base R scanner.
 
 \strong{Limits.} To keep the app responsive, runs whose estimated work exceeds
 5e8 operations are refused; call \code{\link[=mssr]{mssr()}} directly for larger runs. The
