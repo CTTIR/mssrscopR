@@ -220,20 +220,22 @@ selected frames.
 frame order, in a separate power-of-two scaled range for each pixel so
 that unrelated bright pixels cannot erase dim pixels' representable
 statistics. The raw temporal mean uses the same conditioning to avoid
-overflowing an intermediate sum. Products of up to four deviations are
-formed in the scaled range. A nonzero frame value, accumulated sum,
-intermediate product or quotient lost during conditioning or reduction
-is refused, including a series whose within-pixel dynamic range cannot
-be kept in the scaled representation. Global rescaling alone cannot
-repair such within-pixel ratios. This is conservative even when a
-rounded mean would remain finite; it is not a guarantee against all
-cancellation error. The scaling is undone at the end; a value that would
-exceed the numeric range, or a nonzero value that would fall below the
-smallest representable magnitude, raises `mssrscopR_error_numerical`,
-and very small results keep only subnormal precision. `"mean"` and
-`"tpm"` need one pass over the frames. The others need the mean first
-and then a second pass. The per-frame maps are stored for it when they
-fit (`diagnostics$path` `"stored"`), else every frame's MSSR is computed
+overflowing an intermediate sum. A nonfinite diagnostic field mean from
+base R is retried in power-of-two scaled units; finite diagnostic means
+are left unchanged. Products of up to four deviations are formed in the
+scaled range. A nonzero frame value, accumulated sum, intermediate
+product or quotient lost during conditioning or reduction is refused,
+including a series whose within-pixel dynamic range cannot be kept in
+the scaled representation. Global rescaling alone cannot repair such
+within-pixel ratios. This is conservative even when a rounded mean would
+remain finite; it is not a guarantee against all cancellation error. The
+scaling is undone at the end; a value that would exceed the numeric
+range, or a nonzero value that would fall below the smallest
+representable magnitude, raises `mssrscopR_error_numerical`, and very
+small results keep only subnormal precision. `"mean"` and `"tpm"` need
+one pass over the frames. The others need the mean first and then a
+second pass. The per-frame maps are stored for it when they fit
+(`diagnostics$path` `"stored"`), else every frame's MSSR is computed
 again (`"recompute"`), which doubles the time. Both paths give the same
 values. With `max_memory_bytes = NULL` the maps are stored when they
 take at most 2 GiB, counted with the estimate's 100 percent margin for
