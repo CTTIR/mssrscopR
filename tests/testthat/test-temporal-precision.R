@@ -108,3 +108,67 @@ test_that("cancelled sums cannot erase representable mean or TPM values", {
   expect_error(precision_reduce(tpm_input, "tpm"), "intermediate product",
                class = "mssrscopR_error_numerical")
 })
+
+
+test_that("field diagnostics preserve finite means and recover platform overflow", {
+  maximum <- .Machine$double.xmax
+  for (values in list(c(-4, 2, 5), c(2^-1074, 2^-1074),
+                      c(rep(maximum, 5), 1e-300), c(maximum, -maximum))) {
+    expected <- mean(values)
+    expect_true(is.finite(expected))
+    expect_identical(temporal_diagnostic_mean(values), expected)
+  }
+  expect_identical(temporal_diagnostic_mean(rep(maximum, 6)), maximum)
+  expect_identical(temporal_diagnostic_mean(rep(-maximum, 6)), -maximum)
+  expect_true(is.nan(temporal_diagnostic_mean(numeric())))
+  expect_identical(temporal_diagnostic_mean(Inf), Inf)
+})
+
+test_that("maximum finite frame diagnostics agree on direct and stored paths", {
+  maximum <- .Machine$double.xmax
+  x <- array(maximum, c(2, 3, 20))
+  before <- x
+  stack <- mssr_stack(x, fwhm = 1, order = 0)
+  expect_identical(stack$diagnostics$input_mean, rep(maximum, 20))
+  direct <- mssr_temporal(x, "mean", fwhm = 1, order = 0)
+  stored <- mssr_temporal(stack, "mean")
+  expect_identical(direct$values, matrix(0, 2, 3))
+  expect_identical(stored$values, direct$values)
+  expect_identical(direct$diagnostics$trend, 1)
+  expect_identical(stored$diagnostics$trend, 1)
+  expect_identical(mssr_validate_result(direct), direct)
+  expect_identical(mssr_validate_result(stored), stored)
+  expect_identical(x, before)
+})
+
+test_that("diagnostic fallback does not couple bright and dim input pixels", {
+  maximum <- .Machine$double.xmax
+  x <- array(rep(c(rep(maximum, 5), 1e-300), 2), c(2, 3, 2))
+  scan <- temporal_scan_frames(x, 1:2, NULL)
+  expect_identical(scan$input_mean, x[, , 1])
+  expect_identical(scan$frame_means, rep(mean(x[, , 1]), 2))
+  # The single-frame engine separately refuses a spatial ratio that erases a
+  # nonzero input. Use its supported range for the public-path comparison.
+  x[2, 3, ] <- 1
+  before <- x
+  stack <- mssr_stack(x, fwhm = 1, order = 0)
+  expect_identical(stack$input_mean, x[, , 1])
+  expect_identical(stack$diagnostics$input_mean, rep(mean(x[, , 1]), 2))
+  result <- mssr_temporal(stack, "mean")
+  direct <- mssr_temporal(x, "mean", fwhm = 1, order = 0)
+  expect_identical(result$values, direct$values)
+  expect_identical(result$diagnostics$trend, 1)
+  expect_identical(mssr_validate_result(result), result)
+  expect_identical(x, before)
+})
+
+test_that("trend and mesh field averages retain finite endpoint definitions", {
+  maximum <- .Machine$double.xmax
+  # Each average is maximum, so the ratio is one and the phase range is zero.
+  expect_identical(temporal_trend(rep(maximum, 60)), 1)
+  expect_identical(temporal_trend(c(rep(maximum, 30), rep(maximum / 2, 30))), 0.5)
+  expect_identical(temporal_mesh_index(matrix(maximum, 4, 6), 2,
+                                       matrix(TRUE, 2, 3)), 0)
+  expect_null(temporal_mesh_index(matrix(maximum, 4, 6), 2,
+                                  matrix(FALSE, 2, 3)))
+})

@@ -1,5 +1,9 @@
 # mssrscopR 0.2.0.9001
 
+* Field-mean diagnostics recover platform-specific base R overflow on finite
+  maximum-valued frames. Finite diagnostic means remain unchanged; stored
+  stack validation, trend ratios and mesh diagnostics retain their contracts.
+
 * Temporal summaries now condition each pixel separately, preserving dim
   pixels beside unrelated bright pixels. Raw input means no longer overflow
   merely because their intermediate sum does. The existing statistical

@@ -186,3 +186,70 @@ R-universe indexing must be checked against the eventual published commit;
 this record does not claim an unobserved CI result, CRAN acceptance, release tag
 or physical validation. A formal release requires those external checks, a
 deliberate release version and the maintainer's chosen submission process.
+
+
+## Hosted diagnostic overflow follow-up
+
+The published `9c07a8a` candidate failed the maximum-finite temporal regression
+on Ubuntu release/devel and Windows in R-CMD-check run `41639759581`; coverage
+run `41639760083` failed the same test. The pixel-wise input mean was finite,
+but `mean()` used for a frame diagnostic returned infinity on those runtimes.
+The existing stored-stack validator correctly refused that invalid diagnostic.
+The prior macOS and Ubuntu R 4.1 results did not establish cross-platform success.
+
+The fix retries only a nonfinite mean of finite, nonempty diagnostic inputs in
+power-of-two scaled units. Every finite base-R mean remains unchanged. The same
+helper covers field, trend and mesh averages; the pixel-wise reducer, statistical
+formulas, original engine, stack validation and app are unchanged. It does not
+reject a raw temporal scan merely because separate spatial pixels have widely
+different magnitudes. The single-frame engine's existing spatial-range guard
+remains in force.
+
+An offline installed-package comparison on Linux x86-64 R 4.6.2, run in the
+cached Docker image on this ARM Mac, reproduces six failures among twelve checks
+on the published source and passes all twelve with the fix. The fixture includes
+the original two-frame maximum-value case, direct/stored paths, independent
+constant/trend/mesh formulas, mixed-scale inputs, caller preservation and refusal
+of a deliberately corrupt diagnostic. The temporary container used one CPU,
+768 MiB, no network or mounted host directories, and was stopped and removed.
+This is local Linux-runtime evidence, not a Windows or hosted-CI result.
+
+The initial independent probe also asked for a bit-exact raw mean of twenty
+constant maximum-value frames. Both old and new reducers return one ULP below
+the exact value on Mac and Linux, an existing sequential-summation rounding
+limit. That initial result and its characterization are retained; no reducer,
+threshold or existing test was weakened. The final exact reproduction uses the
+original two-frame case. Finite base means can also retain ordinary cancellation
+error; this diagnostic repair does not promise exact arithmetic.
+
+The new exact archive is `mssrscopR_0.2.0.9001.tar.gz`, **1,271,427 bytes**, SHA-256
+`d4990eded5f014891a5ba728aae5f0038c2760020b4066ba554a57291793778d`.
+All 210 source payloads match; only standard DESCRIPTION metadata and eleven
+generated documentation/build files are derived. No private recordings, Git
+metadata, planning files or unsafe archive members are present.
+
+- Full source suite: **6,149 assertions**, zero failures/errors/warnings and the
+  same three platform skips; focused temporal precision suite: **71 assertions**.
+- Exact archive, full `R CMD check --as-cran`: **0 errors, 0 warnings, 1 NOTE**;
+  **6,148 installed assertions** and three platform skips.
+- The same archive in the required-dependency/test-harness environment:
+  **0 errors, 0 warnings, 1 NOTE**, **5,418 assertions**, 32 optional-dependency
+  skips and three platform skips. This lane omits manual/vignettes and disables
+  forced Suggests; the full lane covers them.
+- Both incoming NOTE records contain new-submission status, development version
+  `0.2.0.9001`, and the R-universe URL returning HTTP 404 at check time. No other
+  NOTE, warning or error was observed.
+- Coverage: **96.43697%**, above the unchanged 95% gate. Repository and shared
+  blocking lint both report zero findings.
+- A fresh exact-archive installation passes all twelve diagnostic/workflow checks
+  and the fourteen-case installation self-test. Two independent bounded source
+  reviews found no blocking issue.
+- The updated manual remains twenty A4 pages. Only the added computation text
+  and its following reflow change pages 17–19; independent visual review found
+  no clipping, overlap or glyph issue, and all other semantic text is retained.
+
+Detailed inputs, hashes, successful and superseded probes are retained under
+`evidence/mssrscopR/hosted-diagnostic-mean`. The earlier archive and its app/site/
+method qualification remain historical evidence; no app/site asset or method
+formula changed in this follow-up. A fresh hosted run against the eventual fix
+commit is still required; no unobserved hosted success or release is claimed.

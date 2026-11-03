@@ -190,7 +190,9 @@ raw intensity at the end and at the start of the selected frames.
 frame order, in a separate power-of-two scaled range for each pixel so that
 unrelated bright pixels cannot erase dim pixels' representable statistics.
 The raw temporal mean uses the same conditioning to avoid overflowing an
-intermediate sum. Products of up to four deviations are formed in the scaled
+intermediate sum. A nonfinite diagnostic field mean from base R is retried
+in power-of-two scaled units; finite diagnostic means are left unchanged.
+Products of up to four deviations are formed in the scaled
 range. A nonzero frame value, accumulated sum, intermediate product or
 quotient lost during conditioning or reduction is refused, including a series
 whose within-pixel dynamic range cannot be kept in the scaled representation.
