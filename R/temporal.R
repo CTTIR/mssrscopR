@@ -101,7 +101,9 @@ temporal_frame_arguments <- c("fwhm", "amp", "order", "intensity_normalize", "me
 #' frame order, in a separate power-of-two scaled range for each pixel so that
 #' unrelated bright pixels cannot erase dim pixels' representable statistics.
 #' The raw temporal mean uses the same conditioning to avoid overflowing an
-#' intermediate sum. Products of up to four deviations are formed in the scaled
+#' intermediate sum. A nonfinite diagnostic field mean from base R is retried
+#' in power-of-two scaled units; finite diagnostic means are left unchanged.
+#' Products of up to four deviations are formed in the scaled
 #' range. A nonzero frame value, accumulated sum, intermediate product or
 #' quotient lost during conditioning or reduction is refused, including a series
 #' whose within-pixel dynamic range cannot be kept in the scaled representation.
@@ -389,6 +391,17 @@ temporal_check_array <- function(x, call) {
   x
 }
 
+# Retain finite base-R means exactly. Some platforms overflow even for a field
+# of identical finite maxima; retry only that nonfinite result in bounded units.
+# This diagnostic average is distinct from the guarded pixel-wise reducer:
+# unrelated dim spatial inputs must not make an otherwise valid stack fail.
+temporal_diagnostic_mean <- function(x) {
+  value <- mean(x)
+  if (is.finite(value) || !length(x) || any(!is.finite(x))) return(value)
+  exponent <- temporal_exponent(max(abs(x)))
+  temporal_ldexp(mean(temporal_ldexp(x, -exponent)), exponent)
+}
+
 # One pass over the selected raw frames: finiteness, the raw temporal mean on
 # the input grid and the frames' field means. Holds one frame at a time.
 temporal_scan_frames <- function(x, index, call) {
@@ -405,7 +418,7 @@ temporal_scan_frames <- function(x, index, call) {
         "Frame %d of `x` contains NA, NaN or infinite values; MSSR is undefined for them."
       ), index[t]), call)
     }
-    state$frame_means[t] <- mean(f)
+    state$frame_means[t] <- temporal_diagnostic_mean(f)
     f
   }
   input_mean <- temporal_reduce(frame, length(index), "mean", call, frame_indices = index)
@@ -504,7 +517,8 @@ temporal_frame_runner <- function(x, index, settings, store, call) {
         invokeRestart("muffleWarning")
       }
     )
-    list(result = res, warnings = unique(warned$classes), input_mean = mean(frame))
+    list(result = res, warnings = unique(warned$classes),
+         input_mean = temporal_diagnostic_mean(frame))
   }
   frame <- function(t, pass) {
     if (pass == 2L && store) {
@@ -784,10 +798,10 @@ temporal_mesh_index <- function(values, amp, mask) {
   for (p in seq_len(amp)) {
     for (q in seq_len(amp)) {
       cells <- cbind((idx[, 1] - 1L) * amp + p, (idx[, 2] - 1L) * amp + q)
-      phase_means[(p - 1L) * amp + q] <- mean(values[cells])
+      phase_means[(p - 1L) * amp + q] <- temporal_diagnostic_mean(values[cells])
     }
   }
-  center <- mean(phase_means)
+  center <- temporal_diagnostic_mean(phase_means)
   if (!is.finite(center) || center == 0) return(NULL)
   index <- (max(phase_means) - min(phase_means)) / abs(center)
   if (is.finite(index)) as.double(index) else NULL
@@ -798,8 +812,8 @@ temporal_mesh_index <- function(values, amp, mask) {
 temporal_trend <- function(frame_means) {
   n <- length(frame_means)
   k <- max(1L, n %/% 10L)
-  first <- mean(frame_means[seq_len(k)])
-  last <- mean(frame_means[seq.int(n - k + 1L, n)])
+  first <- temporal_diagnostic_mean(frame_means[seq_len(k)])
+  last <- temporal_diagnostic_mean(frame_means[seq.int(n - k + 1L, n)])
   if (!is.finite(first) || first == 0) return(NULL)
   ratio <- last / first
   if (is.finite(ratio)) as.double(ratio) else NULL
