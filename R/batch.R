@@ -34,6 +34,18 @@
 #' @return A data frame with one row per input: ID, status, reuse flag, output
 #'   path, elapsed seconds and message. Individual JSON records retain warnings,
 #'   identities, completion state and hashes. Complete results use `.mssr` files.
+#' @examples
+#' if (requireNamespace("jsonlite", quietly = TRUE) &&
+#'   requireNamespace("digest", quietly = TRUE)) {
+#'   frames <- list(a = matrix(as.double(1:20), 4, 5),
+#'                  b = matrix(as.double(20:1), 4, 5))
+#'   out <- tempfile("mssr-batch-")
+#'   report <- mssr_batch(frames, out, settings = list(fwhm = 2))
+#'   report[, c("id", "status", "reused")]
+#'   # a second run reuses the verified results
+#'   mssr_batch(frames, out, settings = list(fwhm = 2))$reused
+#'   unlink(out, recursive = TRUE)
+#' }
 #' @export
 mssr_batch <- function(frames, output_dir, settings, resume = TRUE,
                        max_memory_bytes = 2 * 1024^3, max_result_bytes = 256 * 1024^2,

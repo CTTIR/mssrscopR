@@ -59,3 +59,16 @@ All input matrices are already resident in memory. The budget adds their
 storage to the per-frame allocation estimate; it is not an OS memory cap.
 \code{workers} is deliberately absent: parallel processing remains unqualified.
 }
+\examples{
+if (requireNamespace("jsonlite", quietly = TRUE) &&
+  requireNamespace("digest", quietly = TRUE)) {
+  frames <- list(a = matrix(as.double(1:20), 4, 5),
+                 b = matrix(as.double(20:1), 4, 5))
+  out <- tempfile("mssr-batch-")
+  report <- mssr_batch(frames, out, settings = list(fwhm = 2))
+  report[, c("id", "status", "reused")]
+  # a second run reuses the verified results
+  mssr_batch(frames, out, settings = list(fwhm = 2))$reused
+  unlink(out, recursive = TRUE)
+}
+}
