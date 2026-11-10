@@ -67,7 +67,9 @@ show(as.matrix(v), "variance of maps")
 show(as.matrix(k2), "SOFI2 of maps (signed)")
 ```
 
-![](temporal_files/figure-html/maps-1.png)
+![Four panels compare the raw-frame mean with the mean, variance, and
+signed SOFI2 of MSSR maps from the same synthetic blinking-emitter
+sequence.](temporal_files/figure-html/maps-1.png)
 
 ``` r
 
@@ -194,8 +196,8 @@ est[c("stack_bytes", "stored_peak_bytes", "recompute_peak_bytes")]
 #> [1] 2516582400
 #> 
 #> $stored_peak_bytes
-#> [1] 5435877120
+#> [1] 5502985984
 #> 
 #> $recompute_peak_bytes
-#> [1] 402712320
+#> [1] 469821184
 ```

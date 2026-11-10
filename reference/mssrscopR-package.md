@@ -22,6 +22,8 @@ Useful links:
 
 - <https://cttir.github.io/mssrscopR/>
 
+- <https://cttir.r-universe.dev/mssrscopR>
+
 - Report bugs at <https://github.com/CTTIR/mssrscopR/issues>
 
 ## Author

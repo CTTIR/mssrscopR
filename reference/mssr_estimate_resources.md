@@ -56,15 +56,17 @@ estimated peak bytes, model ID, and limitations; with `frames` and
 
 With `frames` and `statistic`, the list also estimates a call of
 [`mssr_temporal()`](https://cttir.github.io/mssrscopR/reference/mssr_temporal.md)
-(model `temporal_buffers_v3`): `stack_bytes` for the stored per-frame
+(model `temporal_buffers_v4`): `stack_bytes` for the stored per-frame
 maps, `stored_peak_bytes` and `recompute_peak_bytes` for its two
 computation paths (the single-frame peak plus the output-sized buffers
-each path holds, the raw temporal mean and one raw frame), and the total
-neighborhood work of each path. The stored path counts the maps twice (a
-100 percent margin): R lets garbage accumulate in proportion to the live
-heap before it collects, and on long stored stacks the measured peak
-came close to twice the bare map size. The input array is read frame by
-frame and not copied, so it is not counted. The per-frame limits of
+each path holds, including eight additional exponent/scaling and
+arithmetic-check work arrays for per-pixel conditioning, the raw
+temporal mean and one raw frame), and the total neighborhood work of
+each path. The stored path counts the maps twice (a 100 percent margin):
+R lets garbage accumulate in proportion to the live heap before it
+collects, and on long stored stacks the measured peak came close to
+twice the bare map size. The input array is read frame by frame and not
+copied, so it is not counted. The per-frame limits of
 [`mssr()`](https://cttir.github.io/mssrscopR/reference/mssr.md) apply to
 every frame.
 
@@ -143,10 +145,10 @@ mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2, frames = 100, statistic 
 #> [1] 78643200
 #> 
 #> $stored_peak_bytes
-#> [1] 316689664
+#> [1] 322981120
 #> 
 #> $recompute_peak_bytes
-#> [1] 159403264
+#> [1] 165694720
 #> 
 #> $stored_work
 #> [1] 275251200
@@ -155,6 +157,6 @@ mssr_estimate_resources(c(128, 192), fwhm = 3, amp = 2, frames = 100, statistic 
 #> [1] 550502400
 #> 
 #> $temporal_model
-#> [1] "temporal_buffers_v3"
+#> [1] "temporal_buffers_v4"
 #> 
 ```

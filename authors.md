@@ -8,7 +8,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/CTTIR/mssrscopR/blob/v0.2.0/inst/CITATION)
+[`inst/CITATION`](https://github.com/CTTIR/mssrscopR/blob/main/inst/CITATION)
 
 Torres-García E, Pinto-Cámara R, Linares A, others (2022). “Extending
 resolution within a single imaging frame.” *Nature Communications*,
@@ -26,13 +26,13 @@ resolution within a single imaging frame.” *Nature Communications*,
     }
 
 Heller R (2026). *mssrscopR: Single-Frame Mean-Shift Super-Resolution
-Structure Maps*. R package version 0.2.0,
+Structure Maps*. R package version 0.3.0,
 <https://github.com/CTTIR/mssrscopR>.
 
     @Manual{,
       title = {mssrscopR: Single-Frame Mean-Shift Super-Resolution Structure Maps},
       author = {R. Heller},
       year = {2026},
-      note = {R package version 0.2.0},
+      note = {R package version 0.3.0},
       url = {https://github.com/CTTIR/mssrscopR},
     }

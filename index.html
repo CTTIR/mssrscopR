@@ -17,11 +17,13 @@
 <link href="deps/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Single-Frame Mean-Shift Super-Resolution Structure Maps">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><link href="extra.css" rel="stylesheet">
+<meta property="og:title" content="Single-Frame Mean-Shift Super-Resolution Structure Maps">
 <meta name="description" content="Computes the single-frame Mean-Shift Super-Resolution (MSSR) structure map of Torres-Garcia et al. (2022) &lt;doi:10.1038/s41467-022-34693-9&gt; with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, pixel-wise temporal statistics of the per-frame maps of an image sequence (mean, variance and lagged SOFI cumulants as defined in the articles supplement), a self-test against bundled synthetic fixtures and an interactive shiny' app for exploring parameters. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.">
 <meta property="og:description" content="Computes the single-frame Mean-Shift Super-Resolution (MSSR) structure map of Torres-Garcia et al. (2022) &lt;doi:10.1038/s41467-022-34693-9&gt; with an independently written implementation that keeps the input orientation, accepts non-square frames and defines the result for flat input. Provides output-grid coordinates, structural masks for measuring the original data, pixel-wise temporal statistics of the per-frame maps of an image sequence (mean, variance and lagged SOFI cumulants as defined in the articles supplement), a self-test against bundled synthetic fixtures and an interactive shiny' app for exploring parameters. Results are structural maps, not quantitative intensities; no gain in physical resolution or benefit for any application is implied.">
 <meta property="og:image" content="https://cttir.github.io/mssrscopR/logo.svg">
 <meta name="theme-color" content="#1565c0">
+<script defer data-domain="cttir.github.io/mssrscopr" src="https://analytics.hellebo.de/js/script.file-downloads.outbound-links.js"></script>
 <!-- Package browser icons -->
 <link rel="icon" type="image/x-icon" href="favicon.ico?v=1feb0b602173">
 <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png?v=1feb0b602173">
@@ -29,7 +31,6 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=1feb0b602173">
 <link rel="manifest" href="site.webmanifest?v=1feb0b602173">
 <!-- /Package browser icons -->
-<script defer data-domain="cttir.github.io/mssrscopr" src="https://analytics.hellebo.de/js/script.file-downloads.outbound-links.js"></script>
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -40,7 +41,7 @@
     <!-- Standard logo aliases contain the named v5 light and dark hexes. -->
     <a class="navbar-brand me-2" href="index.html"><img src="logo.svg" alt="" class="themakr-navbar-logo" data-cttir-dark-src="reference/figures/logo-dark.svg">mssrscopR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,9 +100,10 @@
 <strong>Verify:</strong> <code><a href="reference/mssr_selftest.html">mssr_selftest()</a></code> recomputes bundled synthetic fixtures.</li>
 </ul>
 <blockquote>
-<p><strong>Status: 0.2.0.</strong> At amplification 1 with intensity normalization off, comparisons with the authors’ single-frame R code (disk kernel, rotation undone) and Python code (square kernel) agree on the tested non-degenerate examples. Engine <code>mssr_r_rev3</code> improves numerical stability; the unchanged bundled synthetic fixtures guard against regressions. Its benefit for fluorescence, histology or hyperspectral analyses has not been established.</p>
+<p><strong>Status: 0.3.0, prepared for a first CRAN submission.</strong> At amplification 1 with intensity normalization off, comparisons with the authors’ single-frame R code (disk kernel, rotation undone) and Python code (square kernel) agree on the tested non-degenerate examples. Engine <code>mssr_r_rev3</code> improves numerical stability; the unchanged bundled synthetic fixtures guard against regressions. Its benefit for fluorescence, histology or hyperspectral analyses has not been established.</p>
 </blockquote>
 <p>The method concordance in <code><a href="articles/method-concordance.html">vignette("method-concordance")</a></code> maps the official supplementary equations to the engine and records implementation differences, the temporal definitions and qualification boundaries (<a href="https://github.com/CTTIR/mssrscopR/blob/main/tools/qualification/METHOD_CONCORDANCE.md" class="external-link">Markdown source</a>).</p>
+<p>Temporal calculations scale each spatial pixel independently, so a bright pixel does not erase another pixel’s dim but representable statistics. Extreme ratios within one pixel that lose nonzero intermediate values are refused explicitly; ordinary floating-point rounding and cancellation remain possible. The explorer retains 17 significant digits in CSV downloads and decodes decimal uploads independently of base R’s platform-dependent scanner. The qualification kit transports exact binary64 matrices alongside its readable high-precision CSV records. See the <a href="https://github.com/CTTIR/mssrscopR/blob/main/planning/maintenance-2026-11-03.md" class="external-link">maintenance record</a> for the observed checks and remaining limits.</p>
 <div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
 </h2>
