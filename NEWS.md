@@ -1,4 +1,4 @@
-# mssrscopR 0.2.0.9001
+# mssrscopR 0.3.0
 
 * Field-mean diagnostics recover platform-specific base R overflow on finite
   maximum-valued frames. Finite diagnostic means remain unchanged; stored

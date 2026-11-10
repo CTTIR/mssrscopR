@@ -17,8 +17,9 @@ jobs:
       matrix:
         config:
           - {os: ubuntu-latest, r: '4.1.0'}
+          - {os: ubuntu-latest, r: 'oldrel-1'}
           - {os: ubuntu-latest, r: 'release'}
-          - {os: ubuntu-latest, r: 'devel'}
+          - {os: ubuntu-latest, r: 'devel', http-user-agent: 'release'}
           - {os: windows-latest, r: 'release'}
           - {os: macos-latest, r: 'release'}
     env:
@@ -33,6 +34,7 @@ jobs:
       - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05
         with:
           r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05
         with:
