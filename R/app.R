@@ -694,6 +694,8 @@ mssr_app_colors <- function(dark) {
   }
 }
 
+# Sets the explorer's plot parameters and returns the previous ones, which
+# every caller restores with on.exit().
 mssr_app_par <- function(dark, mfrow = c(1, 1)) {
   cl <- mssr_app_colors(dark)
   graphics::par(mfrow = mfrow, mar = c(3, 3, 2, 0.6), mgp = c(1.7, 0.45, 0), tcl = -0.25,
@@ -729,7 +731,7 @@ mssr_app_plot_maps <- function(x, res, palette = "gray", dark = FALSE, guide = N
                                stacked = FALSE, run_id = NULL) {
   op <- mssr_app_par(dark, if (stacked) c(2, 1) else c(1, 2))
   op$oma <- graphics::par("oma")
-  on.exit(graphics::par(op))
+  on.exit(graphics::par(op), add = TRUE)
   caption <- NULL
   if (!is.null(run_id)) {
     # Use the physical device width so the caption also fits portrait renders.
@@ -812,7 +814,7 @@ mssr_app_profile <- function(x, res, axis = "row", index = 1L) {
 mssr_app_plot_profile <- function(x, res, axis = "row", index = 1L, dark = FALSE) {
   op <- mssr_app_par(dark)
   op$yaxs <- graphics::par("yaxs")
-  on.exit(graphics::par(op))
+  on.exit(graphics::par(op), add = TRUE)
   cl <- mssr_app_colors(dark)
   pr <- mssr_app_profile(x, res, axis, index)
   along <- if (axis == "row") "column" else "row"
@@ -829,7 +831,7 @@ mssr_app_plot_profile <- function(x, res, axis = "row", index = 1L, dark = FALSE
 
 mssr_app_plot_mask <- function(x, mask, dark = FALSE) {
   op <- mssr_app_par(dark)
-  on.exit(graphics::par(op))
+  on.exit(graphics::par(op), add = TRUE)
   cl <- mssr_app_colors(dark)
   rows <- seq_len(nrow(x))
   cols <- seq_len(ncol(x))
