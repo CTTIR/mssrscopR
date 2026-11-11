@@ -98,3 +98,6 @@
 .gcov
 src/*.gcda
 src/*.gcno
+
+# Development planning and maintenance notes stay local
+/planning/
