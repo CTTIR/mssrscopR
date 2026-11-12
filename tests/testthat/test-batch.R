@@ -152,3 +152,26 @@ test_that("a frame failing after its record is written is recorded and retried",
   expect_identical(mssr_read_result(second$output[2])$values,
                    mssr(frames$flaky, fwhm = 3)$values)
 })
+
+test_that("non-round settings survive their own recovery record", {
+  skip_if_not_installed("digest")
+  skip_if_not_installed("jsonlite")
+  frames <- list(a = matrix(as.double(1:20), 4, 5))
+  # Neither value is recovered from fifteen significant decimal digits.
+  for (fwhm in c(10 / 3, 0.51 * 520 / 1.4 / 65)) {
+    root <- withr::local_tempdir()
+    settings <- list(fwhm = fwhm, max_output_pixels = 1e6 / 3)
+    first <- mssr_batch(frames, root, settings)
+    expect_identical(first$status, "complete")
+    record <- list.files(root, "^a-.*[.]json$", full.names = TRUE)
+    stored <- jsonlite::fromJSON(record, simplifyVector = FALSE)$settings
+    expect_identical(stored$fwhm, fwhm)
+    expect_identical(stored$max_output_pixels, 1e6 / 3)
+    second <- mssr_batch(frames, root, settings)
+    expect_identical(second$status, "complete")
+    expect_true(second$reused)
+    again <- mssr_batch(frames, root, settings, resume = FALSE)
+    expect_identical(again$status, "complete")
+    expect_false(again$reused)
+  }
+})

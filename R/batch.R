@@ -260,7 +260,10 @@ batch_write_record <- function(record, path, call) {
   }
   tmp <- tempfile(".record-", tmpdir = dirname(path))
   on.exit(unlink(tmp), add = TRUE)
-  jsonlite::write_json(record, tmp, auto_unbox = TRUE, pretty = TRUE, digits = NA)
+  # Seventeen significant digits recover every binary64 setting on re-reading;
+  # jsonlite's `digits = NA` writes fifteen, which made most non-round `fwhm`
+  # values differ from their own record.
+  jsonlite::write_json(record, tmp, auto_unbox = TRUE, pretty = TRUE, digits = I(17))
   if (!file.rename(tmp, path)) mssr_abort("io", "Cannot atomically replace batch record.", call)
   invisible(NULL)
 }
