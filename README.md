@@ -40,8 +40,7 @@ ordinary floating-point rounding and cancellation remain possible. The explorer
 retains 17 significant digits in CSV downloads and decodes decimal uploads
 independently of base R's platform-dependent scanner. The qualification kit
 transports exact binary64 matrices alongside its readable high-precision CSV
-records. See the [maintenance record](https://github.com/CTTIR/mssrscopR/blob/main/planning/maintenance-2026-11-03.md) for the
-observed checks and remaining limits.
+records.
 
 ## Why
 
