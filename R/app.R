@@ -28,6 +28,9 @@
 #' 5e8 operations are refused; call [mssr()] directly for larger runs. The
 #' image header is checked before decoding; image uploads are limited to
 #' 5e7 samples, conservatively allowing at least four channels per pixel.
+#' Text tables are limited to 5e6 cells and are decoded in the app's own R
+#' process, which does not respond while a large table is read. A blank line
+#' between rows is refused; trailing blank lines are ignored.
 #' Only the selected TIFF page is decoded. Integer TIFF samples keep their
 #' stored values; floating-point TIFF samples remain unscaled. The structure
 #' map is not a quantitative intensity, and nothing in the app
@@ -82,6 +85,8 @@ mssr_app_object <- function() shiny::shinyApp(mssr_app_ui(), mssr_app_server)
 # refused in the app. This is a workload limit, not a portable time guarantee.
 mssr_app_work_limit <- 5e8
 mssr_app_sample_limit <- 5e7
+# Text tables are tokenized and decoded in the app's own R process.
+mssr_app_text_cell_limit <- 5e6
 mssr_app_job_timeout <- 300
 mssr_app_tiff_page_limit <- 256L
 mssr_app_tiff_tag_limit <- 4096L
@@ -340,6 +345,13 @@ mssr_app_tiff_scale <- function(meta) {
 # long double, R's scanner can turn a valid double.xmax decimal into Inf.
 mssr_app_parse_numbers <- function(tokens) {
   mssr_app_need("jsonlite", "numeric text samples")
+  # Decode every distinct token once: image tables repeat few sample values,
+  # and the checks below cost several regular expressions per token.
+  distinct <- unique(tokens)
+  mssr_app_parse_distinct(distinct)[match(tokens, distinct)]
+}
+
+mssr_app_parse_distinct <- function(tokens) {
   tokens <- trimws(tokens)
   decimal <- grepl("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$", tokens)
   hexadecimal <- grepl(paste0("^[+-]?0[xX]([[:xdigit:]]+([.][[:xdigit:]]*)?|",
@@ -356,12 +368,18 @@ mssr_app_parse_numbers <- function(tokens) {
   values[hexadecimal] <- as.numeric(tokens[hexadecimal])
   positions <- which(decimal)
   if (length(positions)) {
-    # Canonicalize syntax lexically; never round via an intermediate number.
-    canonical <- sub("^[+]", "", tokens[positions])
-    canonical <- sub("^[.]", "0.", canonical)
-    canonical <- sub("^-[.]", "-0.", canonical)
-    canonical <- sub("^(-?)0+(?=[0-9])", "\\1", canonical, perl = TRUE)
-    canonical <- sub("[.](?=[eE]|$)", ".0", canonical, perl = TRUE)
+    canonical <- tokens[positions]
+    # Tokens that already are JSON numbers need no rewriting.
+    rewrite <- !grepl("^-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?$", canonical)
+    if (any(rewrite)) {
+      # Canonicalize syntax lexically; never round via an intermediate number.
+      fixed <- sub("^[+]", "", canonical[rewrite])
+      fixed <- sub("^[.]", "0.", fixed)
+      fixed <- sub("^-[.]", "-0.", fixed)
+      fixed <- sub("^(-?)0+(?=[0-9])", "\\1", fixed, perl = TRUE)
+      fixed <- sub("[.](?=[eE]|$)", ".0", fixed, perl = TRUE)
+      canonical[rewrite] <- fixed
+    }
     for (first in seq.int(1L, length(positions), by = 65536L)) {
       at <- first:min(length(positions), first + 65535L)
       encoded <- paste0("[", paste(canonical[at], collapse = ","), "]")
@@ -374,6 +392,21 @@ mssr_app_parse_numbers <- function(tokens) {
   values
 }
 
+# Blank lines are kept by the readers so that a blank line between rows is
+# refused instead of silently removing a row; trailing blank lines are dropped.
+mssr_app_text_tokens <- function(df) {
+  tokens <- as.matrix(df)
+  dimnames(tokens) <- NULL
+  # Both readers already strip the white space around fields.
+  blank <- rowSums(!is.na(tokens) & nzchar(tokens)) == 0L
+  keep <- if (all(blank)) 0L else max(which(!blank))
+  if (keep == 0L || any(blank[seq_len(keep)])) {
+    mssr_abort("input", paste("Text files must contain numbers only, without blank lines",
+                              "between rows, a header row or comments."))
+  }
+  tokens[seq_len(keep), , drop = FALSE]
+}
+
 # Returns list(x = numeric matrix, info = one-line description).
 mssr_app_read <- function(path, name, channel = 1L, page = 1L) {
   ext <- mssr_app_ext(name)
@@ -381,10 +414,12 @@ mssr_app_read <- function(path, name, channel = 1L, page = 1L) {
     df <- tryCatch(
       if (ext == "csv") {
         utils::read.csv(path, header = FALSE, strip.white = TRUE, row.names = NULL,
-                        colClasses = "character", na.strings = character())
+                        colClasses = "character", na.strings = character(),
+                        blank.lines.skip = FALSE)
       } else {
         utils::read.table(path, header = FALSE, comment.char = "", row.names = NULL,
-                          colClasses = "character", na.strings = character())
+                          colClasses = "character", na.strings = character(),
+                          blank.lines.skip = FALSE)
       },
       error = function(e) NULL
     )
@@ -394,7 +429,12 @@ mssr_app_read <- function(path, name, channel = 1L, page = 1L) {
         "`.csv` is comma-separated, `.tsv`/`.txt` tab- or space-separated."
       ))
     }
-    x <- matrix(mssr_app_parse_numbers(as.vector(as.matrix(df))), nrow(df), ncol(df))
+    if (as.double(nrow(df)) * ncol(df) > mssr_app_text_cell_limit) {
+      mssr_abort("resource", paste("Text table exceeds the app limit of 5e6 cells.",
+                                   "Upload a smaller frame or use mssr() in R."))
+    }
+    tokens <- mssr_app_text_tokens(df)
+    x <- matrix(mssr_app_parse_numbers(as.vector(tokens)), nrow(tokens), ncol(tokens))
     parser_version <- as.character(utils::packageVersion("jsonlite"))
     return(list(x = x, info = sprintf("Text table, %d x %d", nrow(x), ncol(x)),
                 metadata = list(format = "text", axes = c("row_y", "column_x"),
@@ -653,13 +693,21 @@ mssr_app_validate_job <- function(job, envelope) {
   invisible(TRUE)
 }
 
+# Process handles gained a cleanup() method only in recent callr/processx
+# releases; older ones release their resources when the handle is collected.
+mssr_app_cleanup_job <- function(process) {
+  cleanup <- process$cleanup
+  if (is.function(cleanup)) cleanup()
+  invisible(TRUE)
+}
+
 # Only the retained handle is signalled. No PID searches or machine-wide cleanup.
 mssr_app_stop_job <- function(job) {
   p <- job$process
   if (p$is_alive()) p$kill()
   p$wait(timeout = 2000)
   if (p$is_alive()) mssr_abort("resource", "The owned job has not stopped; retry cancellation.")
-  p$cleanup()
+  mssr_app_cleanup_job(p)
   invisible(TRUE)
 }
 
@@ -1216,7 +1264,7 @@ mssr_app_server <- function(input, output, session) {
     value <- tryCatch(job$process$get_result(), error = function(e) {
       list(ok = FALSE, message = conditionMessage(e))
     })
-    job$process$cleanup()
+    mssr_app_cleanup_job(job$process)
     state$job <- NULL
     if (!is.list(value)) value <- list(ok = FALSE, message = "Invalid background result envelope.")
     if (isTRUE(value$ok)) {

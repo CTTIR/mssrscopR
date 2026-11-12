@@ -291,3 +291,31 @@ test_that("the code identity covers compiled sources and native routines", {
                    "native mssr_neighborhood_c 4")
   expect_identical(mssr_app_code_signature(), identity$functions)
 })
+
+test_that("process handles without a cleanup method are stopped and collected", {
+  # callr 3.7.6 with processx 3.8.6 has no cleanup() on its handles.
+  alive <- TRUE
+  killed <- 0L
+  handle <- list(is_alive = function() alive, wait = function(...) invisible(),
+                 kill = function() {
+                   killed <<- killed + 1L
+                   alive <<- FALSE
+                 })
+  expect_true(mssr_app_cleanup_job(handle))
+  expect_true(mssr_app_stop_job(list(process = handle)))
+  expect_identical(killed, 1L)
+  cleaned <- 0L
+  handle$cleanup <- function() cleaned <<- cleaned + 1L
+  expect_true(mssr_app_stop_job(list(process = handle)))
+  expect_identical(cleaned, 1L)
+  local_mocked_bindings(mssr_app_start_job = function(frame, args, mask, run_id) {
+    job <- async_ready(frame, args, mask, run_id)
+    job$process$cleanup <- NULL
+    job
+  })
+  shiny::testServer(mssr_app_server, {
+    session$flushReact()
+    expect_identical(async_wait(session, state, poll_job), "complete")
+    expect_null(state$job)
+  })
+})

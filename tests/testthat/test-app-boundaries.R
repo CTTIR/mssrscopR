@@ -90,3 +90,38 @@ test_that("CSV re-upload retains the exact decoded identity and separate byte id
   expect_identical(frame$metadata$numeric_parser[["decimal"]], "jsonlite::fromJSON")
   expect_false(grepl("private-name", paste(unlist(frame$metadata), collapse = " ")))
 })
+
+test_that("blank lines between rows are refused and trailing ones ignored", {
+  path <- withr::local_tempfile()
+  expected <- matrix(c(1, 3, 2, 4), 2)
+  for (case in list(list("frame.csv", ","), list("frame.txt", " "), list("frame.tsv", "\t"))) {
+    rows <- c(paste(1, 2, sep = case[[2]]), paste(3, 4, sep = case[[2]]))
+    writeLines(c(rows, "", ""), path)
+    expect_identical(mssr_app_read(path, case[[1]])$x, expected)
+    for (lines in list(c(rows[1], "", rows[2]), c("", rows), c(rows[1], "  ", rows[2]))) {
+      writeLines(lines, path)
+      expect_error(mssr_app_read(path, case[[1]]), "blank lines",
+                   class = "mssrscopR_error_input")
+    }
+  }
+  writeLines(c("1", "", "3"), path)
+  expect_error(mssr_app_read(path, "column.csv"), class = "mssrscopR_error_input")
+  writeLines(c("", ""), path)
+  expect_error(mssr_app_read(path, "empty.csv"), class = "mssrscopR_error_input")
+})
+
+test_that("repeated text samples decode like distinct ones, within the cell limit", {
+  tokens <- c("7", " 7", "+7", "007", "7.", "7e0", "0x7", "-.5", "7", "65535", "65535")
+  expect_identical(mssr_app_parse_numbers(tokens),
+                   c(7, 7, 7, 7, 7, 7, 7, -0.5, 7, 65535, 65535))
+  expect_identical(mssr_app_parse_numbers(tokens),
+                   vapply(tokens, mssr_app_parse_distinct, numeric(1), USE.NAMES = FALSE))
+  expect_identical(mssr_app_parse_numbers(character()), numeric())
+  expect_error(mssr_app_parse_numbers(c("1", "1", "x")), class = "mssrscopR_error_input")
+  path <- withr::local_tempfile()
+  writeLines(c("1,2,3", "4,5,6"), path)
+  local_mocked_bindings(mssr_app_text_cell_limit = 5)
+  expect_error(mssr_app_read(path, "frame.csv"), "5e6 cells", class = "mssrscopR_error_resource")
+  writeLines(c("1,2", "3,4"), path)
+  expect_identical(mssr_app_read(path, "frame.csv")$x, matrix(c(1, 3, 2, 4), 2))
+})
