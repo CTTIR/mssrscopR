@@ -2,6 +2,21 @@
 
 ## mssrscopR 0.3.0
 
+- The explorer no longer needs the newest ‘callr’: finished, cancelled
+  and timed-out jobs failed with releases whose process handles have no
+  `cleanup()` method (for example callr 3.7.6 with processx 3.8.6).
+
+- [`mssr_batch()`](https://cttir.github.io/mssrscopR/reference/mssr_batch.md)
+  writes its recovery records with 17 significant digits. With 15, most
+  non-round `fwhm` values (for example `10 / 3`) differed from their own
+  record, so every later run of the same frames failed with an integrity
+  error instead of reusing or recomputing them.
+
+- Text uploads in the explorer decode each distinct value once, which
+  makes typical image tables much faster to read, and are limited to 5e6
+  cells. A blank line between rows is refused instead of silently
+  removing a row; trailing blank lines are ignored.
+
 - Field-mean diagnostics recover platform-specific base R overflow on
   finite maximum-valued frames. Finite diagnostic means remain
   unchanged; stored stack validation, trend ratios and mesh diagnostics

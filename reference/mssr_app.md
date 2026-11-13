@@ -61,10 +61,13 @@ exceeds 5e8 operations are refused; call
 [`mssr()`](https://cttir.github.io/mssrscopR/reference/mssr.md) directly
 for larger runs. The image header is checked before decoding; image
 uploads are limited to 5e7 samples, conservatively allowing at least
-four channels per pixel. Only the selected TIFF page is decoded. Integer
-TIFF samples keep their stored values; floating-point TIFF samples
-remain unscaled. The structure map is not a quantitative intensity, and
-nothing in the app implies a gain in physical resolution. Packed 12-bit,
+four channels per pixel. Text tables are limited to 5e6 cells and are
+decoded in the app's own R process, which does not respond while a large
+table is read. A blank line between rows is refused; trailing blank
+lines are ignored. Only the selected TIFF page is decoded. Integer TIFF
+samples keep their stored values; floating-point TIFF samples remain
+unscaled. The structure map is not a quantitative intensity, and nothing
+in the app implies a gain in physical resolution. Packed 12-bit,
 signed-integer, palette, multi-channel planar-separate and volumetric
 TIFF images are unsupported; prepare an explicit supported 2D frame
 before uploading. The TIFF preflight accepts classic TIFF, top-left
