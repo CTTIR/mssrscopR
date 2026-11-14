@@ -45,7 +45,7 @@ Suggests:
     png,
     rmarkdown,
     shiny (>= 1.8.0),
-    testthat (>= 3.0.0),
+    testthat (>= 3.2.1),
     tiff (>= 0.1-8)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
