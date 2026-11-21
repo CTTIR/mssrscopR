@@ -3,6 +3,7 @@ message: "If you use this software, please cite the MSSR method paper and this p
 type: software
 title: "mssrscopR: Single-Frame Mean-Shift Super-Resolution Structure Maps"
 version: 0.3.0
+doi: 10.5281/zenodo.24426376
 authors:
   - family-names: Heller
     given-names: "R."
@@ -31,3 +32,7 @@ references:
     start: 7452
     year: 2022
     doi: "10.1038/s41467-022-34693-9"
+identifiers:
+- type: doi
+  value: 10.5281/zenodo.24426376
+  description: Zenodo DOI (reserved; resolves once the record is published)
