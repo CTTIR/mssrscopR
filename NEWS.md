@@ -33,8 +33,8 @@
   parsing cannot change the tested input on different platforms. The bounded
   numerical thresholds and known high-order limitations remain unchanged.
 
-* `plot()` of an `mssr_result` draws the first and last rows and columns
-  whole (they were cut to half their height), keeps input pixels square,
+* `plot()` of an `mssr_result` draws the first and last rows whole (they
+  were cut to half their height), keeps input pixels square,
   draws the axes and a frame at the image edges with horizontal row labels,
   and titles the map in words (for example "Intensity-weighted MSSR map")
   instead of printing the role string. Arguments in `...` still override
