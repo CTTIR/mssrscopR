@@ -9,21 +9,31 @@ development:
   mode: auto
 reference:
   - title: Single-frame MSSR
+    desc: >
+      Compute the structure map of one frame, place its pixels on the input
+      grid and derive masks for measuring the original data.
     contents:
       - mssr
       - mssr_coords
       - mssr_mask
   - title: Temporal statistics
+    desc: Reduce the per-frame maps of a frame sequence pixel by pixel.
     contents:
       - mssr_temporal
       - mssr_stack
   - title: Validation
+    desc: >
+      Check the installation against the bundled fixtures, and validate,
+      summarize and plot results.
     contents:
       - mssr_selftest
       - mssr_validate_result
       - summary.mssr_result
       - plot.mssr_result
   - title: Resources and result files
+    desc: >
+      Plan memory and work, process batches of frames, store results exactly
+      and replay their settings.
     contents:
       - mssr_estimate_resources
       - mssr_batch
@@ -31,6 +41,7 @@ reference:
       - mssr_read_result
       - mssr_settings
   - title: Interactive app
+    desc: Explore parameters on synthetic examples or an uploaded frame.
     contents:
       - mssr_app
 articles:
