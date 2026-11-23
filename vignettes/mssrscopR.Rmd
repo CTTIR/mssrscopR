@@ -35,8 +35,10 @@ resource_files:
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 2.6)
 library(mssrscopR)
 show <- function(m, main) {
+  # Multi-panel layouts shrink text; keep panel titles at a readable size.
   graphics::image(t(m[nrow(m):1, ]), col = grDevices::gray.colors(128, 0, 1),
-                  axes = FALSE, main = main, cex.main = 0.9, asp = nrow(m) / ncol(m))
+                  axes = FALSE, main = main, cex.main = 0.85 / graphics::par("cex"),
+                  font.main = 1, asp = nrow(m) / ncol(m))
 }
 ```
 
