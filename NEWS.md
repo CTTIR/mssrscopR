@@ -49,6 +49,8 @@
   and pages behind its constants and formulas; the reference groups of the
   website have short descriptions.
 * The documentation uses British English (`Language: en-GB`).
+* The README citation block also gives the package entry of
+  `citation("mssrscopR")`, naming the author as R. Heller.
 
 # mssrscopR 0.2.0
 

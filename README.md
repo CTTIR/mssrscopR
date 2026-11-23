@@ -259,6 +259,10 @@ lists it together with the package.
 > a single imaging frame. *Nature Communications* 2022;13:7452.
 > <https://doi.org/10.1038/s41467-022-34693-9>
 
+> Heller, R. (2026). *mssrscopR: Single-Frame Mean-Shift Super-Resolution
+> Structure Maps* (Version 0.3.0) [Computer software].
+> <https://github.com/CTTIR/mssrscopR>
+
 ## Contributing
 
 Follows the [CTTIR contributing guide](https://github.com/CTTIR/.github/blob/main/CONTRIBUTING.md).
