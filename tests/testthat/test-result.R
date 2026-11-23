@@ -192,6 +192,43 @@ test_that("plot uses the original orientation and does not alter values", {
   }
 })
 
+test_that("plot draws whole edge pixels with square input pixels", {
+  path <- withr::local_tempfile(fileext = ".pdf")
+  grDevices::pdf(path, width = 7, height = 4)
+  withr::defer(grDevices::dev.off())
+  for (grid in c("extent", "endpoint")) {
+    r <- mssr(matrix(as.double(1:20), 4, 5), fwhm = 2, amp = 2, grid = grid, order = 0)
+    plot(r)
+    usr <- graphics::par("usr")
+    pin <- graphics::par("pin")
+    edges <- lapply(mssr_coords(r), function(v) range(v) + c(-1, 1) * diff(v[1:2]) / 2)
+    # Row 1 is at the top, and the first and last rows and columns are whole.
+    expect_gt(usr[3], usr[4])
+    expect_lte(usr[1], edges$col[1])
+    expect_gte(usr[2], edges$col[2])
+    expect_lte(usr[4], edges$row[1])
+    expect_gte(usr[3], edges$row[2])
+    # One input pixel is as wide as it is high.
+    expect_equal(diff(usr[1:2]) / pin[1], abs(diff(usr[3:4])) / pin[2], tolerance = 1e-6)
+  }
+  # Arguments in `...` still override the defaults.
+  expect_silent(plot(r, main = "custom", axes = TRUE, asp = NA))
+})
+
+test_that("plot titles name the role in words", {
+  x <- matrix(as.double(1:20), 4, 5)
+  expect_identical(result_plot_title(mssr(x, fwhm = 2)), "Intensity-weighted MSSR map")
+  expect_identical(result_plot_title(mssr(x, fwhm = 2, intensity_normalize = FALSE)),
+                   "MSSR map")
+  stack <- array(c(x, rev(x), x), c(4, 5, 3))
+  expect_identical(result_plot_title(mssr_temporal(stack, "var", fwhm = 2)),
+                   "Temporal variance, 3 MSSR maps")
+  expect_identical(
+    result_plot_title(mssr_temporal(stack, "sofi2", fwhm = 2, sign = "absolute")),
+    "Temporal absolute SOFI2, 3 MSSR maps"
+  )
+})
+
 
 test_that("high orders disclose their bounded numerical qualification", {
   x <- matrix(1:20, 4, 5)

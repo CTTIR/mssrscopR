@@ -262,8 +262,12 @@ validate_temporal_result <- function(result, call) {
 #' @return `summary()` returns a named list of class `summary.mssr_result` with
 #'   role, dimensions, grid, range, diagnostics, parameters and version
 #'   identities; it prints as a short report. `plot()` draws the stored
-#'   map in input-pixel coordinates and invisibly returns the result. It does
-#'   not transform the stored values or infer physical sampling.
+#'   map in input-pixel coordinates, with square input pixels, axes and a
+#'   frame at the image edges and a title that names the role, and invisibly
+#'   returns the result. Arguments in `...` override these defaults; passing
+#'   `axes`, `add`, `xlim`, `ylim` or `asp` leaves the axes and titles to
+#'   [graphics::image()]. It does not transform the stored values or infer
+#'   physical sampling.
 #' @examples
 #' r <- mssr(matrix(1:20, 4, 5), fwhm = 2)
 #' summary(r)
@@ -343,20 +347,89 @@ print.summary.mssr_result <- function(x, ...) {
 plot.mssr_result <- function(x, ...) {
   mssr_validate_result(x)
   coords <- mssr_coords(x)
+  # The limits reach the outer edges of the first and last output pixels, so
+  # that edge rows and columns are drawn whole; asp = 1 keeps input pixels
+  # square.
+  half <- x$transform$spacing / 2
+  xlim <- range(coords$col) + c(-1, 1) * half[["col"]]
+  ylim <- rev(range(coords$row) + c(-1, 1) * half[["row"]])
   # image() expects x as its first matrix dimension; transpose keeps rows = y.
+  # Pixel edges as breaks, so that single rows or columns get their width too.
+  edges <- function(centers, h) c(centers[1] - h, centers + h)
   args <- list(
-    x = coords$col, y = coords$row, z = t(x$values),
+    x = edges(coords$col, half[["col"]]), y = edges(coords$row, half[["row"]]), z = t(x$values),
     xlab = "Column (input pixels)", ylab = "Row (input pixels)",
-    main = x$role, ylim = rev(range(coords$row)),
-    col = grDevices::hcl.colors(64L, "Viridis"), useRaster = TRUE
+    main = result_plot_title(x), xlim = xlim, ylim = ylim,
+    col = grDevices::hcl.colors(64L, "Viridis"), useRaster = TRUE, asp = 1, las = 1
   )
   supplied <- list(...)
   if (length(supplied) && (is.null(names(supplied)) || any(!nzchar(names(supplied))))) {
     mssr_abort("parameter", "Plot arguments in `...` must be named.", sys.call())
   }
   for (name in names(supplied)) args[[name]] <- supplied[[name]]
-  do.call(graphics::image, args)
+  # With asp = 1 the plot region is usually larger than the image. Unless the
+  # caller takes over the axes, limits or aspect, the frame, axes and titles are
+  # drawn at the image edges.
+  if (any(c("axes", "add", "xlim", "ylim", "asp") %in% names(supplied))) {
+    do.call(graphics::image, args)
+    return(invisible(x))
+  }
+  labels <- args[c("xlab", "ylab", "main")]
+  args[c("xlab", "ylab", "main")] <- list("", "", "")
+  do.call(graphics::image, c(args, list(axes = FALSE)))
+  image_annotate(xlim, ylim, labels$xlab, labels$ylab, labels$main, main_line = 1,
+                 box = TRUE)
   invisible(x)
+}
+
+# Annotates an image drawn with asp = 1 and axes = FALSE: axes with ticks only
+# within the image, drawn at its left and bottom edges, axis titles and the
+# title next to the image, and optionally a frame. `xlim` and `ylim` are the
+# image edges as drawn (ylim from the bottom edge to the top edge).
+image_annotate <- function(xlim, ylim, xlab, ylab, main, main_line = 0.5, box = FALSE) {
+  # Whole input-pixel positions within the image.
+  ticks <- function(edges) {
+    lo <- ceiling(min(edges))
+    hi <- floor(max(edges))
+    at <- pretty(c(lo, hi))
+    at[at >= lo & at <= hi & at == round(at)]
+  }
+  usr <- graphics::par("usr")
+  line_height <- graphics::par("csi") * graphics::par("mex")
+  gap <- function(edge, region, convert) {
+    abs(convert(edge, "user", "inches") - convert(region, "user", "inches")) / line_height
+  }
+  left <- gap(xlim[1], usr[1], graphics::grconvertX)
+  bottom <- gap(ylim[1], usr[3], graphics::grconvertY)
+  top <- gap(ylim[2], usr[4], graphics::grconvertY)
+  if (box) {
+    graphics::rect(xlim[1], ylim[1], xlim[2], ylim[2], border = graphics::par("fg"))
+  }
+  graphics::axis(1, at = ticks(xlim), pos = ylim[1])
+  graphics::axis(2, at = ticks(ylim), las = 1, pos = xlim[1])
+  mgp <- graphics::par("mgp")
+  cex <- graphics::par("cex")
+  label <- function(text, side, line) {
+    graphics::mtext(text, side = side, line = line, cex = cex * graphics::par("cex.lab"),
+                    col = graphics::par("col.lab"))
+  }
+  label(xlab, 1, mgp[1] - bottom)
+  label(ylab, 2, mgp[1] - left)
+  graphics::mtext(main, side = 3, line = main_line - top, cex = cex * graphics::par("cex.main"),
+                  font = graphics::par("font.main"), col = graphics::par("col.main"))
+}
+
+# Readable default title of plot.mssr_result(), derived from the result's role.
+result_plot_title <- function(x) {
+  if (!result_is_temporal(x)) {
+    return(if (identical(x$role, "structure")) "MSSR map" else "Intensity-weighted MSSR map")
+  }
+  p <- x$parameters
+  labels <- c(mean = "mean", var = "variance", tpm = "TPM", cv = "Var / Mean",
+              sofi2 = "SOFI2", sofi3 = "SOFI3", sofi4 = "SOFI4")
+  label <- labels[[p$statistic]]
+  if (identical(p$sign, "absolute")) label <- paste("absolute", label)
+  sprintf("Temporal %s, %d MSSR maps", label, as.integer(p$frames))
 }
 
 result_io_dependencies <- function(call) {
