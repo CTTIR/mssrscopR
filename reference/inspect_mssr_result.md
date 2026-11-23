@@ -32,9 +32,13 @@ plot(x, ...)
 of class `summary.mssr_result` with role, dimensions, grid, range,
 diagnostics, parameters and version identities; it prints as a short
 report. [`plot()`](https://rdrr.io/r/graphics/plot.default.html) draws
-the stored map in input-pixel coordinates and invisibly returns the
-result. It does not transform the stored values or infer physical
-sampling.
+the stored map in input-pixel coordinates, with square input pixels,
+axes and a frame at the image edges and a title that names the role, and
+invisibly returns the result. Arguments in `...` override these
+defaults; passing `axes`, `add`, `xlim`, `ylim` or `asp` leaves the axes
+and titles to
+[`graphics::image()`](https://rdrr.io/r/graphics/image.html). It does
+not transform the stored values or infer physical sampling.
 
 ## Examples
 

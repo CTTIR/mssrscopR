@@ -84,8 +84,12 @@
     <p><code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> returns a named list of class <code>summary.mssr_result</code> with
 role, dimensions, grid, range, diagnostics, parameters and version
 identities; it prints as a short report. <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> draws the stored
-map in input-pixel coordinates and invisibly returns the result. It does
-not transform the stored values or infer physical sampling.</p>
+map in input-pixel coordinates, with square input pixels, axes and a
+frame at the image edges and a title that names the role, and invisibly
+returns the result. Arguments in <code>...</code> override these defaults; passing
+<code>axes</code>, <code>add</code>, <code>xlim</code>, <code>ylim</code> or <code>asp</code> leaves the axes and titles to
+<code><a href="https://rdrr.io/r/graphics/image.html" class="external-link">graphics::image()</a></code>. It does not transform the stored values or infer
+physical sampling.</p>
     </div>
 
     <div class="section level2">

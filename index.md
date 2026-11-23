@@ -122,7 +122,7 @@ hyperspectral cubes or segmentation workflows has not been validated.
 |----|----|
 | `mssr(x, fwhm, amp = 1, order = 1, ...)` | `mssr_result`: `values`, `role`, `transform`, `parameters`, `engine`, `diagnostics` |
 | `mssr_coords(result)` | output pixel-center coordinates (`row`, `col`) in input-pixel units |
-| `mssr_mask(result, fraction, region = NULL, seed = 1)` | logical mask on the input grid with `coverage`, `tie_fraction`, `n_region` |
+| `mssr_mask(result, fraction, region = NULL, seed = 1)` | logical mask on the input grid with `coverage`, `tie_fraction`, `cut_relative`, `n_region` |
 | `mssr_temporal(x, statistic, fwhm, ...)` | `mssr_result` with role `temporal_<statistic>`: a temporal statistic of the per-frame maps of a rows x columns x frames array |
 | `mssr_stack(x, fwhm, ...)` | stored per-frame maps (`mssr_stack`) for several temporal statistics |
 | `mssr_selftest(tolerance = 1e-10)` | fixture errors, with attribute `all_passed` |

@@ -45,6 +45,26 @@
   different platforms. The bounded numerical thresholds and known
   high-order limitations remain unchanged.
 
+- [`plot()`](https://rdrr.io/r/graphics/plot.default.html) of an
+  `mssr_result` draws the first and last rows whole (they were cut to
+  half their height), keeps input pixels square, draws the axes and a
+  frame at the image edges with horizontal row labels, and titles the
+  map in words (for example “Intensity-weighted MSSR map”) instead of
+  printing the role string. Arguments in `...` still override these
+  defaults.
+
+- The explorer draws its axes, axis titles and panel titles at the image
+  edges, so that they stay next to wide or tall images, and renders its
+  plots at 96 dpi so that their text is legible. Its self-test table
+  shows each fixture’s verdict next to the fixture name, where it was
+  clipped before, and scrolls sideways in narrow layouts. Vignette panel
+  titles are larger.
+
+- The Description cites the SOFI method (Dertinger et al. 2009) and
+  quotes only software names; the engine source cites the supplementary
+  equations and pages behind its constants and formulas; the reference
+  groups of the website have short descriptions.
+
 ## mssrscopR 0.2.0
 
 This release collects every development version since 0.1.0 (0.1.0.9000

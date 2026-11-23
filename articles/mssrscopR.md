@@ -17,7 +17,9 @@ has no default.
 ``` r
 
 g <- expand.grid(r = 1:31, c = 1:41)
-spot <- function(r0, c0, a = 1) a * exp(-((g$r - r0)^2 + (g$c - c0)^2) / (2 * (3 / 2.3548)^2))
+spot <- function(r0, c0, a = 1) {
+  a * exp(-((g$r - r0)^2 + (g$c - c0)^2) / (2 * (3 / 2.3548)^2))
+}
 pair <- function(sep) matrix(spot(16, 18) + spot(16, 18 + sep) + 0.05, 31, 41)
 x <- pair(3)                       # two sources 3 px apart, FWHM 3 px
 res <- mssr(x, fwhm = 3, amp = 2)
@@ -68,9 +70,11 @@ mid_ratio <- function(sep) {
   row <- which.min(abs(co$row - 16))
   at_input <- function(cc) stats::approx(1:41, x[16, ], cc)$y
   at_mssr <- function(cc) stats::approx(co$col, v[row, ], cc)$y
-  c(input = at_input(18 + sep / 2) / at_input(18), mssr = at_mssr(18 + sep / 2) / at_mssr(18))
+  c(input = at_input(18 + sep / 2) / at_input(18),
+    mssr = at_mssr(18 + sep / 2) / at_mssr(18))
 }
-round(rbind(`2.4 px` = mid_ratio(2.4), `2.6 px` = mid_ratio(2.6), `3 px` = mid_ratio(3)), 3)
+round(rbind(`2.4 px` = mid_ratio(2.4), `2.6 px` = mid_ratio(2.6),
+            `3 px` = mid_ratio(3)), 3)
 #>        input  mssr
 #> 2.4 px 1.086 1.235
 #> 2.6 px 1.054 0.815
@@ -94,7 +98,8 @@ peaks <- function(sep, amp = 2) {
   i <- which(diff(sign(diff(v))) == -2) + 1
   co$col[i[v[i] > 0.05 * max(v)]]
 }
-list(`2.4 px` = peaks(2.4), `2.4 px, amp 4` = peaks(2.4, amp = 4), `2.6 px` = peaks(2.6))
+list(`2.4 px` = peaks(2.4), `2.4 px, amp 4` = peaks(2.4, amp = 4),
+     `2.6 px` = peaks(2.6))
 #> $`2.4 px`
 #> [1] 19.75
 #> 
