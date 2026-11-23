@@ -41,7 +41,9 @@
   these defaults.
 * The explorer draws its axes, axis titles and panel titles at the image
   edges, so that they stay next to wide or tall images, and renders its plots
-  at 96 dpi so that their text is legible. Vignette panel titles are larger.
+  at 96 dpi so that their text is legible. Its self-test table shows each
+  fixture's verdict next to the fixture name, where it was clipped before, and
+  scrolls sideways in narrow layouts. Vignette panel titles are larger.
 * The Description cites the SOFI method (Dertinger et al. 2009) and quotes
   only software names; the engine source cites the supplementary equations
   and pages behind its constants and formulas; the reference groups of the
