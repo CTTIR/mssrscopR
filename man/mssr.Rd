@@ -31,7 +31,7 @@ describes an ideal widefield system, and aberrations, defocus and pixel
 size can widen the recorded PSF. Under noise an \code{fwhm} below the true PSF
 makes false peaks more likely, while a larger one gives a shallower dip
 between close sources; when unsure, choose the larger plausible value. An
-\code{fwhm} larger than the PSF's FWHM enlarges the neighborhood and gives
+\code{fwhm} larger than the PSF's FWHM enlarges the neighbourhood and gives
 smoother maps with fewer fragments; choose it per data set and record it.
 Whatever the value, MSSR maps are visual aids, not a basis for segmentation
 or quantification. Only
@@ -52,10 +52,10 @@ map is multiplied by the (amplified) input.}
 \item{mesh}{Mesh compensation after amplification (only used if \code{amp > 1}).}
 
 \item{grid}{\code{"extent"} (field-of-view-preserving, default) or \code{"endpoint"}
-(samples from the first to the last input pixel center, as the authors'
+(samples from the first to the last input pixel centre, as the authors'
 code does; for comparison only).}
 
-\item{kernel}{Neighborhood shape: \code{"disk"} (authors' R code) or
+\item{kernel}{Neighbourhood shape: \code{"disk"} (authors' R code) or
 \code{"square"} (authors' Python code).}
 
 \item{rounding}{Rounding of the kernel half-size \code{0.5 * fwhm * amp}:
@@ -72,11 +72,11 @@ see \code{\link[=mssr_estimate_resources]{mssr_estimate_resources()}}.}
 An object of class \code{mssr_result}: a list with \code{values} (numeric
 matrix), \code{role} (\code{"structure"} or \code{"intensity_weighted_structure"}),
 \code{transform}, \code{parameters}, \code{engine} and \code{diagnostics}. \code{transform} holds
-\code{amp}, \code{grid}, \code{input_dim}, \code{output_dim}, the first output pixel center
+\code{amp}, \code{grid}, \code{input_dim}, \code{output_dim}, the first output pixel centre
 and the spacing (input-pixel units), and \code{field_of_view}: the input frame's
 extent from pixel edge 0.5 to \code{n + 0.5}. Output samples cover it exactly on
 the extent grid; on the endpoint grid they span only the first to the last
-input pixel center. The input is not
+input pixel centre. The input is not
 stored. \code{schema_version} identifies the result contract separately from
 the numerical engine; \code{input} records known axes and unknown calibration;
 \code{evidence} identifies the numerical-only scope. Qualification diagnostics
@@ -86,14 +86,14 @@ disclose conservative high-order limits without assigning confidence.
 Computes the Mean-Shift Super-Resolution (MSSR) structure map of one 2D
 frame (Torres-Garcia et al. 2022). The result is a structural map for
 display, structure analysis or mask derivation. It is \strong{not} a quantitative
-intensity: MSSR is nonlinear, suppresses dim structures next to bright ones
+intensity: MSSR is non-linear, suppresses dim structures next to bright ones
 and can hollow or split broad objects. Take measurements from the original
 data (see \code{\link[=mssr_mask]{mssr_mask()}}).
 }
 \details{
 \strong{Geometry.} The output keeps the input orientation. With
 \code{grid = "extent"} the amplified grid preserves the field of view: output
-pixel centers lie at \code{(k - 0.5) / amp + 0.5} input pixels, so the spacing is
+pixel centres lie at \code{(k - 0.5) / amp + 0.5} input pixels, so the spacing is
 exactly \code{1 / amp}. Amplification adds samples, not independent observations.
 
 \strong{Relation to the authors' code.} At \code{amp = 1} with
@@ -106,7 +106,7 @@ Extreme numeric ranges and undefined refinement steps can differ (see below). Fo
 convolution, a = -1/2). The authors' R script interpolates with akima's Akima
 method and their Python script with a SciPy spline, and their R mesh shifts
 asymmetrically, so the amplified input already differs beyond rounding;
-MSSR's range normalization and refinement are nonlinear and can enlarge such
+MSSR's range normalisation and refinement are non-linear and can enlarge such
 differences locally. Do not expect pixel-wise agreement with their amplified
 maps, even with \code{grid = "endpoint"}, which reproduces their sample positions.
 With the default
@@ -116,7 +116,7 @@ the unrotated input, so it agrees with \code{mssr()} only for frames that a
 
 \strong{Several channels or bands.} \code{mssr()} processes one 2D frame. Applied to
 each channel or band of multichannel or spectral data, it gives every channel
-its own nonlinear structure map, scaled by that channel's maxima.
+its own non-linear structure map, scaled by that channel's maxima.
 Intensity-weighted outputs (the default) are guaranteed to keep the channels'
 intensity ratios only when one whole frame, background included, is a scaled
 copy of another; a different background or another object elsewhere in the
@@ -130,7 +130,7 @@ positive, a frame without any positive mean shift and a refinement step that
 leaves no positive value (possible only with signed input) return zeros with
 \code{diagnostics$degenerate = TRUE} and a \code{degenerate_reason}. A refinement step
 (\code{order >= 1}) is undefined when the mean-shift map already equals the
-normalized input, for example for isolated impulses on an exactly zero
+normalised input, for example for isolated impulses on an exactly zero
 background. Such a step leaves the map unchanged, is counted in
 \code{diagnostics$order_steps_skipped} and gives a warning of class
 \code{mssrscopR_warning_skipped_steps}: the result is not the limit for slightly
@@ -148,16 +148,16 @@ but every refinement step (\code{order >= 1}) compares the map with the input
 divided by its maximum, which a background changes, and intensity weighting
 multiplies by the input. Subtracting a background is therefore a
 preprocessing choice that changes the result; record it with the result.
-The range normalizer adapts to the largest local difference at each pixel,
+The range normaliser adapts to the largest local difference at each pixel,
 so even rounding-level ripple on an otherwise flat frame is stretched to
 full contrast: only an exactly flat frame is degenerate.
 
 \strong{Numeric domain.} Input and numeric parameters must use plain integer or
 double storage, without explicit classes. Convert calibrated or other
 classed data deliberately before calling. The engine uses internal
-power-of-two scaling, centered interpolation for non-negative input and
+power-of-two scaling, centred interpolation for non-negative input and
 weighted local differences to limit overflow, underflow and cancellation.
-A nonzero input lost during scaling or an overflowing final result
+A non-zero input lost during scaling or an overflowing final result
 raises \code{mssrscopR_error_numerical}. Rounding already present in the supplied
 data cannot be recovered. Intensity-weighted output is rescaled to
 the original numeric units but remains non-quantitative; subnormal output
@@ -165,7 +165,7 @@ still has limited precision and can round to zero.
 
 \strong{Cost.} Every order step uses image-wide maxima, so frames must be
 processed whole. Time grows with the number of output pixels times the
-number of neighborhood offsets (about \code{pi * h^2} for the disk kernel and
+number of neighbourhood offsets (about \code{pi * h^2} for the disk kernel and
 \code{(2 * h + 1)^2 - 1} for the square kernel, with half-size \code{h}, recorded in
 \code{parameters$half_size}). Calls whose
 estimated work exceeds 1e10 operations, whose output exceeds

@@ -565,7 +565,7 @@ result_path <- function(path, writing, call) {
 #'
 #' Stores only the documented result contract, with exact binary double values,
 #' typed JSON metadata and SHA-256 corruption detection. No R expressions,
-#' serialized R objects, source image, source path or acquisition identity are
+#' serialised R objects, source image, source path or acquisition identity are
 #' stored. A matching checksum is not proof of origin or scientific validity.
 #'
 #' @param result A validated result from [mssr()].
@@ -574,7 +574,7 @@ result_path <- function(path, writing, call) {
 #'   replacement. Defaults to `FALSE`.
 #' @param max_bytes Maximum total record size in bytes, below 2^31 - 1.
 #' @param max_output_pixels Maximum decoded matrix size when reading.
-#' @return The writer invisibly returns the normalized file path. The reader
+#' @return The writer invisibly returns the normalised file path. The reader
 #'   returns the stored result without changing its schema or engine identity.
 #' @details Optional packages `jsonlite` and `digest` are required only for these
 #' functions. The writer stages and reads back the complete record before

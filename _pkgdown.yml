@@ -24,7 +24,7 @@ reference:
   - title: Validation
     desc: >
       Check the installation against the bundled fixtures, and validate,
-      summarize and plot results.
+      summarise and plot results.
     contents:
       - mssr_selftest
       - mssr_validate_result

@@ -23,13 +23,13 @@ replacement. Defaults to \code{FALSE}.}
 \item{max_output_pixels}{Maximum decoded matrix size when reading.}
 }
 \value{
-The writer invisibly returns the normalized file path. The reader
+The writer invisibly returns the normalised file path. The reader
 returns the stored result without changing its schema or engine identity.
 }
 \description{
 Stores only the documented result contract, with exact binary double values,
 typed JSON metadata and SHA-256 corruption detection. No R expressions,
-serialized R objects, source image, source path or acquisition identity are
+serialised R objects, source image, source path or acquisition identity are
 stored. A matching checksum is not proof of origin or scientific validity.
 }
 \details{

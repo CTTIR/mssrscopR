@@ -127,7 +127,7 @@ standard deviation divided by the mean, and it takes the sign of the mean.
 
 ## Reading the outputs
 
-The outputs are temporal statistics of nonlinear structure maps. They are not
+The outputs are temporal statistics of non-linear structure maps. They are not
 quantitative intensities, and no resolution gain is implied:
 
 - Variance, `"cv"` and SOFI of per-frame MSSR maps, and higher MSSR orders, can

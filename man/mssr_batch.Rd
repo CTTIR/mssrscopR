@@ -15,7 +15,7 @@ mssr_batch(
 )
 }
 \arguments{
-\item{frames}{A nonempty named list of plain numeric matrices. Names are
+\item{frames}{A non-empty named list of plain numeric matrices. Names are
 unique opaque IDs containing only letters, digits, underscore or hyphen.}
 
 \item{output_dir}{Explicit directory for result files and recovery records.}
@@ -29,7 +29,7 @@ unique opaque IDs containing only letters, digits, underscore or hyphen.}
 frame runs only if its \code{\link[=mssr_estimate_resources]{mssr_estimate_resources()}} estimate plus the size of
 all input frames held in \code{frames} fits within it.}
 
-\item{max_result_bytes}{Positive serialized-result limit; default 256 MiB.}
+\item{max_result_bytes}{Positive serialised-result limit; default 256 MiB.}
 
 \item{cancel}{Optional function with no arguments returning a single logical.
 \code{TRUE} marks remaining frames cancelled without running them.}

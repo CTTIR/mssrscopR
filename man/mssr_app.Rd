@@ -30,7 +30,7 @@ same as in R; it adds no processing of its own.
 separated by tabs or spaces; numbers only, no header or comments), PNG (needs the \code{png}
 package; values as returned by \code{png::readPNG()}, scaled to 0..1) and TIFF
 (needs the \code{tiff} package; stored values, unscaled). Multi-channel images are
-not converted to gray: choose one channel. For multi-page TIFF choose a
+not converted to grey: choose one channel. For multi-page TIFF choose a
 page. Files are read by the R process that runs the app (your own session
 when started with \code{mssr_app()}); the app sends nothing elsewhere.
 Run records include SHA-256 identities of uploaded bytes and decoded matrix
@@ -56,9 +56,9 @@ implies a gain in physical resolution.
 Packed 12-bit, signed-integer, palette, multi-channel planar-separate and volumetric TIFF
 images are unsupported; prepare an explicit supported 2D frame before
 uploading. The TIFF preflight accepts classic TIFF, top-left orientation,
-grayscale black-is-zero or RGB samples, at most 256 pages, 4096 tags per
+greyscale black-is-zero or RGB samples, at most 256 pages, 4096 tags per
 page, 4 MiB of directory/tag metadata and a 256 MiB file. BigTIFF, nested
-directories and other orientations/color conversions are refused. These
+directories and other orientations/colour conversions are refused. These
 are workload guards, not a hard decoder memory or time guarantee.
 Computation runs in one background R process per app session (needs \code{callr}).
 Cancel stops only that session's job. Incomplete results cannot be downloaded;

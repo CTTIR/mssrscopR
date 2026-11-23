@@ -27,7 +27,7 @@ X-schema.org-keywords: microscopy, image-processing, mean-shift,
     temporal-statistics, structural-maps
 BugReports: https://github.com/CTTIR/mssrscopR/issues
 Encoding: UTF-8
-Language: en-US
+Language: en-GB
 Depends: R (>= 4.1.0)
 Imports:
     cli (>= 3.0.0),

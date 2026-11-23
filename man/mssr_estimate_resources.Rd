@@ -49,7 +49,7 @@ per-frame maps, \code{stored_peak_bytes} and \code{recompute_peak_bytes} for its
 computation paths (the single-frame peak plus the output-sized buffers each
 path holds, including eight additional exponent/scaling and arithmetic-check
 work arrays for per-pixel conditioning, the raw temporal mean and one raw frame), and the total
-neighborhood work of each path. The stored path counts the maps twice (a
+neighbourhood work of each path. The stored path counts the maps twice (a
 100 percent margin): R lets garbage accumulate in proportion to the live
 heap before it collects, and on long stored stacks the measured peak came
 close to twice the bare map size. The input array is read frame by frame

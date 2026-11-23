@@ -18,12 +18,12 @@ result, and a self-test can check any installation.
 - **Select:** `mssr_mask()` derives a structural mask on the input grid for
   measuring the **original** data, and reports how much of it tie-breaking
   decided.
-- **Summarize over time:** `mssr_temporal()` reduces the per-frame maps of a
+- **Summarise over time:** `mssr_temporal()` reduces the per-frame maps of a
   frame sequence pixel by pixel (mean, variance, TPM, `Var / Mean`, SOFI).
 - **Verify:** `mssr_selftest()` recomputes bundled synthetic fixtures.
 
 > **Status: 0.3.0, prepared for a first CRAN submission.** At amplification 1 with intensity
-> normalization off, comparisons with the authors' single-frame R code (disk
+> normalisation off, comparisons with the authors' single-frame R code (disk
 > kernel, rotation undone) and Python code (square kernel) agree on the tested
 > non-degenerate examples. Engine `mssr_r_rev3` improves numerical stability;
 > the unchanged bundled synthetic fixtures guard against regressions. Its benefit for
@@ -36,7 +36,7 @@ the temporal definitions and qualification boundaries
 
 Temporal calculations scale each spatial pixel independently, so a bright pixel
 does not erase another pixel's dim but representable statistics. Extreme ratios
-within one pixel that lose nonzero intermediate values are refused explicitly;
+within one pixel that lose non-zero intermediate values are refused explicitly;
 ordinary floating-point rounding and cancellation remain possible. The explorer
 retains 17 significant digits in CSV downloads and decodes decimal uploads
 independently of base R's platform-dependent scanner. The qualification kit
@@ -52,12 +52,12 @@ MSSR is easy to run and easy to misread:
 - **"Amplification" is ambiguous.** It adds samples, not observations, and
   common interpolation grids shift the field of view.
 - **The output looks like an image of intensities, but it is not one.** MSSR is
-  nonlinear: dim structures next to bright ones are suppressed, and broad or
+  non-linear: dim structures next to bright ones are suppressed, and broad or
   touching objects can be hollowed or split.
 
 `mssrscopR` makes each of these explicit: outputs keep the input orientation,
 coordinates and the field of view are returned with the result, and every result
-is labeled as a non-quantitative structure map.
+is labelled as a non-quantitative structure map.
 
 ## Scope
 
@@ -112,7 +112,7 @@ or segmentation workflows has not been validated.
 | Function | Returns |
 |---|---|
 | `mssr(x, fwhm, amp = 1, order = 1, ...)` | `mssr_result`: `values`, `role`, `transform`, `parameters`, `engine`, `diagnostics` |
-| `mssr_coords(result)` | output pixel-center coordinates (`row`, `col`) in input-pixel units |
+| `mssr_coords(result)` | output pixel-centre coordinates (`row`, `col`) in input-pixel units |
 | `mssr_mask(result, fraction, region = NULL, seed = 1)` | logical mask on the input grid with `coverage`, `tie_fraction`, `cut_relative`, `n_region` |
 | `mssr_temporal(x, statistic, fwhm, ...)` | `mssr_result` with role `temporal_<statistic>`: a temporal statistic of the per-frame maps of a rows x columns x frames array |
 | `mssr_stack(x, fwhm, ...)` | stored per-frame maps (`mssr_stack`) for several temporal statistics |
@@ -120,7 +120,7 @@ or segmentation workflows has not been validated.
 | `mssr_app(max_upload_mb = 50, ...)` | interactive Shiny explorer (needs shiny, bslib, jsonlite, callr and digest): synthetic examples or an uploaded frame, maps on shared input-pixel axes, profiles, masks measured on the input, self-test, downloads |
 
 `fwhm` is the point-spread-function width in **input pixels** and has no
-default. An `fwhm` larger than the PSF's FWHM enlarges the neighborhood and gives
+default. An `fwhm` larger than the PSF's FWHM enlarges the neighbourhood and gives
 smoother maps with fewer fragments; choose it per data set and record it.
 Whatever the value, MSSR maps are visual aids, not a basis for segmentation or
 quantification. Errors inherit from `mssrscopR_error` (subclasses `_input`,
@@ -132,7 +132,7 @@ give a `mssrscopR_warning_skipped_steps` warning.
 Use plain integer or double inputs; explicitly classed numeric objects must be
 converted deliberately. The engine scales internally and accumulates local
 differences to reduce overflow, underflow and cancellation. It reports a numerical
-error if scaling loses a nonzero input or the final output overflows. Very small
+error if scaling loses a non-zero input or the final output overflows. Very small
 intensity-weighted outputs remain subject to subnormal rounding, including zero.
 This cannot recover precision already lost in the supplied frame.
 
@@ -141,7 +141,7 @@ order-0 structure map does not depend on it, but every refinement step
 (`order >= 1`) compares the map with the input divided by its maximum, and
 intensity weighting multiplies by the input. Subtracting a background is
 therefore a preprocessing choice that changes the map; record it with the
-result. The range normalizer adapts to the largest local difference, so even
+result. The range normaliser adapts to the largest local difference, so even
 rounding-level ripple on an otherwise flat frame is stretched to full contrast.
 
 Coordinate and mask consumers check finite values and consistent grid metadata;
@@ -215,7 +215,7 @@ v$diagnostics$mesh_index         # sub-pixel grid, on signal-free pixels only
 v$diagnostics$trend              # raw intensity, last vs first tenth of the frames
 ```
 
-The outputs are temporal statistics of nonlinear structure maps, not
+The outputs are temporal statistics of non-linear structure maps, not
 quantitative intensities, and no resolution gain is implied. Variance, `"cv"`
 and SOFI of per-frame MSSR maps, and higher MSSR orders, can show two maxima
 where there is a single emitter; sparse, dim data add maxima to every
@@ -232,7 +232,7 @@ different statistic; see `vignette("method-concordance")`.
 
 The authors distribute R, Python, MATLAB and ImageJ code at
 <https://github.com/adanog/MSSR>. `mssrscopR` is an independent implementation
-and contains none of it. At amplification 1 with intensity normalization off,
+and contains none of it. At amplification 1 with intensity normalisation off,
 comparisons agree on tested non-degenerate examples with the authors' single-frame
 R function once its final rotation is undone, and with `kernel = "square"` their
 Python function. This is a bounded numerical comparison, not a guarantee for
@@ -241,7 +241,7 @@ arithmetic at extreme intensity ranges. For flat frames and for impulses on
 an exactly zero background their R function returns `NaN` and their Python
 function returns zeros; `mssrscopR` returns flagged zeros for flat frames and
 keeps the map, counting the skipped step, for impulses. With intensity
-normalization on, their R function multiplies the rotated map by the unrotated
+normalisation on, their R function multiplies the rotated map by the unrotated
 input, so it matches `mssr()` only for frames that a 90-degree rotation leaves
 unchanged (and fails for non-square frames). Their R mesh compensation shifts
 asymmetrically (by `desp + 1` one way and `desp` the other); `mssrscopR` uses
@@ -263,7 +263,7 @@ lists it together with the package.
 
 Follows the [CTTIR contributing guide](https://github.com/CTTIR/.github/blob/main/CONTRIBUTING.md).
 
-## License
+## Licence
 
 MIT
 
@@ -353,7 +353,7 @@ if (requireNamespace("digest", quietly = TRUE) &&
 This demonstration retains the original input in memory. For a durable analysis,
 preserve it in trusted storage together with its identity, preprocessing,
 channel/frame selection, acquisition information, and mask region, fraction and
-seed. These are not stored in the `.mssr` result. Preserve the package artifact
+seed. These are not stored in the `.mssr` result. Preserve the package artefact
 and runtime environment too. `mssr_settings()` refuses records from other
 numerical engines; it does not migrate them. Matching engine/settings alone
 does not guarantee identical arithmetic across package versions or environments,
@@ -367,13 +367,13 @@ references and keeps failing cases visible. The current bounded core contains
 76 passing cases at orders 0–3; this does not establish accuracy for every
 possible input or parameter combination. Across the wider 98-case sample,
 two order-10 cases exceed the unchanged tolerance. Small perturbations can be
-strongly amplified by repeated nonlinear refinement. Orders above 3 therefore
+strongly amplified by repeated non-linear refinement. Orders above 3 therefore
 produce an explicit qualification warning and remain experimental.
 
-A small map difference does not guarantee an identical mask: near a cutoff,
+A small map difference does not guarantee an identical mask: near a cut-off,
 score perturbations can change selected pixels and measurements made on the
 original frame. A fixed retained fraction is a quota, not a detector threshold,
-probability or confidence score. Always inspect retained coverage, cutoff ties,
+probability or confidence score. Always inspect retained coverage, cut-off ties,
 parameter sensitivity and the consequences for the original-data measurement.
 
 

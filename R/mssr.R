@@ -3,14 +3,14 @@
 #' Computes the Mean-Shift Super-Resolution (MSSR) structure map of one 2D
 #' frame (Torres-Garcia et al. 2022). The result is a structural map for
 #' display, structure analysis or mask derivation. It is **not** a quantitative
-#' intensity: MSSR is nonlinear, suppresses dim structures next to bright ones
+#' intensity: MSSR is non-linear, suppresses dim structures next to bright ones
 #' and can hollow or split broad objects. Take measurements from the original
 #' data (see [mssr_mask()]).
 #'
 #' @details
 #' **Geometry.** The output keeps the input orientation. With
 #' `grid = "extent"` the amplified grid preserves the field of view: output
-#' pixel centers lie at `(k - 0.5) / amp + 0.5` input pixels, so the spacing is
+#' pixel centres lie at `(k - 0.5) / amp + 0.5` input pixels, so the spacing is
 #' exactly `1 / amp`. Amplification adds samples, not independent observations.
 #'
 #' **Relation to the authors' code.** At `amp = 1` with
@@ -23,7 +23,7 @@
 #' convolution, a = -1/2). The authors' R script interpolates with akima's Akima
 #' method and their Python script with a SciPy spline, and their R mesh shifts
 #' asymmetrically, so the amplified input already differs beyond rounding;
-#' MSSR's range normalization and refinement are nonlinear and can enlarge such
+#' MSSR's range normalisation and refinement are non-linear and can enlarge such
 #' differences locally. Do not expect pixel-wise agreement with their amplified
 #' maps, even with `grid = "endpoint"`, which reproduces their sample positions.
 #' With the default
@@ -33,7 +33,7 @@
 #'
 #' **Several channels or bands.** `mssr()` processes one 2D frame. Applied to
 #' each channel or band of multichannel or spectral data, it gives every channel
-#' its own nonlinear structure map, scaled by that channel's maxima.
+#' its own non-linear structure map, scaled by that channel's maxima.
 #' Intensity-weighted outputs (the default) are guaranteed to keep the channels'
 #' intensity ratios only when one whole frame, background included, is a scaled
 #' copy of another; a different background or another object elsewhere in the
@@ -47,7 +47,7 @@
 #' leaves no positive value (possible only with signed input) return zeros with
 #' `diagnostics$degenerate = TRUE` and a `degenerate_reason`. A refinement step
 #' (`order >= 1`) is undefined when the mean-shift map already equals the
-#' normalized input, for example for isolated impulses on an exactly zero
+#' normalised input, for example for isolated impulses on an exactly zero
 #' background. Such a step leaves the map unchanged, is counted in
 #' `diagnostics$order_steps_skipped` and gives a warning of class
 #' `mssrscopR_warning_skipped_steps`: the result is not the limit for slightly
@@ -65,16 +65,16 @@
 #' divided by its maximum, which a background changes, and intensity weighting
 #' multiplies by the input. Subtracting a background is therefore a
 #' preprocessing choice that changes the result; record it with the result.
-#' The range normalizer adapts to the largest local difference at each pixel,
+#' The range normaliser adapts to the largest local difference at each pixel,
 #' so even rounding-level ripple on an otherwise flat frame is stretched to
 #' full contrast: only an exactly flat frame is degenerate.
 #'
 #' **Numeric domain.** Input and numeric parameters must use plain integer or
 #' double storage, without explicit classes. Convert calibrated or other
 #' classed data deliberately before calling. The engine uses internal
-#' power-of-two scaling, centered interpolation for non-negative input and
+#' power-of-two scaling, centred interpolation for non-negative input and
 #' weighted local differences to limit overflow, underflow and cancellation.
-#' A nonzero input lost during scaling or an overflowing final result
+#' A non-zero input lost during scaling or an overflowing final result
 #' raises `mssrscopR_error_numerical`. Rounding already present in the supplied
 #' data cannot be recovered. Intensity-weighted output is rescaled to
 #' the original numeric units but remains non-quantitative; subnormal output
@@ -82,7 +82,7 @@
 #'
 #' **Cost.** Every order step uses image-wide maxima, so frames must be
 #' processed whole. Time grows with the number of output pixels times the
-#' number of neighborhood offsets (about `pi * h^2` for the disk kernel and
+#' number of neighbourhood offsets (about `pi * h^2` for the disk kernel and
 #' `(2 * h + 1)^2 - 1` for the square kernel, with half-size `h`, recorded in
 #' `parameters$half_size`). Calls whose
 #' estimated work exceeds 1e10 operations, whose output exceeds
@@ -100,7 +100,7 @@
 #'   size can widen the recorded PSF. Under noise an `fwhm` below the true PSF
 #'   makes false peaks more likely, while a larger one gives a shallower dip
 #'   between close sources; when unsure, choose the larger plausible value. An
-#'   `fwhm` larger than the PSF's FWHM enlarges the neighborhood and gives
+#'   `fwhm` larger than the PSF's FWHM enlarges the neighbourhood and gives
 #'   smoother maps with fewer fragments; choose it per data set and record it.
 #'   Whatever the value, MSSR maps are visual aids, not a basis for segmentation
 #'   or quantification. Only
@@ -116,9 +116,9 @@
 #'   map is multiplied by the (amplified) input.
 #' @param mesh Mesh compensation after amplification (only used if `amp > 1`).
 #' @param grid `"extent"` (field-of-view-preserving, default) or `"endpoint"`
-#'   (samples from the first to the last input pixel center, as the authors'
+#'   (samples from the first to the last input pixel centre, as the authors'
 #'   code does; for comparison only).
-#' @param kernel Neighborhood shape: `"disk"` (authors' R code) or
+#' @param kernel Neighbourhood shape: `"disk"` (authors' R code) or
 #'   `"square"` (authors' Python code).
 #' @param rounding Rounding of the kernel half-size `0.5 * fwhm * amp`:
 #'   `"half_even"` (R and Python default) or `"half_up"`.
@@ -131,11 +131,11 @@
 #' @return An object of class `mssr_result`: a list with `values` (numeric
 #'   matrix), `role` (`"structure"` or `"intensity_weighted_structure"`),
 #'   `transform`, `parameters`, `engine` and `diagnostics`. `transform` holds
-#'   `amp`, `grid`, `input_dim`, `output_dim`, the first output pixel center
+#'   `amp`, `grid`, `input_dim`, `output_dim`, the first output pixel centre
 #'   and the spacing (input-pixel units), and `field_of_view`: the input frame's
 #'   extent from pixel edge 0.5 to `n + 0.5`. Output samples cover it exactly on
 #'   the extent grid; on the endpoint grid they span only the first to the last
-#'   input pixel center. The input is not
+#'   input pixel centre. The input is not
 #'   stored. `schema_version` identifies the result contract separately from
 #'   the numerical engine; `input` records known axes and unknown calibration;
 #'   `evidence` identifies the numerical-only scope. Qualification diagnostics

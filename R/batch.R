@@ -19,7 +19,7 @@
 #' storage to the per-frame allocation estimate; it is not an OS memory cap.
 #' `workers` is deliberately absent: parallel processing remains unqualified.
 #'
-#' @param frames A nonempty named list of plain numeric matrices. Names are
+#' @param frames A non-empty named list of plain numeric matrices. Names are
 #'   unique opaque IDs containing only letters, digits, underscore or hyphen.
 #' @param output_dir Explicit directory for result files and recovery records.
 #' @param settings Named list of [mssr()] arguments, including `fwhm`; `x` and
@@ -28,7 +28,7 @@
 #' @param max_memory_bytes Positive estimated-memory budget; default 2 GiB. A
 #'   frame runs only if its [mssr_estimate_resources()] estimate plus the size of
 #'   all input frames held in `frames` fits within it.
-#' @param max_result_bytes Positive serialized-result limit; default 256 MiB.
+#' @param max_result_bytes Positive serialised-result limit; default 256 MiB.
 #' @param cancel Optional function with no arguments returning a single logical.
 #'   `TRUE` marks remaining frames cancelled without running them.
 #' @return A data frame with one row per input: ID, status, reuse flag, output

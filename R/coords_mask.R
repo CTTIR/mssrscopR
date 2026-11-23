@@ -1,7 +1,7 @@
-#' Output pixel-center coordinates
+#' Output pixel-centre coordinates
 #'
-#' Coordinates of the output pixel centers of an [mssr()] result, in input-pixel
-#' units (input pixel centers at 1..n). Use them to overlay results on the input
+#' Coordinates of the output pixel centres of an [mssr()] result, in input-pixel
+#' units (input pixel centres at 1..n). Use them to overlay results on the input
 #' grid; amplification adds samples, not independent observations.
 #'
 #' @param result An `mssr_result`.

@@ -115,7 +115,7 @@ every statistic and corrects nothing.
 Computes single-frame MSSR (\code{\link[=mssr]{mssr()}}) for every frame of an image sequence
 and reduces the stack of maps pixel by pixel with one temporal statistic, as
 in the temporal MSSR (t-MSSR) of Torres-Garcia et al. (2022, Fig. 7a and
-Supplementary Note 5.2). The output is a temporal statistic of nonlinear
+Supplementary Note 5.2). The output is a temporal statistic of non-linear
 structure maps: it is not a quantitative intensity, and no gain in
 resolution is implied (see \strong{Interpretation}). \code{mssr_stack()} stores the
 per-frame maps so that several statistics can be computed without
@@ -166,7 +166,7 @@ variance divides by \code{M - 1} except in the Python tool. See
 \code{vignette("method-concordance")}.
 
 \strong{Interpretation.} \code{"var"}, \code{"cv"} and the SOFI statistics depend on how
-the emitters blink and on the noise, and every map is a nonlinear function
+the emitters blink and on the noise, and every map is a non-linear function
 of its frame. Treat the outputs as visual aids:
 \itemize{
 \item Variance, \code{"cv"} and SOFI of per-frame MSSR maps, and higher MSSR orders,
@@ -186,21 +186,21 @@ changes) as fluctuation, so a large trend inflates them. Correct the frames
 first, and record what was done; \code{diagnostics$trend} reports the ratio of the
 raw intensity at the end and at the start of the selected frames.
 
-\strong{Computation.} Every statistic is formed from centered deviations in
+\strong{Computation.} Every statistic is formed from centred deviations in
 frame order, in a separate power-of-two scaled range for each pixel so that
 unrelated bright pixels cannot erase dim pixels' representable statistics.
 The raw temporal mean uses the same conditioning to avoid overflowing an
 intermediate sum. A nonfinite diagnostic field mean from base R is retried
 in power-of-two scaled units; finite diagnostic means are left unchanged.
 Products of up to four deviations are formed in the scaled
-range. A nonzero frame value, accumulated sum, intermediate product or
+range. A non-zero frame value, accumulated sum, intermediate product or
 quotient lost during conditioning or reduction is refused, including a series
 whose within-pixel dynamic range cannot be kept in the scaled representation.
 Global rescaling alone cannot repair such within-pixel ratios.
 This is conservative even when a rounded mean
 would remain finite; it is not a guarantee against all cancellation error.
 The scaling is undone at the end; a value
-that would exceed the numeric range, or a nonzero value that would fall
+that would exceed the numeric range, or a non-zero value that would fall
 below the smallest representable magnitude, raises
 \code{mssrscopR_error_numerical}, and very small results keep only subnormal
 precision.
