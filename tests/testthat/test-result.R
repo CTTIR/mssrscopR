@@ -213,6 +213,7 @@ test_that("plot draws whole edge pixels with square input pixels", {
   }
   # Arguments in `...` still override the defaults.
   expect_silent(plot(r, main = "custom", axes = TRUE, asp = NA))
+  expect_silent(plot(r, main = NULL, xlab = "x", col = grDevices::gray.colors(8)))
 })
 
 test_that("plot titles name the role in words", {

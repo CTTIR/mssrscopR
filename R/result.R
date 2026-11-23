@@ -374,7 +374,9 @@ plot.mssr_result <- function(x, ...) {
     do.call(graphics::image, args)
     return(invisible(x))
   }
-  labels <- args[c("xlab", "ylab", "main")]
+  labels <- lapply(c(xlab = "xlab", ylab = "ylab", main = "main"), function(name) {
+    if (is.null(args[[name]])) "" else args[[name]]
+  })
   args[c("xlab", "ylab", "main")] <- list("", "", "")
   do.call(graphics::image, c(args, list(axes = FALSE)))
   image_annotate(xlim, ylim, labels$xlab, labels$ylab, labels$main, main_line = 1,
