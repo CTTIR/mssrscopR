@@ -134,8 +134,12 @@ SEXP mssr_neighborhood_c(SEXP x_, SEXP di_, SEXP dj_, SEXP hs_) {
     }
   }
 
-  /* Pass 2: spatial x range weights; a zero normalizer divides by 1, where
-   * every difference is zero and the ratio is the defined value 0. */
+  /* Pass 2: spatial x range weights exp(-|k|^2 / h_s^2) * exp(-(delta / h_r)^2),
+   * the Gaussian profile of Supplementary Eqs. S21, S22 and S25 (pp.8-9) of
+   * Torres-Garcia et al. (2022), doi:10.1038/s41467-022-34693-9, with the
+   * adaptive range bandwidth h_r = range_max (p.17). A zero normalizer
+   * divides by 1, where every difference is zero and the ratio is the defined
+   * value 0. */
   const double hs2 = hs * hs;
   for (int k = 0; k < nk; k++) {
     const int *row = rows + (size_t) (di[k] + h) * (size_t) nr;

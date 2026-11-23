@@ -26,7 +26,14 @@
 # implementation. The R passes are kept as the reference
 # (`implementation = "r"`) and the test suite compares the two.
 
-# Kernel half-size; the authors' R and Python code round halves to even.
+# Literature references below are to the Supplementary Information of
+# Torres-Garcia et al. (2022), doi:10.1038/s41467-022-34693-9 (69-page PDF,
+# SHA-256 a48d0507...583e2, see tools/qualification/METHOD_CONCORDANCE.md).
+
+# Kernel half-size h_s = FWHM / 2, here in amplified pixels (Supplementary
+# Information p.18 and Fig. S8: "h_s is defined as the half of the full width at
+# half maximum (FWHM) of the PSF"). The authors' R and Python code round halves
+# to even.
 mssr_half_size <- function(fwhm, amp, rounding) {
   x <- 0.5 * fwhm * amp
   hs <- if (rounding == "half_even") round(x) else floor(x + 0.5)
@@ -43,7 +50,11 @@ mssr_reflect <- function(idx, n) {
   as.integer(ifelse(m < n, m + 1L, p - m))
 }
 
-# Keys cubic convolution kernel, a = -0.5.
+# Cubic convolution kernel of Supplementary Eq. S51 (p.26) with the smoothing
+# parameter c = 1/2 given there; this is the Keys kernel with a = -c = -0.5
+# (Keys 1981, IEEE Trans. Acoust. Speech Signal Process. 29:1153-1160,
+# doi:10.1109/TASSP.1981.1163711). Eq. S50 (p.26) applies it as a separable
+# product over the 4 x 4 nearest input pixels.
 mssr_keys <- function(s, a = -0.5) {
   s <- abs(s)
   ifelse(s <= 1, (a + 2) * s^3 - (a + 3) * s^2 + 1,
@@ -93,7 +104,10 @@ mssr_shifter <- function(nr, nc) {
   }
 }
 
-# Mesh compensation: mean of the image and four symmetric shifts.
+# Mesh compensation (Supplementary Note 6.1.2, p.27, and Fig. S17, p.28): mean
+# of the image and four shifts, two along each axis, by half the amplification.
+# The caller passes desp = ceiling(amp / 2) so that the shift is a whole number
+# of pixels for odd `amp` (package convention).
 mssr_mesh <- function(img, desp) {
   shift <- mssr_shifter(nrow(img), ncol(img))
   (img + shift(img, -desp, 0) + shift(img, desp, 0) +
@@ -129,7 +143,9 @@ mssr_block_mean <- function(img, amp) {
   (out / amp^2) * scale
 }
 
-# Neighborhood offsets (i fastest, as in the reference definition).
+# Neighborhood offsets (i fastest, as in the reference definition). The disk is
+# the punctured spatial neighborhood 0 < ||offset|| <= h_s of Supplementary
+# Eq. S17 (p.8); the square is the support of the authors' Python code.
 mssr_offsets <- function(hs, kernel) {
   offs <- expand.grid(i = -hs:hs, j = -hs:hs)
   offs <- offs[!(offs$i == 0 & offs$j == 0), ]
@@ -147,8 +163,12 @@ mssr_neighborhood_r <- function(img, offs, hs) {
     d <- abs(img - shift(img, offs$i[k], offs$j[k]))
     range_max <- if (is.null(range_max)) d else pmax(range_max, d)
   }
-  # Pass 2: spatial x range weights. Where range_max is zero every difference
-  # is zero, so dividing by 1 there gives the defined ratio 0.
+  # Pass 2: spatial x range weights g(||offset / h_s||^2) * g((delta / h_r)^2)
+  # with the Gaussian profile g(t) = exp(-t) (Supplementary Eqs. S21, S22 and
+  # S25, pp.8-9) and the adaptive range bandwidth h_r = range_max, the largest
+  # difference between the center and its neighbors (p.17 and Fig. S7c,
+  # p.18). Where range_max is zero every difference is zero, so dividing by 1
+  # there gives the defined ratio 0.
   divisor <- range_max
   divisor[range_max == 0] <- 1
   weight_sum <- difference_sum <- matrix(0, nrow(img), ncol(img))
@@ -222,7 +242,9 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
   finite(passes$difference_sum)
   finite(passes$weight_sum)
   # This is algebraically amplified - weighted_mean(neighbors), without
-  # subtracting two almost equal intensities.
+  # subtracting two almost equal intensities: the negative of the mean shift
+  # MS = SM - I (Supplementary Eqs. S26-S29, pp.9-10), that is MSSR = -MS with
+  # negative values set to zero (Eq. S48, p.17).
   mean_shift <- passes$difference_sum / passes$weight_sum
   rm(passes)
   finite(mean_shift)
@@ -234,6 +256,10 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
   x3 <- amplified / max(amplified)
   finite(x3)
   skipped <- 0L
+  # Higher orders (Supplementary Note 5.1.2 and Fig. S11, p.21): the difference
+  # between the normalized input and the current map, its complement normalized
+  # to 1, weighted by the current map and normalized again; each order starts
+  # from the previous map.
   for (k in seq_len(order)) {
     i4 <- x3 - i3
     i5 <- max(i4) - i4
@@ -253,6 +279,8 @@ mssr_engine <- function(img, amp, fwhm, order, int_norm, mesh, grid, kernel, rou
     i3 <- i6 / max(i6)
   }
   values <- i3
+  # Optional intensity normalization: pixel-wise product of the map (scaled to
+  # 0..1) and the magnified input (Supplementary Information p.60).
   if (int_norm) {
     if (scale >= 1) {
       # Rescale before weighting where the amplified value is representable.
