@@ -8,7 +8,7 @@ grid and derive masks for measuring the original data.
 - [`mssr()`](https://cttir.github.io/mssrscopR/reference/mssr.md) :
   Single-frame Mean-Shift Super-Resolution
 - [`mssr_coords()`](https://cttir.github.io/mssrscopR/reference/mssr_coords.md)
-  : Output pixel-center coordinates
+  : Output pixel-centre coordinates
 - [`mssr_mask()`](https://cttir.github.io/mssrscopR/reference/mssr_mask.md)
   : Structural mask on the input grid
 
@@ -23,7 +23,7 @@ Reduce the per-frame maps of a frame sequence pixel by pixel.
 ## Validation
 
 Check the installation against the bundled fixtures, and validate,
-summarize and plot results.
+summarise and plot results.
 
 - [`mssr_selftest()`](https://cttir.github.io/mssrscopR/reference/mssr_selftest.md)
   : Check the engine against the bundled synthetic fixtures

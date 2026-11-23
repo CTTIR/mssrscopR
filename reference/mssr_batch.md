@@ -26,7 +26,7 @@ mssr_batch(
 
 - frames:
 
-  A nonempty named list of plain numeric matrices. Names are unique
+  A non-empty named list of plain numeric matrices. Names are unique
   opaque IDs containing only letters, digits, underscore or hyphen.
 
 - output_dir:
@@ -54,7 +54,7 @@ mssr_batch(
 
 - max_result_bytes:
 
-  Positive serialized-result limit; default 256 MiB.
+  Positive serialised-result limit; default 256 MiB.
 
 - cancel:
 

@@ -27,8 +27,8 @@
   overflow merely because their intermediate sum does. The existing
   statistical definitions and result schemas are unchanged.
 
-- Numerical errors now identify lost nonzero contributions, products and
-  averages within a pixel. Such extreme dynamic ranges are refused
+- Numerical errors now identify lost non-zero contributions, products
+  and averages within a pixel. Such extreme dynamic ranges are refused
   rather than silently returning zero; this is not an exact-arithmetic
   guarantee. The temporal allocation estimate includes the additional
   work arrays.
@@ -36,7 +36,7 @@
 - The explorer exports 17 significant decimal digits and imports numeric
   fields without the platform-dependent base R decimal scanner. Signed
   profiles retain negative values and accurately label their
-  normalization. Numbers-only text imports explicitly reject comment
+  normalisation. Numbers-only text imports explicitly reject comment
   rows.
 
 - The portable qualification kit transports matrices as explicit
@@ -64,6 +64,11 @@
   quotes only software names; the engine source cites the supplementary
   equations and pages behind its constants and formulas; the reference
   groups of the website have short descriptions.
+
+- The documentation uses British English (`Language: en-GB`).
+
+- The README citation block also gives the package entry of
+  `citation("mssrscopR")`, naming the author as R. Heller.
 
 ## mssrscopR 0.2.0
 

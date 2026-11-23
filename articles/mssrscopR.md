@@ -57,7 +57,7 @@ res$transform$spacing
 ```
 
 How far does the separation go? Compare the value at the midpoint
-between the two sources with the value at a source center, in the input
+between the two sources with the value at a source centre, in the input
 and in the MSSR map (values below 1 mean a dip between the sources):
 
 ``` r
@@ -85,7 +85,7 @@ At 3 px the input shows only a shallow dip, which MSSR deepens strongly.
 At 2.6 px the input pixels have a single maximum, between the sources,
 yet MSSR returns two peaks with a clear dip (ratio below 1): it can
 separate sources that the pixels show merged. Its peaks move toward each
-other, so a ratio taken at the source centers can stay above 1 although
+other, so a ratio taken at the source centres can stay above 1 although
 two peaks exist. The peak positions along row 16 show this directly
 (true sources at 18 and 18 + separation):
 
@@ -117,7 +117,7 @@ separation near this limit.
 
 ## Known failure modes
 
-MSSR is nonlinear. A dim structure next to a bright one is strongly
+MSSR is non-linear. A dim structure next to a bright one is strongly
 suppressed, and broad filled objects can be hollowed or fragmented:
 
 ``` r
@@ -144,8 +144,8 @@ map.](mssrscopR_files/figure-html/failures-1.png)
 par(op)
 ```
 
-Extended objects are emphasized at their edges: the filled disk becomes
-a ring with a zero center, so segment filled objects such as nuclei on
+Extended objects are emphasised at their edges: the filled disk becomes
+a ring with a zero centre, so segment filled objects such as nuclei on
 the original data. A rod three FWHM long becomes two peaks near its
 ends, with a lower interior:
 
@@ -163,7 +163,7 @@ legend("topright", c("mssr", "input (scaled)"), lty = 1:2, bty = "n")
 ```
 
 ![A horizontal profile compares the MSSR map of a rod with its scaled
-input profile; MSSR emphasizes two end peaks over the
+input profile; MSSR emphasises two end peaks over the
 interior.](mssrscopR_files/figure-html/rod-1.png)
 
 ``` r
@@ -257,7 +257,7 @@ task.
 ## Degenerate input and unsupported requests
 
 Flat frames return zeros flagged as degenerate. Requests the package
-cannot honor fail with classed errors:
+cannot honour fail with classed errors:
 
 ``` r
 
@@ -353,8 +353,8 @@ of close sources, so choose the larger plausible value when unsure. Only
 the kernel half-size in `parameters$half_size` enters the computation,
 so compare settings that change it. Fix preprocessing, channel
 selection, frame boundaries and parameter-selection rules before
-evaluating outcomes. Cropping changes the neighborhood context and
-global normalizers, so a cropped reconstruction need not equal a crop of
+evaluating outcomes. Cropping changes the neighbourhood context and
+global normalisers, so a cropped reconstruction need not equal a crop of
 the full-frame result. Background subtraction is a distinct
 preprocessing decision.
 
@@ -364,7 +364,7 @@ qualification warning: the expanded independent reference suite found
 sensitive high-order failures. The bounded passing domain is evidence
 about the tested scenes, not a guarantee for an arbitrary noisy
 acquisition. Review broad-object hollowing/splitting, missing dim
-structures and blank/noise-only fields alongside favorable examples.
+structures and blank/noise-only fields alongside favourable examples.
 
 ``` r
 
@@ -488,7 +488,7 @@ if (requireNamespace("digest", quietly = TRUE) &&
 }
 ```
 
-Preserve the package artifact and runtime environment with a durable
+Preserve the package artefact and runtime environment with a durable
 analysis, for example by retaining
 [`sessionInfo()`](https://rdrr.io/r/utils/sessionInfo.html) output. The
 helper refuses results from a different numerical engine and does not

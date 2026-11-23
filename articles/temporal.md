@@ -120,7 +120,7 @@ mean.
 
 ## Reading the outputs
 
-The outputs are temporal statistics of nonlinear structure maps. They
+The outputs are temporal statistics of non-linear structure maps. They
 are not quantitative intensities, and no resolution gain is implied:
 
 - Variance, `"cv"` and SOFI of per-frame MSSR maps, and higher MSSR

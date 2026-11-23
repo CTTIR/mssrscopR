@@ -1,8 +1,8 @@
-# Output pixel-center coordinates
+# Output pixel-centre coordinates
 
-Coordinates of the output pixel centers of an
+Coordinates of the output pixel centres of an
 [`mssr()`](https://cttir.github.io/mssrscopR/reference/mssr.md) result,
-in input-pixel units (input pixel centers at 1..n). Use them to overlay
+in input-pixel units (input pixel centres at 1..n). Use them to overlay
 results on the input grid; amplification adds samples, not independent
 observations.
 
