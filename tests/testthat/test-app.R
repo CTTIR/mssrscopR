@@ -432,6 +432,10 @@ test_that("the self-test runs on request", {
     expect_true(attr(selftest(), "all_passed"))
     expect_match(output$selftest_status$html, "14 of 14 fixtures passed.", fixed = TRUE)
     expect_match(output$selftest_table, "fx01", fixed = TRUE)
+    # The verdict column follows the fixture name, so narrow layouts keep it.
+    headers <- regmatches(output$selftest_table,
+                          gregexpr("<th[^>]*>[^<]*</th>", output$selftest_table))[[1]]
+    expect_identical(trimws(gsub("<[^>]+>", "", headers[1:2])), c("fixture_id", "passed"))
   })
 })
 

@@ -1162,7 +1162,8 @@ mssr_app_ui <- function() {
                        "validation of the method.")),
         shiny::div(shiny::actionButton("selftest", "Run self-test", class = "btn-primary")),
         shiny::div(role = "status", `aria-live` = "polite", shiny::uiOutput("selftest_status")),
-        shiny::tableOutput("selftest_table")
+        # Scrolls sideways in narrow layouts instead of clipping the last columns.
+        shiny::div(style = "overflow-x: auto;", shiny::tableOutput("selftest_table"))
       ),
       bslib::nav_panel("About", mssr_app_about())
     )
@@ -1518,7 +1519,8 @@ mssr_app_server <- function(input, output, session) {
   output$selftest_table <- shiny::renderTable({
     st <- selftest()
     st$max_abs_error <- sprintf("%.2e", st$max_abs_error)
-    st
+    # The verdict comes right after the fixture name, where it is always visible.
+    st[c("fixture_id", "passed", setdiff(names(st), c("fixture_id", "passed")))]
   })
 
   output$dl_values <- shiny::downloadHandler(
