@@ -752,18 +752,14 @@ mssr_app_par <- function(dark, mfrow = c(1, 1)) {
 }
 
 # Image on input-pixel axes with row 1 at the top. No box: with asp = 1 the
-# plot region is usually larger than the image.
+# plot region is usually larger than the image, so image_annotate() draws the
+# axes, their titles and the panel title at the image edges.
 mssr_app_image <- function(m, rows, cols, input_dim, palette, main) {
+  xlim <- c(0.5, input_dim[2] + 0.5)
+  ylim <- c(input_dim[1] + 0.5, 0.5)
   graphics::image(cols, rows, t(m), col = palette, useRaster = TRUE, asp = 1, axes = FALSE,
-                  xlim = c(0.5, input_dim[2] + 0.5), ylim = c(input_dim[1] + 0.5, 0.5),
-                  xlab = "column (input px)", ylab = "row (input px)", main = main)
-  # Ticks only within the frame; asp = 1 can widen the axis range far beyond it.
-  ticks <- function(n) {
-    at <- pretty(c(1, n))
-    at[at >= 1 & at <= n]
-  }
-  graphics::axis(1, at = ticks(input_dim[2]))
-  graphics::axis(2, at = ticks(input_dim[1]), las = 1)
+                  xlim = xlim, ylim = ylim, xlab = "", ylab = "", main = "")
+  image_annotate(xlim, ylim, "column (input px)", "row (input px)", main)
 }
 
 mssr_app_figure_caption <- function(res, run_id) {
@@ -1420,7 +1416,8 @@ mssr_app_server <- function(input, output, session) {
     r <- run()
     mssr_app_plot_maps(r$x, r$result, mssr_app_or(input$palette, "gray"), dark(), guide(),
                        stacked = narrow())
-  }, height = function() if (narrow()) 760 else 440, bg = "transparent", alt = function() {
+  }, height = function() if (narrow()) 760 else 440, res = 96, bg = "transparent",
+  alt = function() {
     r <- run()
     sprintf(paste("Original %d by %d frame and %s map on shared input-pixel coordinates.",
                   "Computed amplification %d and order %d. Numeric summary follows the plot."),
@@ -1437,7 +1434,7 @@ mssr_app_server <- function(input, output, session) {
     r <- run()
     g <- guide()
     mssr_app_plot_profile(r$x, r$result, g$axis, g$index, dark())
-  }, bg = "transparent", alt = function() {
+  }, res = 96, bg = "transparent", alt = function() {
     g <- guide()
     pr <- mssr_app_profile(run()$x, run()$result, g$axis, g$index)
     sprintf(paste("Input and MSSR profiles along input %s %d. Input: %s. MSSR: %s.",
@@ -1490,7 +1487,7 @@ mssr_app_server <- function(input, output, session) {
 
   output$mask_plot <- shiny::renderPlot({
     mssr_app_plot_mask(run()$x, mask()$mask, dark())
-  }, bg = "transparent", alt = function() {
+  }, res = 96, bg = "transparent", alt = function() {
     sprintf(paste("MSSR quota mask on original data: %d of %d pixels selected.",
                   "Coverage, tie diagnostics and original-input means are in the adjacent table."),
             sum(mask()$mask), length(mask()$mask))
