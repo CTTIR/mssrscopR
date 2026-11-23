@@ -71,7 +71,7 @@ test_that("mssr() commutes with transposing and flipping the frame", {
       reference <- map(img)
       scale <- max(abs(reference))
       expect_lte(max(abs(map(t(img)) - t(reference))) / scale, 1e-12)
-      flipped <- map(img[nrow(img):1, ])
+      flipped <- map(img[rev(seq_len(nrow(img))), ])
       expect_lte(max(abs(flipped - reference[rev(seq_len(nrow(reference))), ])) / scale, 1e-12)
     }
   }
