@@ -4,8 +4,9 @@
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/CTTIR/mssrscopR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/CTTIR/mssrscopR/actions/workflows/R-CMD-check.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24426376.svg)](https://doi.org/10.5281/zenodo.24426376)
 <!-- badges: end -->
+
+Zenodo DOI reserved for the release: `10.5281/zenodo.24426376` (not yet published).
 
 `mssrscopR` computes single-frame Mean-Shift Super-Resolution (MSSR;
 Torres-García et al. 2022) structure maps in R, and temporal statistics of them
