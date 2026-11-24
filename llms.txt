@@ -1,5 +1,8 @@
 # mssrscopR ![mssrscopR logo](reference/figures/logo-with-name.png)
 
+Zenodo DOI reserved for the release: `10.5281/zenodo.24426376` (not yet
+published).
+
 `mssrscopR` computes single-frame Mean-Shift Super-Resolution (MSSR;
 Torres-García et al. 2022) structure maps in R, and temporal statistics
 of them over frame sequences. Geometry is explicit, degenerate input has
